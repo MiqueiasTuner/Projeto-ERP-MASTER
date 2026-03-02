@@ -1,0 +1,371 @@
+
+import React, { useState } from 'react';
+import { 
+  Users, Plus, Shield, Trash2, Edit, UserPlus, Mail, 
+  Briefcase, UserCircle, Key, Check, X, ShieldAlert, Building2
+} from 'lucide-react';
+import { UserAccount, UserRole, Team, UserPermissions, PermissionAction, PermissionModule } from '../types';
+
+interface TeamsPageProps {
+  currentUser: UserAccount;
+  users: UserAccount[];
+  setUsers: React.Dispatch<React.SetStateAction<UserAccount[]>>;
+  teams: Team[];
+  setTeams: React.Dispatch<React.SetStateAction<Team[]>>;
+}
+
+const DEFAULT_COLLAB_PERMISSIONS: UserPermissions = {
+  properties: ['view'],
+  inventory: ['view'],
+  finances: [],
+  teams: [],
+  reports: ['view']
+};
+
+const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageProps) => {
+  const [activeTab, setActiveTab] = useState<'users' | 'teams'>('users');
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [isPermModalOpen, setIsPermModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
+
+  const isMaster = currentUser.role === UserRole.MASTER;
+
+  const addUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isMaster) return;
+    const form = e.target as HTMLFormElement;
+    const role = (form.elements.namedItem('role') as HTMLSelectElement).value as UserRole;
+    
+    const newUser: UserAccount = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: (form.elements.namedItem('name') as HTMLInputElement).value,
+      email: (form.elements.namedItem('email') as HTMLInputElement).value,
+      role: role,
+      teamId: (form.elements.namedItem('teamId') as HTMLSelectElement).value || undefined,
+      active: true,
+      permissions: role === UserRole.MASTER ? {
+        properties: ['view', 'edit', 'delete'],
+        inventory: ['view', 'edit', 'delete'],
+        finances: ['view', 'edit', 'delete'],
+        teams: ['view', 'edit', 'delete'],
+        reports: ['view', 'edit', 'delete']
+      } : { ...DEFAULT_COLLAB_PERMISSIONS }
+    };
+    setUsers([...users, newUser]);
+    setIsUserModalOpen(false);
+  };
+
+  const addTeam = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isMaster) return;
+    const form = e.target as HTMLFormElement;
+    
+    const newTeam: Team = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: (form.elements.namedItem('teamName') as HTMLInputElement).value,
+      description: (form.elements.namedItem('teamDescription') as HTMLInputElement).value,
+    };
+    setTeams([...teams, newTeam]);
+    setIsTeamModalOpen(false);
+  };
+
+  const deleteTeam = (id: string) => {
+    if (!isMaster) return;
+    const usersInTeam = users.filter(u => u.teamId === id);
+    if (usersInTeam.length > 0) {
+      alert(`Não é possível excluir: existem ${usersInTeam.length} usuários vinculados a este departamento.`);
+      return;
+    }
+    if (confirm('Deseja excluir este departamento?')) {
+      setTeams(prev => prev.filter(t => t.id !== id));
+    }
+  };
+
+  const togglePermission = (module: PermissionModule, action: PermissionAction) => {
+    if (!selectedUser || !selectedUser.permissions) return;
+    const currentPerms = selectedUser.permissions[module] || [];
+    const newPerms = currentPerms.includes(action)
+      ? currentPerms.filter(a => a !== action)
+      : [...currentPerms, action];
+
+    const updatedUser = {
+      ...selectedUser,
+      permissions: {
+        ...selectedUser.permissions,
+        [module]: newPerms
+      }
+    };
+    setSelectedUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Equipe e Acessos</h2>
+          <p className="text-slate-500 font-medium">Controle de governança e estrutura organizacional.</p>
+        </div>
+        <div className="flex gap-4">
+          {isMaster && (
+            <>
+              {activeTab === 'users' ? (
+                <button 
+                  onClick={() => setIsUserModalOpen(true)}
+                  className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black text-sm hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20 flex items-center gap-3"
+                >
+                  <UserPlus size={20} strokeWidth={3} /> <span>Novo Acesso</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsTeamModalOpen(true)}
+                  className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black text-sm hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20 flex items-center gap-3"
+                >
+                  <Plus size={20} strokeWidth={3} /> <span>Novo Departamento</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex border-b border-slate-200">
+        <button 
+          onClick={() => setActiveTab('users')}
+          className={`px-10 py-5 text-xs font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'users' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400'}`}
+        >
+          Usuários
+        </button>
+        <button 
+          onClick={() => setActiveTab('teams')}
+          className={`px-10 py-5 text-xs font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'teams' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400'}`}
+        >
+          Departamentos
+        </button>
+      </div>
+
+      {activeTab === 'users' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {users.map(u => {
+            const team = teams.find(t => t.id === u.teamId);
+            return (
+              <div key={u.id} className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm group hover:shadow-2xl hover:-translate-y-1.5 transition-all">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shadow-inner">
+                    <UserCircle size={36} />
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    {isMaster && u.role !== UserRole.MASTER && (
+                      <button 
+                        onClick={() => { setSelectedUser(u); setIsPermModalOpen(true); }}
+                        className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl"
+                        title="Gerenciar Permissões"
+                      >
+                        <Key size={18} />
+                      </button>
+                    )}
+                    {isMaster && u.id !== currentUser.id && (
+                      <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl"><Trash2 size={18} /></button>
+                    )}
+                  </div>
+                </div>
+                <h3 className="font-black text-slate-900 text-xl mb-1 tracking-tight">{u.name}</h3>
+                <p className="text-xs font-bold text-slate-400 mb-4">{u.email}</p>
+                {team && (
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-xl inline-block border border-blue-100">
+                    {team.name}
+                  </p>
+                )}
+                
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-50">
+                  <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${u.role === UserRole.MASTER ? 'bg-amber-100 text-amber-700' : 'bg-slate-900 text-white'}`}>
+                    {u.role}
+                  </span>
+                  <div className="flex -space-x-2">
+                    {u.permissions && Object.keys(u.permissions).map(mod => (
+                      u.permissions[mod as PermissionModule]?.length > 0 && (
+                        <div key={mod} className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm" title={mod} />
+                      )
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {activeTab === 'teams' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {teams.map(t => {
+            const memberCount = users.filter(u => u.teamId === t.id).length;
+            return (
+              <div key={t.id} className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm group hover:shadow-2xl hover:-translate-y-1.5 transition-all">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-16 h-16 rounded-[24px] bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <Building2 size={36} />
+                  </div>
+                  {isMaster && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl"><Edit size={18} /></button>
+                      <button onClick={() => deleteTeam(t.id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl"><Trash2 size={18} /></button>
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-black text-slate-900 text-xl mb-2 tracking-tight">{t.name}</h3>
+                <p className="text-xs font-bold text-slate-400 min-h-[32px] line-clamp-2">{t.description}</p>
+                <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                  <div className="flex items-center text-slate-900 gap-2">
+                    <Users size={16} className="text-blue-500" />
+                    <span className="text-xs font-black">{memberCount} {memberCount === 1 ? 'Membro' : 'Membros'}</span>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-xl">Ativo</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal de Permissões */}
+      {isPermModalOpen && selectedUser && selectedUser.permissions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-10 bg-slate-900 text-white flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-600 rounded-2xl">
+                  <Shield size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black tracking-tight">Privilégios: {selectedUser.name}</h3>
+                  <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Controle de Segurança ERP</p>
+                </div>
+              </div>
+              <button onClick={() => setIsPermModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={24} /></button>
+            </div>
+            
+            <div className="p-10">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                    <th className="py-5">Módulo</th>
+                    <th className="py-5 text-center">Visualizar</th>
+                    <th className="py-5 text-center">Editar/Criar</th>
+                    <th className="py-5 text-center">Excluir</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {([
+                    { id: 'properties', label: 'Ativos Imobiliários' },
+                    { id: 'inventory', label: 'Gestão de Estoque' },
+                    { id: 'finances', label: 'Engenharia Financeira' },
+                    { id: 'teams', label: 'Governança/Equipe' },
+                    { id: 'reports', label: 'Business Intelligence' }
+                  ] as const).map(mod => (
+                    <tr key={mod.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-5 font-black text-slate-800 text-sm tracking-tight">{mod.label}</td>
+                      {(['view', 'edit', 'delete'] as const).map(act => (
+                        <td key={act} className="py-5 text-center">
+                          <button 
+                            onClick={() => togglePermission(mod.id, act)}
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center mx-auto transition-all ${
+                              selectedUser.permissions[mod.id]?.includes(act) 
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                                : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                            }`}
+                          >
+                            <Check size={18} strokeWidth={4} />
+                          </button>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="mt-12 flex justify-end">
+                <button 
+                  onClick={() => setIsPermModalOpen(false)}
+                  className="bg-slate-900 text-white px-12 py-4 rounded-[20px] font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-slate-800 transition-all"
+                >
+                  Confirmar Acessos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Novo Usuário */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+          <form onSubmit={addUser} className="bg-white rounded-[40px] shadow-2xl w-full max-w-md p-10 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-10">
+              <h3 className="text-2xl font-black tracking-tight">Novo Acesso</h3>
+              <button type="button" onClick={() => setIsUserModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600"><X size={24} /></button>
+            </div>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Nome Completo</label>
+                <input required name="name" type="text" placeholder="Ex: Miqueias Silva" className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">E-mail Corporativo</label>
+                <input required name="email" type="email" placeholder="nome@masterimoveis.com.br" className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Nível de Acesso</label>
+                <select name="role" className={inputClass}>
+                  <option value={UserRole.COLABORADOR}>Colaborador</option>
+                  <option value={UserRole.MASTER}>Master (Admin)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Departamento / Time</label>
+                <select name="teamId" className={inputClass}>
+                  <option value="">Nenhum</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-4 mt-12">
+              <button type="button" onClick={() => setIsUserModalOpen(false)} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
+              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">Criar Acesso</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal Novo Departamento */}
+      {isTeamModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+          <form onSubmit={addTeam} className="bg-white rounded-[40px] shadow-2xl w-full max-w-md p-10 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-10">
+              <h3 className="text-2xl font-black tracking-tight">Novo Departamento</h3>
+              <button type="button" onClick={() => setIsTeamModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600"><X size={24} /></button>
+            </div>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Identificação do Time</label>
+                <input required name="teamName" type="text" placeholder="Ex: Engenharia e Obras" className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Descrição Curta</label>
+                <input required name="teamDescription" type="text" placeholder="Ex: Responsável pelas reformas e vistorias" className={inputClass} />
+              </div>
+            </div>
+            <div className="flex gap-4 mt-12">
+              <button type="button" onClick={() => setIsTeamModalOpen(false)} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
+              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">Criar Departamento</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TeamsPage;
