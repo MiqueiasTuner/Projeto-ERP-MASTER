@@ -203,6 +203,9 @@ const PropertyForm = ({ properties, onSave }: { properties?: Property[], onSave:
             <div><label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest ml-1">Status Operacional</label><div className="relative"><select className={selectClass} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>{Object.values(PropertyStatus).map(s => <option key={s} value={s}>{s}</option>)}</select></div></div>
             <InputField label="Cidade" path="city" type="text" placeholder="Ex: São Paulo" value={formData.city} onChange={handleChange} />
             <InputField label="Bairro ou Condomínio" path="neighborhood" type="text" placeholder="Ex: Moema" value={formData.neighborhood} onChange={handleChange} />
+            <InputField label="Bairro/Condom2" path="neighborhood2" type="text" placeholder="Ex: Complemento..." value={formData.neighborhood2} onChange={handleChange} />
+            <InputField label="Nome do Condomínio" path="condoName" type="text" placeholder="Ex: Ed. Solar..." value={formData.condoName} onChange={handleChange} />
+            <InputField label="Imobiliária" path="realEstateAgency" type="text" placeholder="Ex: Lopes..." value={formData.realEstateAgency} onChange={handleChange} />
             <InputField label="Endereço" path="address" type="text" placeholder="Av. das Nações..." value={formData.address} onChange={handleChange} fullWidth />
             <InputField label="Área Privativa (m²)" path="sizeM2" type="number" value={formData.sizeM2} onChange={handleChange} />
             <InputField label="Data do Arremate" path="acquisitionDate" type="date" value={formData.acquisitionDate} onChange={handleChange} />
@@ -232,6 +235,21 @@ const PropertyForm = ({ properties, onSave }: { properties?: Property[], onSave:
             <InputField label="Escritura" path="legalEscritura" type="currency" prefix="R$" value={formData.legalEscritura} onChange={handleChange} />
             <InputField label="ITBI" path="legalItbi" type="currency" prefix="R$" value={formData.legalItbi} onChange={handleChange} />
             <InputField label="Registro" path="legalTaxasRegistro" type="currency" prefix="R$" value={formData.legalTaxasRegistro} onChange={handleChange} />
+            <InputField label="Certidões" path="legalCertidoes" type="currency" prefix="R$" value={formData.legalCertidoes} onChange={handleChange} />
+            <InputField label="Impostos" path="taxes" type="currency" prefix="R$" value={formData.taxes} onChange={handleChange} />
+          </div>
+        </section>
+
+        {/* DESPESAS RECORRENTES */}
+        <section className="bg-white p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border border-slate-200 shadow-sm space-y-8">
+          <div className="flex items-center space-x-3 text-blue-600 border-b border-slate-50 pb-4">
+            <div className="p-2.5 bg-blue-50 rounded-2xl"><Landmark size={20} strokeWidth={2.5} /></div>
+            <h3 className="font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs">Despesas Recorrentes (Pré-Venda)</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+            <InputField label="Desp. Condomínio" path="expenseCondo" type="currency" prefix="R$" value={formData.expenseCondo} onChange={handleChange} />
+            <InputField label="Desp. IPTU" path="expenseIptu" type="currency" prefix="R$" value={formData.expenseIptu} onChange={handleChange} />
+            <InputField label="IPTU/Cond. Pós-Arremate" path="expensePostAcquisition" type="currency" prefix="R$" value={formData.expensePostAcquisition} onChange={handleChange} />
           </div>
         </section>
 
@@ -241,11 +259,14 @@ const PropertyForm = ({ properties, onSave }: { properties?: Property[], onSave:
             <div className="p-2.5 bg-blue-50 rounded-2xl"><HardHat size={20} strokeWidth={2.5} /></div>
             <h3 className="font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs">Obra e Projeção</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
             <InputField label="Budget Obra" path="budgetReforma" type="currency" prefix="R$" value={formData.budgetReforma} onChange={handleChange} />
+            <InputField label="Materiais Reforma" path="expenseMaterials" type="currency" prefix="R$" value={formData.expenseMaterials} onChange={handleChange} />
             <InputField label="Alvo de Venda" path="salePrice" type="currency" prefix="R$" value={formData.salePrice} onChange={handleChange} />
+            <InputField label="Data da Venda" path="saleDate" type="date" value={formData.saleDate} onChange={handleChange} />
             <InputField label="Corretagem" path="brokerage" type="currency" prefix="R$" value={formData.brokerage} onChange={handleChange} />
             <InputField label="Taxas Venda" path="salesTax" type="currency" prefix="R$" value={formData.salesTax} onChange={handleChange} />
+            <InputField label="Outros Custos" path="otherCosts" type="currency" prefix="R$" value={formData.otherCosts} onChange={handleChange} />
           </div>
         </section>
 

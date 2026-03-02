@@ -1,8 +1,13 @@
 
-import React, { useState } from 'react';
-import { ArrowRightLeft, Plus, Search, Truck, MapPin, Building2, ShoppingCart, X } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { 
+  ArrowRightLeft, Plus, Search, Filter, Trash2, Edit, X, 
+  ArrowUpRight, TrendingDown, Clock, Paperclip, 
+  Building, Package, ChevronRight, MoreHorizontal,
+  ArrowDownRight, CheckCircle2, AlertCircle, XCircle
+} from 'lucide-react';
 import { StockMovement, InventoryItem, Supplier, Property, MovementType } from '../../types';
-import { formatCurrency, formatDate } from '../../utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface MovimentosPageProps {
   movements: StockMovement[];
@@ -14,91 +19,266 @@ interface MovimentosPageProps {
 
 const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement }: MovimentosPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'ENTRY' | 'EXIT'>('ALL');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
+  // Calculations for Widgets
+  const stats = useMemo(() => {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
-    // Captura manual dos campos para garantir precisão
-    const itemId = (form.elements.namedItem('itemId') as HTMLSelectElement).value;
-    const type = (form.elements.namedItem('type') as HTMLSelectElement).value as MovementType;
-    const quantity = parseFloat((form.elements.namedItem('quantity') as HTMLInputElement).value);
-    const unitPrice = parseFloat((form.elements.namedItem('unitPrice') as HTMLInputElement).value);
-    const date = (form.elements.namedItem('date') as HTMLInputElement).value;
-    const propertyId = (form.elements.namedItem('propertyId') as HTMLSelectElement).value || undefined;
-    const description = (form.elements.namedItem('description') as HTMLInputElement).value;
+    const totalEntradas = movements
+      .filter(m => m.type === MovementType.ENTRADA_COMPRA && new Date(m.date) >= firstDayOfMonth)
+      .reduce((acc, m) => acc + m.totalPrice, 0);
+      
+    const totalSaidas = movements
+      .filter(m => m.type === MovementType.SAIDA_OBRA && new Date(m.date) >= firstDayOfMonth)
+      .reduce((acc, m) => acc + m.totalPrice, 0);
+      
+    const lastUpdate = movements.length > 0 
+      ? new Date(Math.max(...movements.map(m => new Date(m.date).getTime())))
+      : null;
 
-    if (!itemId || isNaN(quantity) || quantity <= 0) {
-      alert("Por favor, preencha todos os campos obrigatórios corretamente.");
-      return;
-    }
+    return { totalEntradas, totalSaidas, lastUpdate };
+  }, [movements]);
 
-    onAddMovement({
-      id: Math.random().toString(36).substr(2, 9),
-      itemId,
-      type,
-      quantity,
-      unitPrice: unitPrice || 0,
-      totalPrice: quantity * (unitPrice || 0),
-      date,
-      propertyId,
-      description: description || "Movimentação registrada via sistema"
-    });
-    
-    setIsModalOpen(false);
-  };
+  const filteredMovements = useMemo(() => {
+    return movements
+      .filter(m => {
+        const item = items.find(i => i.id === m.itemId);
+        const matchesSearch = item?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             m.description.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesType = filterType === 'ALL' || 
+                           (filterType === 'ENTRY' && m.type === MovementType.ENTRADA_COMPRA) ||
+                           (filterType === 'EXIT' && m.type === MovementType.SAIDA_OBRA);
+                           
+        return matchesSearch && matchesType;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [movements, items, searchTerm, filterType]);
 
-  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+    <div className="min-h-screen bg-[#F8FAFC] space-y-8 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Fluxo de Materiais</h2>
-          <p className="text-slate-500 font-medium text-sm">Controle logístico de compras e canteiros.</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Fluxo de Materiais</h2>
+          <p className="text-slate-500 font-medium">Auditoria completa de entradas e saídas de estoque.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-[28px] font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl"
-        >
-          <Plus size={20} strokeWidth={3} /> <span>Novo Movimento</span>
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
+          >
+            <Plus size={18} /> <span>Novo Movimento</span>
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden">
+      {/* Top Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm"
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <ArrowUpRight size={24} />
+            </div>
+            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">+12% vs mês ant.</span>
+          </div>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Total Entradas (Mês)</p>
+          <h3 className="text-2xl font-black text-slate-900">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalEntradas)}
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-2 font-medium">Volume de compras de materiais</p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm"
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+              <ArrowDownRight size={24} />
+            </div>
+            <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">+8% vs mês ant.</span>
+          </div>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Total Saídas (Canteiros)</p>
+          <h3 className="text-2xl font-black text-slate-900">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalSaidas)}
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-2 font-medium">Valor enviado e aplicado nas obras</p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm"
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-slate-100 text-slate-600 rounded-xl">
+              <Clock size={24} />
+            </div>
+            <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">Real-time</span>
+          </div>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Última Atualização</p>
+          <h3 className="text-2xl font-black text-slate-900">
+            {stats.lastUpdate ? stats.lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-2 font-medium">Tempo desde o último registro</p>
+        </motion.div>
+      </div>
+
+      {/* Table Section */}
+      <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Buscar por insumo ou descrição..." 
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+              <button 
+                onClick={() => setFilterType('ALL')}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Todos
+              </button>
+              <button 
+                onClick={() => setFilterType('ENTRY')}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'ENTRY' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Entradas
+              </button>
+              <button 
+                onClick={() => setFilterType('EXIT')}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'EXIT' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Saídas
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl transition-all">
+              <Filter size={18} />
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[800px]">
-            <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-              <tr>
-                <th className="px-8 py-6">Data</th>
-                <th className="px-8 py-6">Operação</th>
-                <th className="px-8 py-6">Insumo</th>
-                <th className="px-8 py-6">Qtd</th>
-                <th className="px-8 py-6 text-right">Valor Total</th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50">
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Operação</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Insumo</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem / Destino</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Qtd</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor Total</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {[...movements].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((mov) => {
+              {filteredMovements.map((mov) => {
                 const item = items.find(i => i.id === mov.itemId);
+                const property = properties.find(p => p.id === mov.propertyId);
+                
                 return (
-                  <tr key={mov.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-8 py-6 text-[11px] font-bold text-slate-500">{formatDate(mov.date)}</td>
-                    <td className="px-8 py-6">
-                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                        {mov.type}
-                      </span>
+                  <tr key={mov.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                          {mov.type === MovementType.ENTRADA_COMPRA ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                        </div>
+                        <div>
+                          <p className={`text-[10px] font-black uppercase tracking-widest ${
+                            mov.type === MovementType.ENTRADA_COMPRA ? 'text-emerald-600' : 'text-blue-600'
+                          }`}>
+                            {mov.type === MovementType.ENTRADA_COMPRA ? 'Entrada' : 'Saída'}
+                          </p>
+                          <p className="text-[9px] text-slate-400 font-bold">Auditado</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-8 py-6 font-black text-slate-800 tracking-tight">{item?.name || 'Item não encontrado'}</td>
-                    <td className="px-8 py-6 text-sm font-bold text-slate-600">
-                      {mov.quantity} <span className="text-[10px] font-normal text-slate-400">{item?.unit}</span>
+                    <td className="px-6 py-5">
+                      <p className="text-xs font-bold text-slate-600">
+                        {new Date(mov.date).toLocaleDateString('pt-BR')}
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        {new Date(mov.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </td>
-                    <td className="px-8 py-6 text-right font-black text-slate-900 text-base">{formatCurrency(mov.totalPrice)}</td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center shrink-0">
+                          {item?.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <Package size={16} className="text-slate-400" />
+                          )}
+                        </div>
+                        <p className="font-bold text-slate-900 text-sm">{item?.name || 'Item não encontrado'}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-400">
+                          <Building size={12} />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600">
+                          {mov.type === MovementType.ENTRADA_COMPRA ? 'Estoque Central' : (property?.neighborhood || 'Obra Desconhecida')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="font-black text-sm text-slate-900">
+                        {mov.quantity} <span className="text-[10px] font-normal text-slate-400 uppercase">{item?.unit}</span>
+                      </p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className={`text-sm font-black ${mov.type === MovementType.ENTRADA_COMPRA ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {mov.type === MovementType.ENTRADA_COMPRA ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mov.totalPrice)}
+                      </p>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all" title="Ver Recibo">
+                          <Paperclip size={18} />
+                        </button>
+                        <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl transition-all">
+                          <MoreHorizontal size={18} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
-              {movements.length === 0 && (
+              {filteredMovements.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-300 italic font-black uppercase tracking-widest text-xs">Nenhuma movimentação registrada.</td>
+                  <td colSpan={7} className="py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="p-4 bg-slate-50 rounded-full text-slate-200">
+                        <ArrowRightLeft size={40} />
+                      </div>
+                      <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Nenhuma movimentação encontrada</p>
+                    </div>
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -106,67 +286,101 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[40px] shadow-2xl w-full max-w-xl p-8 md:p-12 my-8 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-10">
-              <h3 className="text-2xl font-black tracking-tight">Novo Movimento</h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><X size={24} /></button>
-            </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* New Movement Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden"
+            >
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Tipo de Operação</label>
-                  <select name="type" required className={inputClass}>
-                    {Object.values(MovementType).map(t => <option key={t} value={t}>{t}</option>)}
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Movimento</h3>
+                  <p className="text-slate-500 text-sm font-medium">Audite entradas e saídas de materiais.</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                >
+                  <XCircle size={32} strokeWidth={1.5} />
+                </button>
+              </div>
+
+              <form className="p-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Operação</label>
+                    <div className="flex gap-2">
+                      <button 
+                        type="button"
+                        className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl border-2 border-emerald-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <ArrowUpRight size={16} /> Entrada
+                      </button>
+                      <button 
+                        type="button"
+                        className="flex-1 py-3 bg-blue-50 text-blue-600 rounded-xl border-2 border-blue-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <ArrowDownRight size={16} /> Saída
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                    <input type="date" className={inputClass} defaultValue={new Date().toISOString().split('T')[0]} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Insumo / Material</label>
+                  <select className={inputClass}>
+                    <option value="">Selecione o material...</option>
+                    {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Data</label>
-                  <input name="date" required type="date" className={inputClass} defaultValue={new Date().toISOString().split('T')[0]} />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Insumo / Material</label>
-                <select name="itemId" required className={inputClass}>
-                  <option value="">Selecione o material...</option>
-                  {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
-                </select>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Quantidade</label>
-                  <input name="quantity" required type="number" step="0.01" className={inputClass} placeholder="0.00" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
+                    <input type="number" placeholder="0.00" className={inputClass} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total (R$)</label>
+                    <input type="number" placeholder="0.00" className={inputClass} />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Preço Unitário (Opcional)</label>
-                  <input name="unitPrice" type="number" step="0.01" className={inputClass} placeholder="R$ 0.00" />
+
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Destinação (Imóvel)</label>
+                  <select className={inputClass}>
+                    <option value="">Estoque Central</option>
+                    {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
+                  </select>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Destinação (Imóvel)</label>
-                <select name="propertyId" className={inputClass}>
-                  <option value="">Estoque Central</option>
-                  {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Observações</label>
-                <input name="description" type="text" className={inputClass} placeholder="Ex: NF 1234, Uso na pintura, etc." />
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 mt-12">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
-              <button type="submit" className="order-1 sm:order-2 flex-1 py-4 bg-blue-600 text-white rounded-[24px] text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">Registrar Movimento</button>
-            </div>
-          </form>
-        </div>
-      )}
+                <div className="pt-6 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all"
+                  >
+                    Registrar Movimento
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

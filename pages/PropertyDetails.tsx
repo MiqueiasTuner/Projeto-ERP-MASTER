@@ -221,7 +221,7 @@ const PropertyDetails = ({ properties, expenses, logs, onAddExpense, onDeleteExp
                   </div>
                 </div>
                 <div className="bg-slate-900 p-8 md:p-10 rounded-[40px] text-white flex flex-col justify-center">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-8">Dados de Aquisição</h4>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-8">Dados de Aquisição e Custos</h4>
                   <div className="space-y-5">
                     {[
                       { label: 'Valor de Lance', val: property.acquisitionPrice },
@@ -229,8 +229,18 @@ const PropertyDetails = ({ properties, expenses, logs, onAddExpense, onDeleteExp
                       { label: 'Escritura', val: property.legalEscritura },
                       { label: 'ITBI', val: property.legalItbi },
                       { label: 'Taxas de Registro', val: property.legalTaxasRegistro },
+                      { label: 'Certidões', val: property.legalCertidoes },
+                      { label: 'Impostos', val: property.taxes },
+                      { label: 'Desp. Condomínio', val: property.expenseCondo },
+                      { label: 'Desp. IPTU', val: property.expenseIptu },
+                      { label: 'Pós-Arremate', val: property.expensePostAcquisition },
+                      { label: 'Materiais Reforma', val: property.expenseMaterials },
+                      { label: 'Outros Custos', val: property.otherCosts },
                       { label: 'Data Arremate', val: property.acquisitionDate ? formatDate(property.acquisitionDate) : null, format: false },
-                      { label: 'Área Privativa', val: property.sizeM2 ? `${property.sizeM2} m²` : null, format: false }
+                      { label: 'Data Venda', val: property.saleDate ? formatDate(property.saleDate) : null, format: false },
+                      { label: 'Área Privativa', val: property.sizeM2 ? `${property.sizeM2} m²` : null, format: false },
+                      { label: 'Custo por m²', val: metrics.costPerM2 },
+                      { label: 'Break-even (Venda)', val: metrics.breakEven }
                     ].map((item, i) => (
                       <div key={i} className="flex justify-between items-center text-sm">
                         <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{item.label}:</span>
@@ -238,9 +248,9 @@ const PropertyDetails = ({ properties, expenses, logs, onAddExpense, onDeleteExp
                       </div>
                     ))}
                     <div className="pt-8 mt-4 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <span className="text-blue-400 font-black text-xs uppercase tracking-widest">Total Alocado (Aquisição):</span>
+                      <span className="text-blue-400 font-black text-xs uppercase tracking-widest">Total Alocado (Geral):</span>
                       <span className="text-3xl font-black text-blue-400">
-                        {formatCurrency((property.acquisitionPrice ?? 0) + (property.auctioneerCommission ?? 0) + (property.legalEscritura ?? 0) + (property.legalItbi ?? 0) + (property.legalTaxasRegistro ?? 0))}
+                        {formatCurrency(metrics.totalInvested)}
                       </span>
                     </div>
                   </div>

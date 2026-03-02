@@ -30,10 +30,11 @@ export enum ExpenseCategory {
 }
 
 export enum QuoteStatus {
-  PENDENTE = 'Pendente',
+  SOLICITADO = 'Solicitado',
+  COTACAO = 'Em Cotação',
   APROVADO = 'Aprovado',
-  REJEITADO = 'Rejeitado',
-  CONCLUIDO = 'Concluído'
+  RECEBIDO = 'Recebido',
+  REJEITADO = 'Rejeitado'
 }
 
 export interface QuoteItem {
@@ -88,6 +89,13 @@ export interface InventoryItem {
   category: string;
   minStock: number;
   currentStock: number;
+  imageUrl?: string;
+  averageCost?: number;
+  usageStatus?: number; // 0-100
+  linkedPropertyId?: string;
+  linkedPropertyName?: string;
+  supplierId?: string;
+  supplierName?: string;
 }
 
 export interface StockMovement {
@@ -101,6 +109,7 @@ export interface StockMovement {
   supplierId?: string;
   propertyId?: string;
   description: string;
+  attachmentUrl?: string;
 }
 
 export interface Warehouse {
@@ -167,30 +176,38 @@ export interface Property {
   acquisitionType?: AcquisitionType;
   city: string;
   neighborhood: string;
-  neighborhood2?: string;
+  neighborhood2?: string; // Bairro/Condom2
+  condoName?: string; // Bairro/Condom
+  realEstateAgency?: string; // IMOBILIARIA
   address: string;
   sizeM2: number;
   status: PropertyStatus;
   acquisitionDate: string;
+  saleDate?: string;
   bankValuation: number;
   acquisitionPrice: number;
   auctioneerCommission: number;
   salePrice?: number;
   images: string[];
   
-  // New fields from spreadsheet
-  realEstateAgency?: string;
-  condoExpenses?: number;
-  iptuExpenses?: number;
-  registrationCertificatesExpenses?: number;
+  // Legal & Registration
   legalEscritura?: number;
   legalItbi?: number;
   legalTaxasRegistro?: number;
+  legalCertidoes?: number; // Despesas Registro/Certidoes
+  
+  // Ongoing Expenses (Pre-sale)
+  expenseCondo?: number; // Desp. Condom.
+  expenseIptu?: number; // Desp. IPTU
+  expensePostAcquisition?: number; // Despesas IPTU/COND. AGUA/ENERGIA POS/ARREMATAÇAO
+  
+  // Others
   budgetReforma?: number;
-  postAcquisitionExpenses?: number;
+  expenseMaterials?: number; // Despesas Reforma - Materiais (R$)
   brokerage?: number;
   salesTax?: number;
-  otherCosts?: number;
+  taxes?: number; // Impostos (R$)
+  otherCosts?: number; // Outros Custos
   
   itbiPaid?: boolean;
   registroPaid?: boolean;
@@ -201,5 +218,6 @@ export interface PropertyCalculations {
   costPerM2: number;
   realizedProfit: number;
   roi: number;
+  breakEven: number;
   categoryBreakdown: Record<ExpenseCategory, number>;
 }

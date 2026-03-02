@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X } from 'lucide-react';
+import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle } from 'lucide-react';
 import { Supplier } from '../../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface FornecedoresPageProps {
   suppliers: Supplier[];
@@ -96,40 +97,71 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[40px] shadow-2xl w-full max-w-md p-10 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black tracking-tight">Novo Fornecedor</h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600"><X size={24} /></button>
-            </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Razão Social / Nome Fantasia</label>
-                <input required name="name" type="text" placeholder="Ex: Silva Construções Ltda" className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">CNPJ ou CPF</label>
-                <input name="cnpj" type="text" placeholder="00.000.000/0001-00" className={inputClass} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+      {/* New Fornecedor Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden"
+            >
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Categoria Técnica</label>
-                  <input required name="category" type="text" placeholder="Ex: Hidráulica" className={inputClass} />
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Fornecedor</h3>
+                  <p className="text-slate-500 text-sm font-medium">Cadastre parceiros estratégicos para sua obra.</p>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Contato / Celular</label>
-                  <input required name="phone" type="text" placeholder="(11) 99999-9999" className={inputClass} />
-                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                >
+                  <XCircle size={32} strokeWidth={1.5} />
+                </button>
               </div>
-            </div>
-            <div className="flex gap-4 mt-12">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
-              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">Efetivar Cadastro</button>
-            </div>
-          </form>
-        </div>
-      )}
+
+              <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Razão Social / Nome Fantasia</label>
+                  <input required name="name" type="text" placeholder="Ex: Silva Construções Ltda" className={inputClass} />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ ou CPF</label>
+                  <input name="cnpj" type="text" placeholder="00.000.000/0001-00" className={inputClass} />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria Técnica</label>
+                    <input required name="category" type="text" placeholder="Ex: Hidráulica" className={inputClass} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Contato / Celular</label>
+                    <input required name="phone" type="text" placeholder="(11) 99999-9999" className={inputClass} />
+                  </div>
+                </div>
+
+                <div className="pt-6 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all"
+                  >
+                    Efetivar Cadastro
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

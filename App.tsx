@@ -21,7 +21,7 @@ import InsumosPage from './pages/inventory/InsumosPage';
 import MovimentosPage from './pages/inventory/MovimentosPage';
 import FornecedoresPage from './pages/inventory/FornecedoresPage';
 import AlmoxarifadosPage from './pages/inventory/AlmoxarifadosPage';
-import QuotesPage from './pages/inventory/QuotesPage';
+import ComprasPage from './pages/inventory/ComprasPage';
 import SettingsPage from './pages/SettingsPage';
 import ReportsPage from './pages/ReportsPage';
 import TeamsPage from './pages/TeamsPage';
@@ -87,7 +87,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children?: React
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
       {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden" onClick={closeSidebar} />}
       <aside className={`fixed inset-y-0 left-0 w-72 bg-slate-900 text-white flex flex-col p-6 z-40 transition-transform duration-300 lg:translate-x-0 lg:static lg:h-screen lg:overflow-y-auto ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between mb-10 px-2 group">
@@ -112,19 +112,51 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children?: React
           </SidebarGroup>
           <div className="pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Estratégico</div>
           <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={hasPermission('reports', 'view')} onClick={closeSidebar} />
-        </nav>
-        <div className="mt-auto pt-6 border-t border-slate-800 space-y-4">
-          <div className="px-3 py-3.5 bg-slate-800/50 rounded-2xl text-[11px] font-bold uppercase truncate border border-slate-800">{currentUser.name}</div>
           <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} />
-          <button onClick={onLogout} className="flex items-center space-x-3 p-3 w-full rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors"><LogOut size={18} /> <span className="font-medium text-sm">Sair</span></button>
+          <button onClick={onLogout} className="flex items-center space-x-3 p-3 w-full rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors mt-2"><LogOut size={18} /> <span className="font-medium text-sm">Sair</span></button>
+        </nav>
+        <div className="mt-auto pt-6 border-t border-slate-800">
+          <div className="px-4 py-4 bg-slate-800/40 rounded-2xl border border-slate-800/50 flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-blue-500/20">
+              {currentUser.name.substring(0, 2).toUpperCase()}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] font-black text-white uppercase tracking-wider truncate">{currentUser.name}</span>
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Operador Master</span>
+            </div>
+          </div>
         </div>
       </aside>
-      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
-        <header className="lg:hidden bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-          <div className="flex items-center space-x-3"><div className="bg-blue-600 p-1.5 rounded-lg text-white"><Building2 size={20} /></div><span className="font-black text-slate-900 tracking-tight">Master Imóveis</span></div>
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 bg-slate-50 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"><Menu size={24} /></button>
+      <div className="flex-1 flex flex-col h-screen max-w-full overflow-hidden bg-slate-50">
+        <header className="lg:hidden bg-slate-900 border-b border-slate-800 px-6 py-5 flex items-center justify-between sticky top-0 z-20 shadow-xl">
+          <div className="flex items-center space-x-3">
+            <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-500/20">
+              <Building2 size={20} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-white tracking-tight leading-none text-sm">Master Imóveis</span>
+              <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">Portal ERP</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="p-3 bg-slate-800/50 border border-slate-700 rounded-2xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all active:scale-95"
+          >
+            <Menu size={22} />
+          </button>
         </header>
-        <main className="flex-1 p-6 lg:p-10 overflow-x-hidden"><div className="max-w-7xl mx-auto">{children}</div></main>
+        <main className="flex-1 p-6 lg:p-10 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="max-w-7xl mx-auto pb-20 lg:pb-0 animate-in">
+            {children}
+          </div>
+          {location.pathname === '/' && (
+            <footer className="mt-20 pb-10 text-center border-t border-slate-200/50 pt-10">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                © 2026 Master Imóveis. Todos os direitos reservados Sintese Web
+              </p>
+            </footer>
+          )}
+        </main>
       </div>
     </div>
   );
@@ -284,7 +316,7 @@ const AppContent = () => {
     const batch = writeBatch(db);
     
     // 1. Update quote status
-    batch.update(doc(db, 'quotes', quote.id), { status: QuoteStatus.CONCLUIDO });
+    batch.update(doc(db, 'quotes', quote.id), { status: QuoteStatus.RECEBIDO });
     
     // 2. Add stock movements and update inventory
     for (const item of quote.items) {
@@ -357,11 +389,11 @@ const AppContent = () => {
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} onAddExpense={addExpense} onDeleteExpense={async (id) => { await deleteDoc(doc(db, 'expenses', id)); }} onDeleteProperty={deleteProperty} />} />
         <Route path="/novo" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
         <Route path="/editar/:id" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
-        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} setItems={async (items) => { /* Firestore handles this via onSnapshot */ }} onDeleteItem={deleteInventoryItem} />} />
+        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} />} />
         <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} />} />
         <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} />} />
         <Route path="/estoque/almoxarifados" element={<AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} />} />
-        <Route path="/estoque/orcamentos" element={<QuotesPage quotes={quotes} suppliers={suppliers} inventory={inventory} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} />} />
+        <Route path="/estoque/orcamentos" element={<ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} />} />
         <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} />} />
         <Route path="/equipe" element={<TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
         <Route path="/configuracoes" element={<SettingsPage />} />

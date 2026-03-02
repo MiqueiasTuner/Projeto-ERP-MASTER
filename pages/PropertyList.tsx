@@ -44,9 +44,11 @@ const PropertyCard = React.memo(({
       </div>
     </div>
     <div className="p-4">
-      <h4 className="font-black text-slate-900 text-xs truncate mb-1 tracking-tight">{property.neighborhood}</h4>
+      <h4 className="font-black text-slate-900 text-xs truncate mb-1 tracking-tight">
+        {property.condoName || property.neighborhood}
+      </h4>
       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center mb-3">
-        <MapPin size={8} className="mr-1" /> {property.city}
+        <MapPin size={8} className="mr-1" /> {property.city} {property.neighborhood2 ? `• ${property.neighborhood2}` : ''}
       </p>
       <div className="flex justify-between items-center pt-3 border-t border-slate-50">
         <span className="text-[10px] font-black text-slate-900">{formatCurrency(metrics.totalInvested)}</span>
@@ -151,7 +153,13 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }
 
   const filteredProperties = useMemo(() => {
     const s = search.toLowerCase();
-    return properties.filter(p => p.neighborhood.toLowerCase().includes(s) || p.city.toLowerCase().includes(s));
+    return properties.filter(p => 
+      p.neighborhood.toLowerCase().includes(s) || 
+      p.city.toLowerCase().includes(s) ||
+      (p.condoName?.toLowerCase().includes(s)) ||
+      (p.realEstateAgency?.toLowerCase().includes(s)) ||
+      (p.neighborhood2?.toLowerCase().includes(s))
+    );
   }, [properties, search]);
 
   const handleNavigate = useCallback((id: string) => navigate(`/imovel/${id}`), [navigate]);
@@ -223,8 +231,15 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }
                       <div className="absolute top-5 left-5"><span className="text-[9px] font-black uppercase tracking-[0.2em] text-white bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10">{p.status}</span></div>
                    </div>
                    <div className="p-8">
-                      <div className="flex justify-between items-start mb-2"><h3 className="font-black text-slate-900 truncate flex-1 tracking-tight text-xl">{p.neighborhood}</h3><div className="text-emerald-600 font-black text-base">{metrics.roi.toFixed(0)}%</div></div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">{p.city}</p>
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-black text-slate-900 truncate flex-1 tracking-tight text-xl">
+                          {p.condoName || p.neighborhood}
+                        </h3>
+                        <div className="text-emerald-600 font-black text-base">{metrics.roi.toFixed(0)}%</div>
+                      </div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
+                        {p.city} {p.neighborhood2 ? `• ${p.neighborhood2}` : ''}
+                      </p>
                       <div className="flex justify-between items-end border-t border-slate-50 pt-6"><div className="min-w-0"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Capital Alocado</p><p className="font-black text-slate-900 text-lg truncate">{formatCurrency(metrics.totalInvested)}</p></div><div className="bg-slate-900 text-white p-3 rounded-2xl group-hover:bg-blue-600 transition-all"><ArrowRight size={20} /></div></div>
                    </div>
                  </div>

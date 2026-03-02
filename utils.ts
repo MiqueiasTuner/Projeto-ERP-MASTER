@@ -65,19 +65,36 @@ export const calculatePropertyMetrics = (p: Property, expenses: Expense[]): Prop
     categoryBreakdown[e.category] += (e.amount ?? 0);
   });
 
-  // Soma de custos iniciais usando Nullish Coalescing para tratar campos vazios como 0 apenas no cálculo
-  const initialInvestment = (p.acquisitionPrice ?? 0) + (p.auctioneerCommission ?? 0);
+  // Soma de custos iniciais e operacionais fixos do imóvel
+  const initialInvestment = 
+    (p.acquisitionPrice ?? 0) + 
+    (p.auctioneerCommission ?? 0) +
+    (p.legalEscritura ?? 0) +
+    (p.legalItbi ?? 0) +
+    (p.legalTaxasRegistro ?? 0) +
+    (p.legalCertidoes ?? 0) +
+    (p.expenseCondo ?? 0) +
+    (p.expenseIptu ?? 0) +
+    (p.expensePostAcquisition ?? 0) +
+    (p.expenseMaterials ?? 0) +
+    (p.taxes ?? 0) +
+    (p.brokerage ?? 0) +
+    (p.salesTax ?? 0) +
+    (p.otherCosts ?? 0);
+
   const totalInvested = initialInvestment + propertyExpenses.reduce((acc, e) => acc + (e.amount ?? 0), 0);
   
   const costPerM2 = (p.sizeM2 && p.sizeM2 > 0) ? totalInvested / p.sizeM2 : 0;
   const realizedProfit = p.salePrice ? (p.salePrice - totalInvested) : 0;
   const roi = totalInvested > 0 ? (realizedProfit / totalInvested) * 100 : 0;
+  const breakEven = totalInvested;
 
   return {
     totalInvested,
     costPerM2,
     realizedProfit,
     roi,
+    breakEven,
     categoryBreakdown
   };
 };
