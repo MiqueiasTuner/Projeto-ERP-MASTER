@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Package, Plus, Search, Filter, Trash2, Edit, X, 
   TrendingDown, AlertTriangle, Wallet, MessageCircle, 
@@ -13,13 +14,58 @@ interface InsumosPageProps {
   items: InventoryItem[];
   movements?: StockMovement[];
   onDeleteItem: (id: string) => void;
+  onAddItem: (item: Omit<InventoryItem, 'id'>) => void;
 }
 
-const InsumosPage = ({ items, movements = [], onDeleteItem }: InsumosPageProps) => {
+const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: InsumosPageProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    category: '',
+    unit: 'un' as InventoryItem['unit'],
+    minStock: 0,
+    averageCost: 0,
+    imageUrl: ''
+  });
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'minStock' || name === 'averageCost' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onAddItem({
+        ...formData,
+        currentStock: 0,
+        usageStatus: 0
+      });
+      setIsModalOpen(false);
+      setFormData({
+        name: '',
+        category: '',
+        unit: 'un',
+        minStock: 0,
+        averageCost: 0,
+        imageUrl: ''
+      });
+    } catch (error) {
+      console.error("Error adding item:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Calculations for Widgets
   const stats = useMemo(() => {
@@ -273,145 +319,171 @@ const InsumosPage = ({ items, movements = [], onDeleteItem }: InsumosPageProps) 
       </div>
 
       {/* Side Drawer */}
-      <AnimatePresence>
-        {isDrawerOpen && selectedItem && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60]"
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[70] flex flex-col"
-            >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Histórico do Insumo</h3>
-                  <p className="text-slate-500 text-sm font-medium">{selectedItem.name}</p>
-                </div>
-                <button 
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-2xl transition-all"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                {/* Item Summary in Drawer */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Saldo Atual</p>
-                    <p className="text-xl font-black text-slate-900">{selectedItem.currentStock} {selectedItem.unit}</p>
+      {createPortal(
+        <AnimatePresence>
+          {isDrawerOpen && selectedItem && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsDrawerOpen(false)}
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              />
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[110] flex flex-col"
+              >
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Histórico do Insumo</h3>
+                    <p className="text-slate-500 text-sm font-medium">{selectedItem.name}</p>
                   </div>
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Médio</p>
-                    <p className="text-xl font-black text-slate-900">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedItem.averageCost || 0)}
-                    </p>
-                  </div>
+                  <button 
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-2xl transition-all"
+                  >
+                    <X size={24} />
+                  </button>
                 </div>
 
-                {/* Inflation Monitor Chart Placeholder */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Monitor de Inflação</h4>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Estável</span>
+                <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                  {/* Item Summary in Drawer */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Saldo Atual</p>
+                      <p className="text-xl font-black text-slate-900">{selectedItem.currentStock} {selectedItem.unit}</p>
+                    </div>
+                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Médio</p>
+                      <p className="text-xl font-black text-slate-900">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedItem.averageCost || 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="h-32 w-full bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex items-center justify-center">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gráfico de Evolução de Preços</p>
-                  </div>
-                </div>
 
-                {/* Timeline */}
-                <div className="space-y-6">
-                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Movimentações Recentes</h4>
+                  {/* Inflation Monitor Chart Placeholder */}
                   <div className="space-y-4">
-                    {itemHistory.length > 0 ? (
-                      itemHistory.map((mov) => (
-                        <div key={mov.id} className="flex gap-4 group">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                              mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                            }`}>
-                              {mov.type === MovementType.ENTRADA_COMPRA ? <ArrowUpRight size={18} /> : <TrendingDown size={18} />}
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Monitor de Inflação</h4>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Estável</span>
+                    </div>
+                    <div className="h-32 w-full bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex items-center justify-center">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gráfico de Evolução de Preços</p>
+                    </div>
+                  </div>
+
+                  {/* Timeline */}
+                  <div className="space-y-6">
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Movimentações Recentes</h4>
+                    <div className="space-y-4">
+                      {itemHistory.length > 0 ? (
+                        itemHistory.map((mov) => (
+                          <div key={mov.id} className="flex gap-4 group">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                              }`}>
+                                {mov.type === MovementType.ENTRADA_COMPRA ? <ArrowUpRight size={18} /> : <TrendingDown size={18} />}
+                              </div>
+                              <div className="w-px h-full bg-slate-100 group-last:hidden" />
                             </div>
-                            <div className="w-px h-full bg-slate-100 group-last:hidden" />
+                            <div className="flex-1 pb-6">
+                              <div className="flex justify-between items-start mb-1">
+                                <p className="font-bold text-slate-900 text-sm">{mov.type}</p>
+                                <p className="text-[10px] font-bold text-slate-400">{new Date(mov.date).toLocaleDateString('pt-BR')}</p>
+                              </div>
+                              <p className="text-xs text-slate-500 mb-2">{mov.description}</p>
+                              <div className="flex items-center gap-4">
+                                <div className="text-[10px] font-black text-slate-400 uppercase">Qtd: <span className="text-slate-900">{mov.quantity}</span></div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase">Total: <span className="text-slate-900">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mov.totalPrice)}
+                                </span></div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1 pb-6">
-                            <div className="flex justify-between items-start mb-1">
-                              <p className="font-bold text-slate-900 text-sm">{mov.type}</p>
-                              <p className="text-[10px] font-bold text-slate-400">{new Date(mov.date).toLocaleDateString('pt-BR')}</p>
-                            </div>
-                            <p className="text-xs text-slate-500 mb-2">{mov.description}</p>
-                            <div className="flex items-center gap-4">
-                              <div className="text-[10px] font-black text-slate-400 uppercase">Qtd: <span className="text-slate-900">{mov.quantity}</span></div>
-                              <div className="text-[10px] font-black text-slate-400 uppercase">Total: <span className="text-slate-900">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mov.totalPrice)}
-                              </span></div>
-                            </div>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-10">
+                          <Package size={32} className="text-slate-200 mx-auto mb-3" />
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma movimentação registrada</p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-10">
-                        <Package size={32} className="text-slate-200 mx-auto mb-3" />
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma movimentação registrada</p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="p-8 border-t border-slate-100 bg-slate-50/50">
-                <button className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
-                  <ExternalLink size={16} />
-                  <span>Ver Relatório Completo</span>
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* New Insumo Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden"
-            >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Insumo</h3>
-                  <p className="text-slate-500 text-sm font-medium">Adicione materiais ao catálogo estratégico.</p>
+                <div className="p-8 border-t border-slate-100 bg-slate-50/50">
+                  <button className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
+                    <ExternalLink size={16} />
+                    <span>Ver Relatório Completo</span>
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
-                >
-                  <XCircle size={32} strokeWidth={1.5} />
-                </button>
-              </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
-              <form className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* New Insumo Drawer */}
+      {createPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsModalOpen(false)}
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              />
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+              >
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Insumo</h3>
+                    <p className="text-slate-500 text-sm font-medium">Adicione ao catálogo.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Material</label>
-                    <input type="text" placeholder="Ex: Cimento Votoran CP-II 50kg" className={inputClass} />
+                    <input 
+                      required
+                      name="name"
+                      type="text" 
+                      placeholder="Ex: Cimento Votoran CP-II 50kg" 
+                      className={inputClass} 
+                      value={formData.name}
+                      onChange={handleFormChange}
+                    />
                   </div>
+                  
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
-                    <select className={inputClass}>
+                    <select 
+                      required
+                      name="category"
+                      className={inputClass}
+                      value={formData.category}
+                      onChange={handleFormChange}
+                    >
                       <option value="">Selecione...</option>
                       <option value="Alvenaria">Alvenaria</option>
                       <option value="Elétrica">Elétrica</option>
@@ -420,35 +492,65 @@ const InsumosPage = ({ items, movements = [], onDeleteItem }: InsumosPageProps) 
                       <option value="Acabamento">Acabamento</option>
                     </select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidade</label>
-                    <select className={inputClass}>
-                      <option value="un">Unidade (un)</option>
-                      <option value="m2">Metro Quadrado (m2)</option>
-                      <option value="kg">Quilo (kg)</option>
-                      <option value="cx">Caixa (cx)</option>
-                      <option value="l">Litro (l)</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidade</label>
+                      <select 
+                        name="unit"
+                        className={inputClass}
+                        value={formData.unit}
+                        onChange={handleFormChange}
+                      >
+                        <option value="un">Unidade (un)</option>
+                        <option value="m2">m²</option>
+                        <option value="kg">Quilo (kg)</option>
+                        <option value="cx">Caixa (cx)</option>
+                        <option value="l">Litro (l)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Estoque Mín.</label>
+                      <input 
+                        name="minStock"
+                        type="number" 
+                        placeholder="0" 
+                        className={inputClass} 
+                        value={formData.minStock}
+                        onChange={handleFormChange}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Estoque Mínimo</label>
-                    <input type="number" placeholder="0" className={inputClass} />
-                  </div>
+
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Custo Inicial (R$)</label>
-                    <input type="number" placeholder="0.00" className={inputClass} />
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                      <input 
+                        name="averageCost"
+                        type="number" 
+                        placeholder="0.00" 
+                        className={`${inputClass} pl-10`}
+                        value={formData.averageCost}
+                        onChange={handleFormChange}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">URL da Imagem (Opcional)</label>
-                  <input type="text" placeholder="https://..." className={inputClass} />
-                </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">URL da Imagem</label>
+                    <input 
+                      name="imageUrl"
+                      type="text" 
+                      placeholder="https://..." 
+                      className={inputClass} 
+                      value={formData.imageUrl}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+                </form>
 
-                <div className="pt-6 flex gap-4">
+                <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
@@ -457,17 +559,23 @@ const InsumosPage = ({ items, movements = [], onDeleteItem }: InsumosPageProps) 
                     Cancelar
                   </button>
                   <button 
-                    type="submit"
-                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-900 transition-all flex items-center justify-center"
                   >
-                    Salvar Insumo
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-[#FFD700]/20 border-t-[#FFD700] rounded-full animate-spin" />
+                    ) : (
+                      "Salvar"
+                    )}
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

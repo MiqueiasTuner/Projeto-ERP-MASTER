@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -19,9 +19,12 @@ import {
   Building2,
   Clock,
   ShieldAlert,
-  BarChart3
+  BarChart3,
+  CheckCircle2,
+  Calendar,
+  User
 } from 'lucide-react';
-import { Property, PropertyStatus, Expense, ExpenseCategory } from '../types';
+import { Property, PropertyStatus, Expense, ExpenseCategory, Task, UserAccount } from '../types';
 import { calculatePropertyMetrics, formatCurrency, formatDate } from '../utils';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
@@ -63,7 +66,9 @@ const MOCK_ROI_DATA = [
   { name: 'Goiânia', projetado: 5, realizado: 4 },
 ];
 
-const Dashboard = ({ properties, expenses }: { properties: Property[], expenses: Expense[] }) => {
+const Dashboard = ({ properties, expenses, tasks = [], currentUser }: { properties: Property[], expenses: Expense[], tasks?: Task[], currentUser?: UserAccount | null }) => {
+  const [activeTaskTab, setActiveTaskTab] = useState<'pending' | 'overdue' | 'completed'>('pending');
+
   const stats = useMemo(() => {
     const sold = properties.filter(p => p.status === PropertyStatus.VENDIDO);
     const metrics = properties.map(p => calculatePropertyMetrics(p, expenses));
@@ -128,6 +133,21 @@ const Dashboard = ({ properties, expenses }: { properties: Property[], expenses:
     };
   }, [properties, expenses]);
 
+  const myTasks = useMemo(() => {
+    if (!currentUser) return { pending: [], overdue: [], completed: [] };
+    
+    const userTasks = tasks.filter(t => t.assigneeIds?.includes(currentUser.id));
+    const now = new Date();
+    
+    return {
+      pending: userTasks.filter(t => t.status !== 'Concluído' && new Date(t.dueDate) >= now),
+      overdue: userTasks.filter(t => t.status !== 'Concluído' && new Date(t.dueDate) < now),
+      completed: userTasks.filter(t => t.status === 'Concluído')
+    };
+  }, [tasks, currentUser]);
+
+  const currentTasks = myTasks[activeTaskTab];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -175,53 +195,128 @@ const Dashboard = ({ properties, expenses }: { properties: Property[], expenses:
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div className="xl:col-span-2 bg-white p-6 lg:p-10 rounded-[40px] border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Markup de Reforma vs Mercado</h3>
-              <p className="text-xs text-slate-500 font-medium">Análise de custos, break-even e margem de segurança</p>
+        <div className="xl:col-span-2 space-y-8">
+          <div className="bg-white p-6 lg:p-10 rounded-[40px] border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Markup de Reforma vs Mercado</h3>
+                <p className="text-xs text-slate-500 font-medium">Análise de custos, break-even e margem de segurança</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase">Arrematação</span>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase">Reforma</span>
+                </div>
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-2 h-2 rounded-full bg-slate-900" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase">Break-even</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-1.5">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-[9px] font-black text-slate-400 uppercase">Arrematação</span>
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.markupData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={(v) => `R$ ${v/1000}k`} />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 700, fontSize: '12px' }}
+                    formatter={(value: number) => [formatCurrency(value), '']}
+                  />
+                  <Bar dataKey="arrematacao" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={32} />
+                  <Bar dataKey="reforma" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={32} />
+                  <Bar dataKey="breakEven" name="Break-even" fill="#0f172a" radius={[8, 8, 0, 0]} barSize={32} />
+                  <Bar dataKey="mercado" name="Valor Mercado" fill="#f1f5f9" radius={[8, 8, 0, 0]} barSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex items-center space-x-2 text-blue-600 mb-1">
+                <BarChart3 size={14} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Insight de Venda</span>
               </div>
-              <div className="flex items-center space-x-1.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-[9px] font-black text-slate-400 uppercase">Reforma</span>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <div className="w-2 h-2 rounded-full bg-slate-900" />
-                <span className="text-[9px] font-black text-slate-400 uppercase">Break-even</span>
-              </div>
+              <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                O <span className="font-bold text-slate-900">Break-even</span> representa o valor mínimo de venda para cobrir todos os custos (incluindo impostos e comissões). Qualquer valor acima disso é lucro líquido.
+              </p>
             </div>
           </div>
-          <div className="h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.markupData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={(v) => `R$ ${v/1000}k`} />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 700, fontSize: '12px' }}
-                  formatter={(value: number) => [formatCurrency(value), '']}
-                />
-                <Bar dataKey="arrematacao" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={32} />
-                <Bar dataKey="reforma" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={32} />
-                <Bar dataKey="breakEven" name="Break-even" fill="#0f172a" radius={[8, 8, 0, 0]} barSize={32} />
-                <Bar dataKey="mercado" name="Valor Mercado" fill="#f1f5f9" radius={[8, 8, 0, 0]} barSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="flex items-center space-x-2 text-blue-600 mb-1">
-              <BarChart3 size={14} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Insight de Venda</span>
+
+          {/* Minhas Tarefas Section */}
+          <div className="bg-white p-6 lg:p-10 rounded-[40px] border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Minhas Tarefas</h3>
+                <p className="text-xs text-slate-500 font-medium">Acompanhe suas atividades pendentes e prazos.</p>
+              </div>
+              <div className="flex bg-slate-50 p-1 rounded-xl">
+                {(['pending', 'overdue', 'completed'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTaskTab(tab)}
+                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                      activeTaskTab === tab 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {tab === 'pending' ? 'Em Andamento' : tab === 'overdue' ? 'Atrasadas' : 'Concluídas'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-              O <span className="font-bold text-slate-900">Break-even</span> representa o valor mínimo de venda para cobrir todos os custos (incluindo impostos e comissões). Qualquer valor acima disso é lucro líquido.
-            </p>
+
+            <div className="space-y-4">
+              {currentTasks.length > 0 ? (
+                currentTasks.map((task) => (
+                  <div key={task.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors group">
+                    <div className={`mt-1 p-2 rounded-xl ${
+                      task.status === 'Concluído' ? 'bg-emerald-100 text-emerald-600' : 
+                      new Date(task.dueDate) < new Date() ? 'bg-rose-100 text-rose-600' : 
+                      'bg-blue-100 text-blue-600'
+                    }`}>
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h4 className="text-sm font-black text-slate-900 truncate">{task.title}</h4>
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${
+                          task.priority === 'Alta' ? 'bg-rose-100 text-rose-600' :
+                          task.priority === 'Média' ? 'bg-amber-100 text-amber-600' :
+                          'bg-blue-100 text-blue-600'
+                        }`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 line-clamp-2 mb-3">{task.description}</p>
+                      <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={12} />
+                          <span className={new Date(task.dueDate) < new Date() && task.status !== 'Concluído' ? 'text-rose-500' : ''}>
+                            {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {task.linkedPropertyId && (
+                          <div className="flex items-center gap-1.5">
+                            <Building2 size={12} />
+                            <span>Imóvel Vinculado</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  <CheckCircle2 size={32} className="mx-auto mb-3 opacity-20" />
+                  <p className="text-xs font-bold uppercase tracking-widest">Nenhuma tarefa encontrada nesta categoria.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

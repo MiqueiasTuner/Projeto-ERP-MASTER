@@ -119,8 +119,8 @@ export interface Warehouse {
 }
 
 export enum UserRole {
-  MASTER = 'Master',
-  COLABORADOR = 'Colaborador'
+  ADMIN = 'Administrador',
+  OPERADOR = 'Operador'
 }
 
 export type PermissionModule = 'properties' | 'inventory' | 'finances' | 'teams' | 'reports';
@@ -138,6 +138,7 @@ export interface Team {
   id: string;
   name: string;
   description: string;
+  managerId?: string;
 }
 
 export interface UserAccount {
@@ -148,6 +149,77 @@ export interface UserAccount {
   teamId?: string;
   active: boolean;
   permissions: UserPermissions;
+  photoUrl?: string;
+  phone?: string;
+  jobTitle?: string;
+  bio?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderPhoto?: string;
+  content: string;
+  timestamp: string;
+  channelId?: string; // 'general', 'team-id', or 'dm-id'
+  attachments?: Attachment[];
+}
+
+export enum TaskStatus {
+  TODO = 'A Fazer',
+  IN_PROGRESS = 'Em Progresso',
+  REVIEW = 'Em Revisão',
+  DONE = 'Concluído'
+}
+
+export enum TaskPriority {
+  LOW = 'Baixa',
+  MEDIUM = 'Média',
+  HIGH = 'Alta',
+  URGENT = 'Urgente'
+}
+
+export interface TaskComment {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhoto?: string;
+  content: string;
+  timestamp: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigneeId?: string; // Deprecated, use assigneeIds
+  assigneeName?: string; // Deprecated
+  assigneeIds?: string[]; // New: Multiple assignees
+  creatorId: string;
+  departmentId?: string; // If null, visible to all (or specific logic)
+  dueDate?: string;
+  createdAt?: string; // Added createdAt
+  tags?: string[];
+  comments?: number; // Count
+  commentsList?: TaskComment[]; // Actual comments
+  attachments?: number;
+  linkedPropertyId?: string; // Link to property
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay?: boolean;
+  description?: string;
+  type: 'meeting' | 'task' | 'reminder' | 'other';
+  linkedTaskId?: string;
+  userId: string; // Creator
+  attendees?: string[]; // User IDs
 }
 
 export interface Attachment {

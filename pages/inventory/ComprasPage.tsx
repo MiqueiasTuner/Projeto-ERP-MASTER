@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FileText, Plus, Search, Filter, Calendar, 
   CheckCircle2, XCircle, Clock, ArrowRight,
@@ -228,138 +229,149 @@ const ComprasPage = ({
         ))}
       </div>
 
-      {/* New Orçamento Modal */}
-      <AnimatePresence>
-        {isAdding && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden"
-            >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Orçamento</h3>
-                  <p className="text-slate-500 text-sm font-medium">Inicie uma nova cotação com fornecedores.</p>
-                </div>
-                <button 
-                  onClick={() => setIsAdding(false)}
-                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
-                >
-                  <XCircle size={32} strokeWidth={1.5} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Fornecedor</label>
-                  <select 
-                    required
-                    className={inputClass}
-                    value={selectedSupplierId}
-                    onChange={(e) => setSelectedSupplierId(e.target.value)}
+      {/* New Orçamento Drawer */}
+      {createPortal(
+        <AnimatePresence>
+          {isAdding && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAdding(false)}
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              />
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[110] flex flex-col"
+              >
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Orçamento</h3>
+                    <p className="text-slate-500 text-sm font-medium">Inicie uma nova cotação.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsAdding(false)}
+                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
                   >
-                    <option value="">Selecione um fornecedor</option>
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
-                    ))}
-                  </select>
+                    <X size={24} />
+                  </button>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Itens do Orçamento</label>
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Fornecedor</label>
+                    <select 
+                      required
+                      className={inputClass}
+                      value={selectedSupplierId}
+                      onChange={(e) => setSelectedSupplierId(e.target.value)}
+                    >
+                      <option value="">Selecione um fornecedor</option>
+                      {suppliers.map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Itens do Orçamento</label>
+                      <button 
+                        type="button"
+                        onClick={handleAddItem}
+                        className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"
+                      >
+                        <Plus size={14} /> Adicionar Item
+                      </button>
+                    </div>
+                    
+                    {quoteItems.map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div className="col-span-12 md:col-span-5">
+                          <select 
+                            required
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
+                            value={item.itemId}
+                            onChange={(e) => handleItemChange(index, 'itemId', e.target.value)}
+                          >
+                            <option value="">Selecione o insumo</option>
+                            {inventory.map(i => (
+                              <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-6 md:col-span-3">
+                          <input 
+                            type="number"
+                            placeholder="Qtd"
+                            required
+                            min="1"
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                          />
+                        </div>
+                        <div className="col-span-6 md:col-span-3">
+                          <input 
+                            type="number"
+                            placeholder="R$ Unit"
+                            required
+                            min="0"
+                            step="0.01"
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
+                            value={item.unitPrice}
+                            onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))}
+                          />
+                        </div>
+                        <div className="col-span-12 md:col-span-1 flex items-center justify-center">
+                          <button 
+                            type="button"
+                            onClick={() => handleRemoveItem(index)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Observações</label>
+                    <textarea 
+                      className={`${inputClass} min-h-[100px]`}
+                      placeholder="Condições de pagamento, prazo de entrega, etc..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="pt-6 flex gap-4">
                     <button 
                       type="button"
-                      onClick={handleAddItem}
-                      className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"
+                      onClick={() => setIsAdding(false)}
+                      className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
                     >
-                      <Plus size={14} /> Adicionar Item
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
+                    >
+                      Salvar Orçamento
                     </button>
                   </div>
-                  
-                  {quoteItems.map((item, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                      <div className="col-span-12 md:col-span-5">
-                        <select 
-                          required
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
-                          value={item.itemId}
-                          onChange={(e) => handleItemChange(index, 'itemId', e.target.value)}
-                        >
-                          <option value="">Selecione o insumo</option>
-                          {inventory.map(i => (
-                            <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-span-6 md:col-span-3">
-                        <input 
-                          type="number"
-                          placeholder="Qtd"
-                          required
-                          min="1"
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                        />
-                      </div>
-                      <div className="col-span-6 md:col-span-3">
-                        <input 
-                          type="number"
-                          placeholder="R$ Unit"
-                          required
-                          min="0"
-                          step="0.01"
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
-                          value={item.unitPrice}
-                          onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))}
-                        />
-                      </div>
-                      <div className="col-span-12 md:col-span-1 flex items-center justify-center">
-                        <button 
-                          type="button"
-                          onClick={() => handleRemoveItem(index)}
-                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Observações</label>
-                  <textarea 
-                    className={`${inputClass} min-h-[100px]`}
-                    placeholder="Condições de pagamento, prazo de entrega, etc..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
-
-                <div className="pt-6 flex gap-4">
-                  <button 
-                    type="button"
-                    onClick={() => setIsAdding(false)}
-                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit"
-                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all"
-                  >
-                    Salvar Orçamento
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                </form>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Warehouse as WarehouseIcon, Plus, MapPin, Trash2, Edit, X } from 'lucide-react';
 import { Warehouse } from '../../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface AlmoxarifadosPageProps {
   warehouses: Warehouse[];
@@ -66,30 +68,69 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[40px] shadow-2xl w-full max-w-md p-10 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black tracking-tight text-slate-900">Novo Almoxarifado</h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600"><X size={24} /></button>
-            </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Identificação do Local</label>
-                <input required name="name" type="text" placeholder="Ex: Depósito Central - Zona Norte" className={inputClass} />
+      {/* New Almoxarifado Drawer */}
+      <AnimatePresence>
+        {isModalOpen && createPortal(
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+            >
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Almoxarifado</h3>
+                  <p className="text-slate-500 text-sm font-medium">Cadastre um novo local de armazenamento.</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                >
+                  <X size={24} />
+                </button>
               </div>
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Endereço de Referência</label>
-                <input required name="location" type="text" placeholder="Ex: Av. das Indústrias, 500" className={inputClass} />
-              </div>
-            </div>
-            <div className="flex gap-4 mt-12">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
-              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">Confirmar</button>
-            </div>
-          </form>
-        </div>
-      )}
+
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificação do Local</label>
+                  <input required name="name" type="text" placeholder="Ex: Depósito Central - Zona Norte" className={inputClass} />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Endereço de Referência</label>
+                  <input required name="location" type="text" placeholder="Ex: Av. das Indústrias, 500" className={inputClass} />
+                </div>
+
+                <div className="pt-6 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
+                  >
+                    Salvar Local
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </>,
+          document.body
+        )}
+      </AnimatePresence>
     </div>
   );
 };

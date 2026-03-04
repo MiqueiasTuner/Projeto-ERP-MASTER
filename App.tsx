@@ -4,7 +4,7 @@ import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } f
 import { 
   LayoutDashboard, Building2, Home, Users, Box, ChevronDown, 
   ChevronUp, BarChart3, Settings, LogOut, PlusCircle, Menu, X as CloseIcon,
-  FileText
+  FileText, MessageSquare, Kanban, CalendarDays, User
 } from 'lucide-react';
 import { auth, db, isConfigured } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -27,11 +27,14 @@ import ReportsPage from './pages/ReportsPage';
 import TeamsPage from './pages/TeamsPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import ChatPage from './pages/ChatPage';
+import KanbanPage from './pages/KanbanPage';
+import CalendarPage from './pages/CalendarPage';
 import { 
   Property, Expense, InventoryItem, StockMovement, Supplier, 
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
-  MovementType, ExpenseCategory, Quote, QuoteStatus
+  MovementType, ExpenseCategory, Quote, QuoteStatus, Task
 } from './types';
 
 const INITIAL_PERMISSIONS: UserPermissions = {
@@ -42,117 +45,159 @@ const INITIAL_PERMISSIONS: UserPermissions = {
   reports: ['view', 'edit', 'delete']
 };
 
-const SidebarItem = ({ to, icon: Icon, label, active, visible = true, onClick }: { to?: string, icon: any, label: string, active: boolean, visible?: boolean, onClick?: () => void }) => {
+const SidebarItem = ({ to, icon: Icon, label, active, visible = true, onClick, collapsed = false }: { to?: string, icon: any, label: string, active: boolean, visible?: boolean, onClick?: () => void, collapsed?: boolean }) => {
   if (!visible) return null;
   const content = (
-    <div className={`flex items-center space-x-3 p-3 rounded-xl transition-all cursor-pointer ${
-      active ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-    }`} onClick={onClick}>
-      <Icon size={18} />
-      <span className="font-medium text-sm flex-1">{label}</span>
+    <div className={`flex items-center space-x-3 p-3 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+      active ? 'bg-[#FFD700] text-[#0A192F] shadow-lg shadow-yellow-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+    }`} onClick={onClick} title={collapsed ? label : undefined}>
+      <Icon size={18} className="flex-shrink-0" />
+      <span className={`font-medium text-sm flex-1 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>{label}</span>
     </div>
   );
   return to ? <Link to={to} onClick={onClick}>{content}</Link> : content;
 };
 
-const SidebarGroup = ({ label, icon: Icon, children, active, visible = true }: { label: string, icon: any, children?: React.ReactNode, active: boolean, visible?: boolean }) => {
+const SidebarGroup = ({ label, icon: Icon, children, active, visible = true, collapsed = false }: { label: string, icon: any, children?: React.ReactNode, active: boolean, visible?: boolean, collapsed?: boolean }) => {
   const [isOpen, setIsOpen] = useState(active);
   if (!visible) return null;
+  
   return (
     <div className="space-y-1">
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-3 p-3 rounded-xl transition-colors cursor-pointer ${
-          active && !isOpen ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        className={`flex items-center space-x-3 p-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap ${
+          active && !isOpen ? 'bg-[#FFD700]/10 text-[#FFD700]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
         }`}
+        title={collapsed ? label : undefined}
       >
-        <Icon size={18} />
-        <span className="font-medium text-sm flex-1">{label}</span>
-        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        <Icon size={18} className="flex-shrink-0" />
+        <span className={`font-medium text-sm flex-1 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>{label}</span>
+        {!collapsed && (isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
       </div>
-      {isOpen && <div className="pl-9 space-y-1 animate-in slide-in-from-top-1 duration-200">{children}</div>}
+      {isOpen && !collapsed && <div className="pl-9 space-y-1 animate-in slide-in-from-top-1 duration-200">{children}</div>}
     </div>
   );
 };
 
-const ProtectedLayout = ({ children, currentUser, onLogout }: { children?: React.ReactNode, currentUser: UserAccount, onLogout: () => void }) => {
-  const location = useLocation();
+const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.ReactNode, currentUser: UserAccount, onLogout: () => void }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Default open on desktop
+  const location = useLocation();
 
-  const hasPermission = (module: PermissionModule, action: PermissionAction): boolean => {
-    if (currentUser.role === UserRole.MASTER) return true;
-    return currentUser.permissions?.[module]?.includes(action) || false;
+  const hasPermission = (module: PermissionModule, action: PermissionAction) => {
+    if (currentUser.role === UserRole.ADMIN) return true;
+    return currentUser.permissions[module]?.includes(action);
   };
 
   const closeSidebar = () => setIsSidebarOpen(false);
+  const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
-      {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden" onClick={closeSidebar} />}
-      <aside className={`fixed inset-y-0 left-0 w-72 bg-slate-900 text-white flex flex-col p-6 z-40 transition-transform duration-300 lg:translate-x-0 lg:static lg:h-screen lg:overflow-y-auto ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between mb-10 px-2 group">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2.5 rounded-2xl group-hover:rotate-12 transition-transform"><Building2 size={24} /></div>
-            <div>
-              <h1 className="text-lg font-black leading-none">Master Imóveis</h1>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Portal ERP</span>
-            </div>
-          </div>
-          <button className="lg:hidden p-2 text-slate-400" onClick={closeSidebar}><CloseIcon size={24} /></button>
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
-          <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} />
-          <div className="pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Gestão Operacional</div>
-          <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} />
-          <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={hasPermission('inventory', 'view')}>
-            <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>
-            <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>
-            <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>
-            <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>
-          </SidebarGroup>
-          <div className="pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Estratégico</div>
-          <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={hasPermission('reports', 'view')} onClick={closeSidebar} />
-          <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} />
-          <button onClick={onLogout} className="flex items-center space-x-3 p-3 w-full rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors mt-2"><LogOut size={18} /> <span className="font-medium text-sm">Sair</span></button>
-        </nav>
-        <div className="mt-auto pt-6 border-t border-slate-800">
-          <div className="px-4 py-4 bg-slate-800/40 rounded-2xl border border-slate-800/50 flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-blue-500/20">
-              {currentUser.name.substring(0, 2).toUpperCase()}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[11px] font-black text-white uppercase tracking-wider truncate">{currentUser.name}</span>
-              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Operador Master</span>
-            </div>
-          </div>
-        </div>
-      </aside>
-      <div className="flex-1 flex flex-col h-screen max-w-full overflow-hidden bg-slate-50">
-        <header className="lg:hidden bg-slate-900 border-b border-slate-800 px-6 py-5 flex items-center justify-between sticky top-0 z-20 shadow-xl">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-500/20">
-              <Building2 size={20} />
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      {/* Top Header - YouTube Style */}
+      <header className="bg-[#0A192F] border-b border-slate-800 h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-50 shadow-md">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={toggleSidebar}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors hidden lg:block"
+          >
+            <Menu size={24} />
+          </button>
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors lg:hidden"
+          >
+            <Menu size={24} />
+          </button>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative flex-shrink-0">
+              <div className="absolute -inset-1 bg-[#FFD700] rounded-xl blur-[2px] opacity-20"></div>
+              <div className="relative bg-[#0A192F] p-1 rounded-xl border border-[#FFD700]/20 overflow-hidden w-9 h-9 flex items-center justify-center">
+                <img src="https://i.postimg.cc/jsxKRsym/sale-(1).png" alt="Sintese ERP" className="w-full h-full object-contain" />
+              </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-white tracking-tight leading-none text-sm">Master Imóveis</span>
-              <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">Portal ERP</span>
+              <span className="font-black text-white tracking-tight leading-none text-lg">Sintese <span className="text-[#FFD700]">ERP</span></span>
             </div>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(true)} 
-            className="p-3 bg-slate-800/50 border border-slate-700 rounded-2xl text-slate-300 hover:bg-slate-700 hover:text-white transition-all active:scale-95"
-          >
-            <Menu size={22} />
-          </button>
-        </header>
-        <main className="flex-1 p-6 lg:p-10 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          <div className="max-w-7xl mx-auto pb-20 lg:pb-0 animate-in">
+        </div>
+
+        <div className="flex items-center gap-4">
+           <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50">
+              <div className="w-6 h-6 rounded-full bg-[#FFD700] flex items-center justify-center text-[10px] font-black text-[#0A192F]">
+                {currentUser.name.substring(0, 2).toUpperCase()}
+              </div>
+              <span className="text-xs font-bold text-slate-300 pr-2">{currentUser.name}</span>
+           </div>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside 
+          className={`fixed inset-y-0 left-0 top-16 bg-[#0A192F] text-white flex flex-col z-40 transition-all duration-300 lg:static lg:h-full ${
+            isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'
+          } ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+        >
+          <div className="lg:hidden flex justify-end p-4">
+             <button onClick={closeSidebar} className="text-slate-400"><CloseIcon /></button>
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto py-4 px-2 custom-scrollbar overflow-x-hidden">
+            <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={true} collapsed={isSidebarCollapsed} />
+            
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
+            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+            
+            <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            
+            <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={hasPermission('inventory', 'view')} collapsed={isSidebarCollapsed}>
+              <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>
+              <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>
+              <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>
+              <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>
+            </SidebarGroup>
+
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
+            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+
+            <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={hasPermission('reports', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
+            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+
+            <SidebarItem to="/chat" icon={MessageSquare} label="Chat Interno" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/kanban" icon={Kanban} label="Kanban" active={location.pathname === '/kanban'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            
+            <div title="Em breve" className="opacity-50 cursor-not-allowed">
+              <SidebarItem icon={FileText} label="Ligações" active={false} visible={true} collapsed={isSidebarCollapsed} onClick={() => {}} />
+            </div>
+
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
+            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+
+            <SidebarItem to="/equipe" icon={User} label="Equipe e Acessos" active={location.pathname === '/equipe'} visible={hasPermission('teams', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            
+            <button onClick={onLogout} className="flex items-center space-x-3 px-4 py-3 w-full rounded-2xl text-rose-400 hover:bg-rose-500/10 transition-colors mt-2 group">
+              <LogOut size={20} className="flex-shrink-0" /> 
+              <span className={`font-medium text-sm whitespace-nowrap transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>Sair</span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 p-6 lg:p-10 relative">
+          <div className="max-w-7xl mx-auto pb-20 lg:pb-0">
             {children}
           </div>
           {location.pathname === '/' && (
             <footer className="mt-20 pb-10 text-center border-t border-slate-200/50 pt-10">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                © 2026 Master Imóveis. Todos os direitos reservados Sintese Web
+                © 2026 Sintese ERP. Todos os direitos reservados Sintese Web
               </p>
             </footer>
           )}
@@ -177,6 +222,7 @@ const AppContent = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [logs, setLogs] = useState<PropertyLog[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
@@ -204,6 +250,7 @@ const AppContent = () => {
       { name: 'teams', setter: setTeams },
       { name: 'logs', setter: setLogs },
       { name: 'quotes', setter: setQuotes },
+      { name: 'tasks', setter: setTasks },
     ];
 
     const unsubscribes = collections.map(({ name, setter }) => {
@@ -220,7 +267,7 @@ const AppContent = () => {
     id: session?.uid || 'loading',
     name: session?.displayName || 'Usuário',
     email: session?.email || '',
-    role: UserRole.MASTER, 
+    role: UserRole.ADMIN, 
     active: true,
     permissions: INITIAL_PERMISSIONS
   };
@@ -248,13 +295,27 @@ const AppContent = () => {
     }
   };
 
+  const isMasterUser = currentUser.email === 'miqueiasyout@gmail.com';
+
   const deleteProperty = async (id: string) => {
+    if (!isMasterUser) {
+      alert("Apenas o Administrador Master pode excluir registros.");
+      return;
+    }
     if (!window.confirm("Tem certeza que deseja excluir este imóvel?")) return;
     await deleteDoc(doc(db, 'properties', id));
     navigate('/imoveis');
   };
 
+  const addInventoryItem = async (item: Omit<InventoryItem, 'id'>) => {
+    await addDoc(collection(db, 'inventory'), item as any);
+  };
+
   const deleteInventoryItem = async (id: string) => {
+    if (!isMasterUser) {
+      alert("Apenas o Administrador Master pode excluir registros.");
+      return;
+    }
     if (!window.confirm("Deseja excluir este insumo?")) return;
     await deleteDoc(doc(db, 'inventory', id));
   };
@@ -265,6 +326,10 @@ const AppContent = () => {
   };
 
   const deleteSupplier = async (id: string) => {
+    if (!isMasterUser) {
+      alert("Apenas o Administrador Master pode excluir registros.");
+      return;
+    }
     if (!window.confirm("Deseja realmente excluir este fornecedor?")) return;
     await deleteDoc(doc(db, 'suppliers', id));
   };
@@ -275,6 +340,10 @@ const AppContent = () => {
   };
 
   const deleteWarehouse = async (id: string) => {
+    if (!isMasterUser) {
+      alert("Apenas o Administrador Master pode excluir registros.");
+      return;
+    }
     if (!window.confirm("Deseja excluir este almoxarifado?")) return;
     await deleteDoc(doc(db, 'warehouses', id));
   };
@@ -306,6 +375,10 @@ const AppContent = () => {
   };
 
   const deleteQuote = async (id: string) => {
+    if (!isMasterUser) {
+      alert("Apenas o Administrador Master pode excluir registros.");
+      return;
+    }
     if (!window.confirm("Deseja excluir este orçamento?")) return;
     await deleteDoc(doc(db, 'quotes', id));
   };
@@ -366,8 +439,8 @@ const AppContent = () => {
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Carregando Master Imóveis...</p>
+      <div className="w-12 h-12 border-4 border-[#0A192F] border-t-[#FFD700] rounded-full animate-spin mb-4" />
+      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Carregando Sintese ERP...</p>
     </div>
   );
 
@@ -384,18 +457,27 @@ const AppContent = () => {
   return (
     <ProtectedLayout currentUser={currentUser} onLogout={handleLogout}>
       <Routes>
-        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} />} />
+        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} currentUser={currentUser} />} />
         <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await updateDoc(doc(db, 'properties', id), { status }); }} onDeleteProperty={deleteProperty} />} />
-        <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} onAddExpense={addExpense} onDeleteExpense={async (id) => { await deleteDoc(doc(db, 'expenses', id)); }} onDeleteProperty={deleteProperty} />} />
+        <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
+          if (!isMasterUser) {
+            alert("Apenas o Administrador Master pode excluir registros.");
+            return;
+          }
+          await deleteDoc(doc(db, 'expenses', id)); 
+        }} onDeleteProperty={deleteProperty} />} />
         <Route path="/novo" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
         <Route path="/editar/:id" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
-        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} />} />
+        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} />} />
         <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} />} />
         <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} />} />
         <Route path="/estoque/almoxarifados" element={<AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} />} />
         <Route path="/estoque/orcamentos" element={<ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} />} />
         <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} />} />
         <Route path="/equipe" element={<TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
+        <Route path="/chat" element={<ChatPage currentUser={currentUser} />} />
+        <Route path="/kanban" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
+        <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

@@ -52,7 +52,7 @@ const InputField = ({ label, path, type = 'text', prefix, placeholder, value, on
   );
 };
 
-const PropertyForm = ({ properties, onSave }: { properties?: Property[], onSave: (p: Property) => void }) => {
+const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[], onSave: (p: Property) => void, onCancel?: () => void }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,11 +72,14 @@ const PropertyForm = ({ properties, onSave }: { properties?: Property[], onSave:
     if (id && properties) {
       const existing = properties.find(p => p.id === id);
       if (existing) {
-        // Garantimos que campos numéricos inexistentes sejam tratados como null, não como 0
         setFormData({ ...existing });
       }
+    } else if (!id && properties && properties.length === 1) {
+      // For drawer usage where we pass [selectedProperty]
+      setFormData({ ...properties[0] });
     }
   }, [id, properties]);
+
 
   const handleChange = (path: string, value: any) => {
     setFormData(prev => ({ ...prev, [path]: value }));
@@ -273,7 +276,7 @@ const PropertyForm = ({ properties, onSave }: { properties?: Property[], onSave:
         <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6">
           <button 
             type="button" 
-            onClick={() => navigate(-1)}
+            onClick={() => onCancel ? onCancel() : navigate(-1)}
             className="order-2 sm:order-1 px-10 py-5 rounded-[24px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all"
           >
             Descartar

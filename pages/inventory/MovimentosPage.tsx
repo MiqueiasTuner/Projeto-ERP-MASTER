@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowRightLeft, Plus, Search, Filter, Trash2, Edit, X, 
   ArrowUpRight, TrendingDown, Clock, Paperclip, 
@@ -286,82 +287,94 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
         </div>
       </div>
 
-      {/* New Movement Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden"
-            >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Movimento</h3>
-                  <p className="text-slate-500 text-sm font-medium">Audite entradas e saídas de materiais.</p>
+      {/* New Movement Drawer */}
+      {createPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsModalOpen(false)}
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              />
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+              >
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Movimento</h3>
+                    <p className="text-slate-500 text-sm font-medium">Audite entradas e saídas.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                  >
+                    <X size={24} />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
-                >
-                  <XCircle size={32} strokeWidth={1.5} />
-                </button>
-              </div>
 
-              <form className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Operação</label>
                     <div className="flex gap-2">
                       <button 
                         type="button"
-                        className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl border-2 border-emerald-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                        className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl border-2 border-emerald-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
                       >
                         <ArrowUpRight size={16} /> Entrada
                       </button>
                       <button 
                         type="button"
-                        className="flex-1 py-3 bg-blue-50 text-blue-600 rounded-xl border-2 border-blue-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                        className="flex-1 py-3 bg-blue-50 text-blue-600 rounded-xl border-2 border-blue-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
                       >
                         <ArrowDownRight size={16} /> Saída
                       </button>
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
                     <input type="date" className={inputClass} defaultValue={new Date().toISOString().split('T')[0]} />
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Insumo / Material</label>
-                  <select className={inputClass}>
-                    <option value="">Selecione o material...</option>
-                    {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
-                    <input type="number" placeholder="0.00" className={inputClass} />
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Insumo / Material</label>
+                    <select className={inputClass}>
+                      <option value="">Selecione o material...</option>
+                      {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+                    </select>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
+                      <input type="number" placeholder="0.00" className={inputClass} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                        <input type="number" placeholder="0.00" className={`${inputClass} pl-10`} />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total (R$)</label>
-                    <input type="number" placeholder="0.00" className={inputClass} />
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Destinação (Imóvel)</label>
+                    <select className={inputClass}>
+                      <option value="">Estoque Central</option>
+                      {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
+                    </select>
                   </div>
-                </div>
+                </form>
 
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Destinação (Imóvel)</label>
-                  <select className={inputClass}>
-                    <option value="">Estoque Central</option>
-                    {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
-                  </select>
-                </div>
-
-                <div className="pt-6 flex gap-4">
+                <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
@@ -373,14 +386,15 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
                     type="submit"
                     className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all"
                   >
-                    Registrar Movimento
+                    Registrar
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

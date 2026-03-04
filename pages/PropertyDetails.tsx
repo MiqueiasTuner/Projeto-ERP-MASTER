@@ -15,21 +15,24 @@ import {
   X,
   DollarSign,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  CheckCircle2
 } from 'lucide-react';
-import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog } from '../types';
+import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task } from '../types';
 import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloat, formatDate } from '../utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface PropertyDetailsProps {
   properties: Property[];
   expenses: Expense[];
   logs: PropertyLog[];
+  tasks?: Task[];
   onAddExpense: (e: Expense) => void;
   onDeleteExpense: (id: string) => void;
   onDeleteProperty: (id: string) => void;
 }
 
-const PropertyDetails = ({ properties, expenses, logs, onAddExpense, onDeleteExpense, onDeleteProperty }: PropertyDetailsProps) => {
+const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense, onDeleteExpense, onDeleteProperty }: PropertyDetailsProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>('financeiro');
@@ -45,7 +48,18 @@ const PropertyDetails = ({ properties, expenses, logs, onAddExpense, onDeleteExp
 
   const property = properties.find(p => p.id === id);
   const propertyExpenses = expenses.filter(e => e.propertyId === id);
-  const propertyLogs = logs.filter(l => l.propertyId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  // Merge logs and tasks for timeline
+  const propertyLogs = logs.filter(l => l.propertyId === id);
+  const propertyTasks = tasks.filter(t => t.linkedPropertyId === id);
+  
+  const timelineItems = useMemo(() => {
+    const combined = [
+      ...propertyLogs.map(l => ({ type: 'log', data: l, date: new Date(l.timestamp) })),
+      ...propertyTasks.map(t => ({ type: 'task', data: t, date: new Date(t.createdAt || new Date().toISOString()) })) // Assuming tasks have createdAt, if not use fallback
+    ];
+    return combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [propertyLogs, propertyTasks]);
   
   const metrics = useMemo(() => property ? calculatePropertyMetrics(property, propertyExpenses) : null, [property, propertyExpenses]);
 
@@ -315,79 +329,162 @@ const PropertyDetails = ({ properties, expenses, logs, onAddExpense, onDeleteExp
             <div className="animate-in slide-in-from-bottom-2 max-w-2xl mx-auto py-4">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center mb-12">Logs de Governança</h4>
               <div className="relative border-l-4 border-slate-100 ml-4 md:ml-8 pl-8 md:pl-12 space-y-12">
-                {propertyLogs.map((log) => (
-                  <div key={log.id} className="relative">
-                    <div className="absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl bg-white border-4 border-slate-100 flex items-center justify-center shadow-lg">
-                      <Clock size={16} className="text-slate-900" />
-                    </div>
-                    <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100">
-                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                          <span className="text-sm font-black text-slate-900 tracking-tight leading-none">{log.action}</span>
-                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{formatDate(log.timestamp)}</span>
-                       </div>
-                       <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                             <User size={12} className="mr-2 text-blue-600" /> {log.userName}
+                {timelineItems.length > 0 ? (
+                  timelineItems.map((item, idx) => {
+                    if (item.type === 'log') {
+                      const log = item.data as PropertyLog;
+                      return (
+                        <div key={`log-${log.id}`} className="relative">
+                          <div className="absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl bg-white border-4 border-slate-100 flex items-center justify-center shadow-lg z-10">
+                            <Clock size={16} className="text-slate-900" />
                           </div>
-                          {log.fromStatus && (
-                            <div className="flex items-center text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1.5 rounded-xl">
-                               {log.fromStatus} <ArrowRight size={10} className="mx-2 text-slate-300" /> {log.toStatus}
-                            </div>
-                          )}
-                       </div>
-                    </div>
+                          <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100 relative">
+                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                                <span className="text-sm font-black text-slate-900 tracking-tight leading-none">{log.action}</span>
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(log.timestamp).toLocaleString()}</span>
+                             </div>
+                             <div className="flex flex-wrap items-center gap-3">
+                                <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100">
+                                   <User size={12} className="mr-2 text-blue-600" /> {log.userName}
+                                </div>
+                                {log.fromStatus && (
+                                  <div className="flex items-center text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1.5 rounded-xl">
+                                     {log.fromStatus} <ArrowRight size={10} className="mx-2 text-slate-300" /> {log.toStatus}
+                                  </div>
+                                )}
+                                {log.details && (
+                                  <div className="w-full mt-2 text-xs text-slate-500 font-medium bg-white p-3 rounded-xl border border-slate-100">
+                                    {log.details}
+                                  </div>
+                                )}
+                             </div>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      const task = item.data as Task;
+                      return (
+                        <div key={`task-${task.id}`} className="relative">
+                          <div className="absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl bg-blue-50 border-4 border-blue-100 flex items-center justify-center shadow-lg z-10">
+                            <CheckCircle2 size={16} className="text-blue-600" />
+                          </div>
+                          <div className="bg-white p-6 rounded-[28px] border-2 border-blue-50 relative shadow-sm">
+                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                                <span className="text-sm font-black text-slate-900 tracking-tight leading-none">Tarefa: {task.title}</span>
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(task.createdAt || '').toLocaleString()}</span>
+                             </div>
+                             <div className="flex flex-wrap items-center gap-3">
+                                <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
+                                  task.status === 'Concluído' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                                }`}>
+                                  {task.status}
+                                </div>
+                                <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                                   <User size={12} className="mr-2 text-slate-400" /> {task.assigneeName || 'Sem responsável'}
+                                </div>
+                             </div>
+                             {task.description && (
+                                <div className="mt-3 text-xs text-slate-500 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                  {task.description}
+                                </div>
+                             )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })
+                ) : (
+                  <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs py-10">
+                    Nenhum registro encontrado.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {isExpenseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleAddExpenseSubmit} className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg p-8 md:p-12 my-8 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black tracking-tight text-slate-900">Novo Gasto</h3>
-              <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><X size={24} /></button>
-            </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Data</label>
-                <input type="date" className={inputClass} value={newExpData.date} onChange={(e) => setNewExpData({...newExpData, date: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Categoria</label>
-                <select className={inputClass} value={newExpData.category} onChange={(e) => setNewExpData({...newExpData, category: e.target.value as ExpenseCategory})}>
-                  {Object.values(ExpenseCategory).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Descrição</label>
-                <input type="text" placeholder="Pintura, Taxas, etc..." className={inputClass} value={newExpData.description} onChange={(e) => setNewExpData({...newExpData, description: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Valor Total</label>
-                <div className="relative">
-                  <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</span>
-                  <input type="text" placeholder="0,00" className={inputClass + " pl-12"} value={formatBRLMask(newExpData.amount)}
-                    onChange={(e) => {
-                      const numeric = e.target.value.replace(/\D/g, '');
-                      setNewExpData({...newExpData, amount: parseBRLToFloat(numeric) || 0});
-                    }}
-                  />
+      <AnimatePresence>
+        {isExpenseModalOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsExpenseModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+            >
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Gasto</h3>
+                  <p className="text-slate-500 text-sm font-medium">Registre despesas do imóvel.</p>
                 </div>
+                <button 
+                  onClick={() => setIsExpenseModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                >
+                  <X size={24} />
+                </button>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 mt-12">
-              <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="order-2 sm:order-1 flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
-              <button type="submit" className="order-1 sm:order-2 flex-1 py-4 bg-blue-600 text-white rounded-[24px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-                <Plus size={16} strokeWidth={3} /> Efetivar Lançamento
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+
+              <form onSubmit={handleAddExpenseSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data</label>
+                  <input type="date" className={inputClass} value={newExpData.date} onChange={(e) => setNewExpData({...newExpData, date: e.target.value})} />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                  <select className={inputClass} value={newExpData.category} onChange={(e) => setNewExpData({...newExpData, category: e.target.value as ExpenseCategory})}>
+                    {Object.values(ExpenseCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+                  <input type="text" placeholder="Pintura, Taxas, etc..." className={inputClass} value={newExpData.description} onChange={(e) => setNewExpData({...newExpData, description: e.target.value})} />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</span>
+                    <input type="text" placeholder="0,00" className={inputClass + " pl-12"} value={formatBRLMask(newExpData.amount)}
+                      onChange={(e) => {
+                        const numeric = e.target.value.replace(/\D/g, '');
+                        setNewExpData({...newExpData, amount: parseBRLToFloat(numeric) || 0});
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-6 flex gap-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsExpenseModalOpen(false)} 
+                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} strokeWidth={3} /> Lançar
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
