@@ -18,22 +18,43 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
     }));
 
     const totalInvested = propertyData.reduce((acc, p) => acc + p.metrics.totalInvested, 0);
-    const totalInventoryValue = inventory.reduce((acc, i) => acc + (i.currentStock * 0), 0); // Mock de valor
-    
-    const roiByCity = Array.from(new Set(properties.map(p => p.city))).map(city => {
-      const cityProps = propertyData.filter(p => p.city === city && p.status === PropertyStatus.VENDIDO);
-      return {
-        city,
-        roi: cityProps.length > 0 ? cityProps.reduce((acc, p) => acc + p.metrics.roi, 0) / cityProps.length : 0
-      };
-    });
+    const totalProfit = propertyData.reduce((acc, p) => acc + p.metrics.realizedProfit, 0);
+    const soldProperties = propertyData.filter(p => p.status === PropertyStatus.VENDIDO);
+    const avgROI = soldProperties.length > 0 
+      ? soldProperties.reduce((acc, p) => acc + p.metrics.roi, 0) / soldProperties.length 
+      : 0;
 
-    const statusDist = Object.values(PropertyStatus).map(s => ({
-      name: s,
-      value: properties.filter(p => p.status === s).length
+    const soldWithDates = soldProperties.filter(p => p.acquisitionDate && p.saleDate);
+    const leadTimeDays = soldWithDates.map(p => {
+      const start = new Date(p.acquisitionDate).getTime();
+      const end = new Date(p.saleDate!).getTime();
+      return Math.max(0, (end - start) / (1000 * 60 * 60 * 24));
+    });
+    const avgLeadTime = leadTimeDays.length > 0 
+      ? Math.round(leadTimeDays.reduce((acc, d) => acc + d, 0) / leadTimeDays.length)
+      : 0;
+
+    const statusDist = Object.values(PropertyStatus).map(status => ({
+      name: status,
+      value: properties.filter(p => p.status === status).length
     }));
 
-    return { totalInvested, roiByCity, statusDist };
+    const cityGroups = properties.reduce((acc: any, p) => {
+      if (!acc[p.city]) acc[p.city] = { name: p.city, roi: 0, count: 0 };
+      const m = calculatePropertyMetrics(p, expenses);
+      if (p.status === PropertyStatus.VENDIDO) {
+        acc[p.city].roi += m.roi;
+        acc[p.city].count += 1;
+      }
+      return acc;
+    }, {});
+
+    const roiByCity = Object.values(cityGroups).map((g: any) => ({
+      name: g.name,
+      roi: g.count > 0 ? g.roi / g.count : 0
+    }));
+
+    return { totalInvested, roiByCity, statusDist, avgROI, avgLeadTime };
   }, [properties, expenses, inventory]);
 
   return (
@@ -96,11 +117,11 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
         </div>
         <div className="bg-emerald-600 p-6 rounded-2xl text-white shadow-lg">
           <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Retorno Médio</p>
-          <p className="text-2xl font-black">28.4% <span className="text-xs font-normal opacity-70">Líquido</span></p>
+          <p className="text-2xl font-black">{metrics.avgROI.toFixed(1)}% <span className="text-xs font-normal opacity-70">Líquido</span></p>
         </div>
         <div className="bg-slate-900 p-6 rounded-2xl text-white shadow-lg">
           <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Giro Médio</p>
-          <p className="text-2xl font-black">142 <span className="text-xs font-normal opacity-70">Dias</span></p>
+          <p className="text-2xl font-black">{metrics.avgLeadTime} <span className="text-xs font-normal opacity-70">Dias</span></p>
         </div>
       </div>
     </div>

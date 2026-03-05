@@ -150,6 +150,7 @@ export interface UserAccount {
   active: boolean;
   permissions: UserPermissions;
   photoUrl?: string;
+  companyLogo?: string;
   phone?: string;
   jobTitle?: string;
   bio?: string;

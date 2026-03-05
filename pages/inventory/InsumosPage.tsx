@@ -23,9 +23,12 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string>('All');
 
   // Form state
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
     category: '',
     unit: 'un' as InventoryItem['unit'],
@@ -42,29 +45,58 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
     }));
   };
 
+  const handleEditItem = (e: React.MouseEvent, item: InventoryItem) => {
+    e.stopPropagation();
+    setFormData({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      minStock: item.minStock,
+      averageCost: item.averageCost || 0,
+      imageUrl: item.imageUrl || ''
+    });
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onAddItem({
-        ...formData,
-        currentStock: 0,
-        usageStatus: 0
-      });
+      if (formData.id) {
+        // Edit logic - assuming onAddItem handles updates if ID is present or we need a separate onUpdate
+        // For now, let's assume we need to update the parent
+        await onAddItem({
+          ...formData,
+          currentStock: items.find(i => i.id === formData.id)?.currentStock || 0,
+          usageStatus: items.find(i => i.id === formData.id)?.usageStatus || 0
+        } as any);
+      } else {
+        await onAddItem({
+          ...formData,
+          currentStock: 0,
+          usageStatus: 0
+        } as any);
+      }
       setIsModalOpen(false);
-      setFormData({
-        name: '',
-        category: '',
-        unit: 'un',
-        minStock: 0,
-        averageCost: 0,
-        imageUrl: ''
-      });
+      resetForm();
     } catch (error) {
-      console.error("Error adding item:", error);
+      console.error("Error saving item:", error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      id: '',
+      name: '',
+      category: '',
+      unit: 'un',
+      minStock: 0,
+      averageCost: 0,
+      imageUrl: ''
+    });
   };
 
   // Calculations for Widgets
@@ -84,10 +116,17 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
     return { capitalImobilizado, fluxoSaida, alertasReposicao };
   }, [items, movements]);
 
-  const filteredItems = items.filter(i => 
-    i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    i.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems = items.filter(i => {
+    const matchesSearch = i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         i.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'All' || i.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = useMemo(() => {
+    const cats = new Set(items.map(i => i.category));
+    return ['All', ...Array.from(cats)];
+  }, [items]);
 
   const handleOpenDrawer = (item: InventoryItem) => {
     setSelectedItem(item);
@@ -121,11 +160,29 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           <p className="text-slate-500 font-medium">Controle de estoque, cotações e eficiência operacional.</p>
         </div>
         <div className="flex gap-3">
-          <button className="bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-            <Filter size={18} /> <span>Filtros</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm ${isFilterOpen ? 'ring-2 ring-blue-500' : ''}`}
+            >
+              <Filter size={18} /> <span>{filterCategory === 'All' ? 'Filtros' : filterCategory}</span>
+            </button>
+            {isFilterOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => { setFilterCategory(cat); setIsFilterOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${filterCategory === cat ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { resetForm(); setIsModalOpen(true); }}
             className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
           >
             <Plus size={18} /> <span>Novo Insumo</span>
@@ -148,7 +205,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           </div>
           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Capital Imobilizado</p>
           <h3 className="text-2xl font-black text-slate-900">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.capitalImobilizado || 1250000)}
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.capitalImobilizado)}
           </h3>
           <p className="text-[10px] text-slate-400 mt-2 font-medium">Valor total em estoque atual</p>
         </motion.div>
@@ -167,7 +224,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           </div>
           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Fluxo de Saída</p>
           <h3 className="text-2xl font-black text-slate-900">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.fluxoSaida || 45200)}
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.fluxoSaida)}
           </h3>
           <p className="text-[10px] text-slate-400 mt-2 font-medium">Gastos em insumos recentemente</p>
         </motion.div>
@@ -300,7 +357,10 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                       >
                         <MessageCircle size={18} />
                       </button>
-                      <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all">
+                      <button 
+                        onClick={(e) => handleEditItem(e, item)}
+                        className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"
+                      >
                         <Edit size={18} />
                       </button>
                       <button 
@@ -450,8 +510,8 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
               >
                 <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Insumo</h3>
-                    <p className="text-slate-500 text-sm font-medium">Adicione ao catálogo.</p>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{formData.id ? 'Editar Insumo' : 'Novo Insumo'}</h3>
+                    <p className="text-slate-500 text-sm font-medium">{formData.id ? 'Atualize os dados do material.' : 'Adicione ao catálogo.'}</p>
                   </div>
                   <button 
                     onClick={() => setIsModalOpen(false)}

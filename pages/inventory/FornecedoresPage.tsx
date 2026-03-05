@@ -14,6 +14,7 @@ interface FornecedoresPageProps {
 const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: FornecedoresPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
   const filteredSuppliers = (suppliers || []).filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -25,7 +26,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const newSupplier: Supplier = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: editingSupplier?.id || Math.random().toString(36).substr(2, 9),
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       cnpj: (form.elements.namedItem('cnpj') as HTMLInputElement).value,
       category: (form.elements.namedItem('category') as HTMLInputElement).value,
@@ -33,6 +34,12 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
     };
     onAddSupplier(newSupplier);
     setIsModalOpen(false);
+    setEditingSupplier(null);
+  };
+
+  const handleEdit = (s: Supplier) => {
+    setEditingSupplier(s);
+    setIsModalOpen(true);
   };
 
   const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
@@ -45,7 +52,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
           <p className="text-slate-500 font-medium text-sm">Gestão de parceiros e prestadores de serviço.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setEditingSupplier(null); setIsModalOpen(true); }}
           className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
         >
           <Plus size={20} strokeWidth={3} /> <span className="text-sm">Novo Fornecedor</span>
@@ -86,7 +93,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
               </div>
             </div>
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-              <button className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit size={18} /></button>
+              <button onClick={() => handleEdit(s)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit size={18} /></button>
               <button onClick={() => onDeleteSupplier(s.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={18} /></button>
             </div>
           </div>
@@ -107,7 +114,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => { setIsModalOpen(false); setEditingSupplier(null); }}
                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
               />
               <motion.div 
@@ -119,11 +126,11 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
               >
                 <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Fornecedor</h3>
-                    <p className="text-slate-500 text-sm font-medium">Cadastre parceiros estratégicos.</p>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}</h3>
+                    <p className="text-slate-500 text-sm font-medium">{editingSupplier ? 'Atualize os dados do parceiro.' : 'Cadastre parceiros estratégicos.'}</p>
                   </div>
                   <button 
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => { setIsModalOpen(false); setEditingSupplier(null); }}
                     className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
                   >
                     <X size={24} />
@@ -133,28 +140,28 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Razão Social / Nome Fantasia</label>
-                    <input required name="name" type="text" placeholder="Ex: Silva Construções Ltda" className={inputClass} />
+                    <input required name="name" type="text" placeholder="Ex: Silva Construções Ltda" className={inputClass} defaultValue={editingSupplier?.name || ''} />
                   </div>
                   
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ ou CPF</label>
-                    <input name="cnpj" type="text" placeholder="00.000.000/0001-00" className={inputClass} />
+                    <input name="cnpj" type="text" placeholder="00.000.000/0001-00" className={inputClass} defaultValue={editingSupplier?.cnpj || ''} />
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria Técnica</label>
-                    <input required name="category" type="text" placeholder="Ex: Hidráulica" className={inputClass} />
+                    <input required name="category" type="text" placeholder="Ex: Hidráulica" className={inputClass} defaultValue={editingSupplier?.category || ''} />
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Contato / Celular</label>
-                    <input required name="phone" type="text" placeholder="(11) 99999-9999" className={inputClass} />
+                    <input required name="phone" type="text" placeholder="(11) 99999-9999" className={inputClass} defaultValue={editingSupplier?.phone || ''} />
                   </div>
 
                   <div className="pt-6 flex gap-4">
                     <button 
                       type="button"
-                      onClick={() => setIsModalOpen(false)}
+                      onClick={() => { setIsModalOpen(false); setEditingSupplier(null); }}
                       className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
                     >
                       Cancelar
@@ -163,7 +170,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
                       type="submit"
                       className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
                     >
-                      Salvar Fornecedor
+                      {editingSupplier ? 'Salvar Alterações' : 'Salvar Fornecedor'}
                     </button>
                   </div>
                 </form>

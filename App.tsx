@@ -115,11 +115,16 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
             <div className="relative flex-shrink-0">
               <div className="absolute -inset-1 bg-[#FFD700] rounded-xl blur-[2px] opacity-20"></div>
               <div className="relative bg-[#0A192F] p-1 rounded-xl border border-[#FFD700]/20 overflow-hidden w-9 h-9 flex items-center justify-center">
-                <img src="https://i.postimg.cc/jsxKRsym/sale-(1).png" alt="Sintese ERP" className="w-full h-full object-contain" />
+                <img src={currentUser.companyLogo || "https://i.postimg.cc/jsxKRsym/sale-(1).png"} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-white tracking-tight leading-none text-lg">Sintese <span className="text-[#FFD700]">ERP</span></span>
+              <span className="font-black text-white tracking-tight leading-none text-lg">
+                {currentUser.companyLogo ? (
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-0.5">Sintese ERP</span>
+                ) : null}
+                Sintese <span className="text-[#FFD700]">ERP</span>
+              </span>
             </div>
           </div>
         </div>
@@ -169,7 +174,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
             <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
             <SidebarItem to="/chat" icon={MessageSquare} label="Chat Interno" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <SidebarItem to="/kanban" icon={Kanban} label="Kanban" active={location.pathname === '/kanban'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas Internas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             
             <div title="Em breve" className="opacity-50 cursor-not-allowed">
@@ -291,7 +296,8 @@ const AppContent = () => {
     if (id && properties.some(item => item.id === id)) {
       await updateDoc(doc(db, 'properties', id), data as any);
     } else {
-      await addDoc(collection(db, 'properties'), data as any);
+      const docRef = doc(collection(db, 'properties'));
+      await setDoc(docRef, { ...data, id: docRef.id } as any);
     }
   };
 
@@ -307,8 +313,14 @@ const AppContent = () => {
     navigate('/imoveis');
   };
 
-  const addInventoryItem = async (item: Omit<InventoryItem, 'id'>) => {
-    await addDoc(collection(db, 'inventory'), item as any);
+  const addInventoryItem = async (item: Omit<InventoryItem, 'id'> & { id?: string }) => {
+    if (item.id) {
+      const { id, ...data } = item;
+      await updateDoc(doc(db, 'inventory', id), data as any);
+    } else {
+      const docRef = doc(collection(db, 'inventory'));
+      await setDoc(docRef, { ...item, id: docRef.id } as any);
+    }
   };
 
   const deleteInventoryItem = async (id: string) => {
@@ -321,8 +333,14 @@ const AppContent = () => {
   };
 
   const addSupplier = async (s: Supplier) => {
-    const { id, ...data } = s;
-    await addDoc(collection(db, 'suppliers'), data as any);
+    if (s.id && suppliers.some(item => item.id === s.id)) {
+      const { id, ...data } = s;
+      await updateDoc(doc(db, 'suppliers', id), data as any);
+    } else {
+      const docRef = doc(collection(db, 'suppliers'));
+      const { id, ...data } = s;
+      await setDoc(docRef, { ...data, id: docRef.id } as any);
+    }
   };
 
   const deleteSupplier = async (id: string) => {
@@ -476,9 +494,9 @@ const AppContent = () => {
         <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} />} />
         <Route path="/equipe" element={<TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
         <Route path="/chat" element={<ChatPage currentUser={currentUser} />} />
-        <Route path="/kanban" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
+        <Route path="/tarefas" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
-        <Route path="/configuracoes" element={<SettingsPage />} />
+        <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </ProtectedLayout>

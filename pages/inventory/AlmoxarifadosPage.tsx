@@ -13,17 +13,24 @@ interface AlmoxarifadosPageProps {
 
 const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: AlmoxarifadosPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const newWarehouse: Warehouse = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: editingWarehouse?.id || Math.random().toString(36).substr(2, 9),
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       location: (form.elements.namedItem('location') as HTMLInputElement).value,
     };
     onAddWarehouse(newWarehouse);
     setIsModalOpen(false);
+    setEditingWarehouse(null);
+  };
+
+  const handleEdit = (w: Warehouse) => {
+    setEditingWarehouse(w);
+    setIsModalOpen(true);
   };
 
   const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
@@ -36,7 +43,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
           <p className="text-slate-500 font-medium text-sm">Locais físicos de armazenamento central ou periférico.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setEditingWarehouse(null); setIsModalOpen(true); }}
           className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
         >
           <Plus size={20} strokeWidth={3} /> <span className="text-sm">Novo Ponto</span>
@@ -51,7 +58,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
                 <WarehouseIcon size={28} />
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"><Edit size={16} /></button>
+                <button onClick={() => handleEdit(w)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"><Edit size={16} /></button>
                 <button onClick={() => onDeleteWarehouse(w.id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
               </div>
             </div>
@@ -76,7 +83,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => { setIsModalOpen(false); setEditingWarehouse(null); }}
               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
             />
             <motion.div 
@@ -88,11 +95,11 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Almoxarifado</h3>
-                  <p className="text-slate-500 text-sm font-medium">Cadastre um novo local de armazenamento.</p>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingWarehouse ? 'Editar Almoxarifado' : 'Novo Almoxarifado'}</h3>
+                  <p className="text-slate-500 text-sm font-medium">{editingWarehouse ? 'Atualize os dados do local.' : 'Cadastre um novo local de armazenamento.'}</p>
                 </div>
                 <button 
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => { setIsModalOpen(false); setEditingWarehouse(null); }}
                   className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
                 >
                   <X size={24} />
@@ -102,18 +109,18 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                 <div className="space-y-2">
                   <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificação do Local</label>
-                  <input required name="name" type="text" placeholder="Ex: Depósito Central - Zona Norte" className={inputClass} />
+                  <input required name="name" type="text" placeholder="Ex: Depósito Central - Zona Norte" className={inputClass} defaultValue={editingWarehouse?.name || ''} />
                 </div>
                 
                 <div className="space-y-2">
                   <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Endereço de Referência</label>
-                  <input required name="location" type="text" placeholder="Ex: Av. das Indústrias, 500" className={inputClass} />
+                  <input required name="location" type="text" placeholder="Ex: Av. das Indústrias, 500" className={inputClass} defaultValue={editingWarehouse?.location || ''} />
                 </div>
 
                 <div className="pt-6 flex gap-4">
                   <button 
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => { setIsModalOpen(false); setEditingWarehouse(null); }}
                     className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
                   >
                     Cancelar
@@ -122,7 +129,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
                     type="submit"
                     className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
                   >
-                    Salvar Local
+                    {editingWarehouse ? 'Salvar Alterações' : 'Salvar Local'}
                   </button>
                 </div>
               </form>

@@ -22,6 +22,74 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'ENTRY' | 'EXIT'>('ALL');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    type: MovementType.ENTRADA_COMPRA,
+    itemId: '',
+    quantity: 0,
+    unitPrice: 0,
+    totalPrice: 0,
+    date: new Date().toISOString().split('T')[0],
+    propertyId: '',
+    supplierId: '',
+    description: ''
+  });
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'quantity' || name === 'unitPrice') {
+        const q = name === 'quantity' ? parseFloat(value) : prev.quantity;
+        const u = name === 'unitPrice' ? parseFloat(value) : prev.unitPrice;
+        updated.totalPrice = q * u;
+      }
+      if (name === 'totalPrice') {
+        const t = parseFloat(value);
+        if (prev.quantity > 0) {
+          updated.unitPrice = t / prev.quantity;
+        }
+      }
+      return updated;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.itemId || formData.quantity <= 0) {
+      alert("Preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const movement: StockMovement = {
+        id: Math.random().toString(36).substr(2, 9),
+        ...formData,
+        quantity: Number(formData.quantity),
+        totalPrice: Number(formData.totalPrice),
+        unitPrice: Number(formData.totalPrice) / Number(formData.quantity)
+      };
+      await onAddMovement(movement);
+      setIsModalOpen(false);
+      setFormData({
+        type: MovementType.ENTRADA_COMPRA,
+        itemId: '',
+        quantity: 0,
+        unitPrice: 0,
+        totalPrice: 0,
+        date: new Date().toISOString().split('T')[0],
+        propertyId: '',
+        supplierId: '',
+        description: ''
+      });
+    } catch (error) {
+      console.error("Erro ao salvar movimento:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Calculations for Widgets
   const stats = useMemo(() => {
@@ -319,19 +387,29 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
                   </button>
                 </div>
 
-                <form className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Operação</label>
                     <div className="flex gap-2">
                       <button 
                         type="button"
-                        className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl border-2 border-emerald-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
+                        onClick={() => setFormData(prev => ({ ...prev, type: MovementType.ENTRADA_COMPRA }))}
+                        className={`flex-1 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${
+                          formData.type === MovementType.ENTRADA_COMPRA 
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 ring-2 ring-emerald-500/20' 
+                            : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
+                        }`}
                       >
                         <ArrowUpRight size={16} /> Entrada
                       </button>
                       <button 
                         type="button"
-                        className="flex-1 py-3 bg-blue-50 text-blue-600 rounded-xl border-2 border-blue-100 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
+                        onClick={() => setFormData(prev => ({ ...prev, type: MovementType.SAIDA_OBRA }))}
+                        className={`flex-1 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${
+                          formData.type === MovementType.SAIDA_OBRA 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200 ring-2 ring-blue-500/20' 
+                            : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
+                        }`}
                       >
                         <ArrowDownRight size={16} /> Saída
                       </button>
@@ -340,12 +418,25 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                    <input type="date" className={inputClass} defaultValue={new Date().toISOString().split('T')[0]} />
+                    <input 
+                      required
+                      name="date"
+                      type="date" 
+                      className={inputClass} 
+                      value={formData.date}
+                      onChange={handleFormChange}
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Insumo / Material</label>
-                    <select className={inputClass}>
+                    <select 
+                      required
+                      name="itemId"
+                      className={inputClass}
+                      value={formData.itemId}
+                      onChange={handleFormChange}
+                    >
                       <option value="">Selecione o material...</option>
                       {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
                     </select>
@@ -354,23 +445,55 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
-                      <input type="number" placeholder="0.00" className={inputClass} />
+                      <input 
+                        required
+                        name="quantity"
+                        type="number" 
+                        placeholder="0.00" 
+                        className={inputClass} 
+                        value={formData.quantity}
+                        onChange={handleFormChange}
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                        <input type="number" placeholder="0.00" className={`${inputClass} pl-10`} />
+                        <input 
+                          required
+                          name="totalPrice"
+                          type="number" 
+                          placeholder="0.00" 
+                          className={`${inputClass} pl-10`} 
+                          value={formData.totalPrice}
+                          onChange={handleFormChange}
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Destinação (Imóvel)</label>
-                    <select className={inputClass}>
+                    <select 
+                      name="propertyId"
+                      className={inputClass}
+                      value={formData.propertyId}
+                      onChange={handleFormChange}
+                    >
                       <option value="">Estoque Central</option>
                       {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
                     </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição / Motivo</label>
+                    <textarea 
+                      name="description"
+                      className={`${inputClass} h-24 resize-none`}
+                      placeholder="Ex: Reposição de estoque ou saída para pintura..."
+                      value={formData.description}
+                      onChange={handleFormChange}
+                    />
                   </div>
                 </form>
 
@@ -383,10 +506,15 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
                     Cancelar
                   </button>
                   <button 
-                    type="submit"
-                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all flex items-center justify-center"
                   >
-                    Registrar
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      "Registrar"
+                    )}
                   </button>
                 </div>
               </motion.div>

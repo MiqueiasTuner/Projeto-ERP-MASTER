@@ -74,9 +74,6 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
       if (existing) {
         setFormData({ ...existing });
       }
-    } else if (!id && properties && properties.length === 1) {
-      // For drawer usage where we pass [selectedProperty]
-      setFormData({ ...properties[0] });
     }
   }, [id, properties]);
 

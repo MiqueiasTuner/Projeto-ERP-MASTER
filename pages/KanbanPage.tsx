@@ -79,7 +79,7 @@ const TaskCard = ({ task, isOverlay, onClick, style, attributes, listeners, setN
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`bg-white p-5 rounded-[20px] border transition-all group cursor-pointer relative ${
+      className={`bg-white p-5 rounded-[20px] border group cursor-pointer relative ${
         isOverlay 
           ? 'shadow-2xl border-blue-500/50 rotate-3 cursor-grabbing opacity-90 scale-105' 
           : 'shadow-sm border-slate-100 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1'
@@ -195,18 +195,18 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
         </span>
       </div>
       
-      <div ref={setNodeRef} className="flex-1 bg-slate-100/50 rounded-[24px] border border-dashed border-slate-200 p-3 overflow-y-auto custom-scrollbar space-y-3">
+      <div ref={setNodeRef} className="flex-1 bg-slate-100/40 rounded-[24px] border border-slate-200/50 p-3 overflow-y-auto custom-scrollbar space-y-3 scroll-smooth">
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
             <SortableTaskItem key={task.id} task={task} onClick={() => onTaskClick(task)} />
           ))}
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-60">
-            <div className="p-4 bg-slate-50 rounded-full mb-3">
+          <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-slate-300 opacity-60">
+            <div className="p-4 bg-white/50 rounded-full mb-3 shadow-sm border border-slate-100">
               <Tag size={24} />
             </div>
-            <p className="text-xs font-black uppercase tracking-widest">Vazio</p>
+            <p className="text-[10px] font-black uppercase tracking-widest">Sem tarefas</p>
           </div>
         )}
       </div>
@@ -383,8 +383,8 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     <div className="h-full flex flex-col bg-slate-50 p-6 overflow-hidden">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Kanban</h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestão de Tarefas e Projetos</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Tarefas Internas</h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestão de Fluxo e Projetos</p>
         </div>
         <button 
           onClick={() => setIsNewTaskOpen(true)}

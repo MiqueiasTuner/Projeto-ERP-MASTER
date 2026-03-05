@@ -48,7 +48,7 @@ const PropertyCard = React.memo(({
 }) => (
   <div 
     onClick={onClick}
-    className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1.5 transition-all duration-300 cursor-grab active:cursor-grabbing overflow-hidden group select-none relative"
+    className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1.5 duration-300 cursor-grab active:cursor-grabbing overflow-hidden group select-none relative"
   >
     <div className="h-24 md:h-28 overflow-hidden bg-slate-100 relative">
       {property.images && property.images.length > 0 ? (

@@ -16,11 +16,14 @@ import {
   DollarSign,
   TrendingUp,
   BarChart3,
-  CheckCircle2
+  CheckCircle2,
+  FileDown
 } from 'lucide-react';
 import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task } from '../types';
 import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloat, formatDate } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface PropertyDetailsProps {
   properties: Property[];
@@ -38,6 +41,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
   const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>('financeiro');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const [newExpData, setNewExpData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -62,6 +66,40 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
   }, [propertyLogs, propertyTasks]);
   
   const metrics = useMemo(() => property ? calculatePropertyMetrics(property, propertyExpenses) : null, [property, propertyExpenses]);
+
+  const exportToPdf = async () => {
+    if (!property || !metrics) return;
+    setIsGeneratingPdf(true);
+    
+    const element = document.getElementById('property-report-content');
+    if (!element) return;
+
+    try {
+      // Temporarily show the hidden report
+      element.style.display = 'block';
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      element.style.display = 'none';
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Relatorio_${property.neighborhood.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF", error);
+      alert("Erro ao gerar PDF. Tente novamente.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   if (!property || !metrics) return <div className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Imóvel não encontrado.</div>;
 
@@ -125,6 +163,13 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
             className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-white px-6 py-3 rounded-2xl border border-slate-200 transition-all shadow-sm"
           >
             Excluir <Trash2 size={14} />
+          </button>
+          <button 
+            onClick={exportToPdf}
+            disabled={isGeneratingPdf}
+            className="inline-flex items-center justify-center gap-2 text-blue-600 hover:text-white hover:bg-blue-600 font-black text-xs uppercase tracking-widest bg-white px-6 py-3 rounded-2xl border border-slate-200 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
           </button>
           <button 
             onClick={() => navigate(`/editar/${property.id}`)}
@@ -485,6 +530,84 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           </>
         )}
       </AnimatePresence>
+
+      {/* Hidden PDF Report Template */}
+      <div id="property-report-content" style={{ display: 'none', width: '800px', padding: '40px', background: 'white' }}>
+        <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: 0 }}>Relatório Analítico de Ativo</h1>
+            <p style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sintese ERP • Gestão de Ativos</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Gerado em: {new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: '900', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '5px' }}>Dados do Imóvel</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px', fontSize: '12px' }}>
+              <span style={{ fontWeight: 'bold', color: '#64748b' }}>Bairro:</span> <span>{property.neighborhood}</span>
+              <span style={{ fontWeight: 'bold', color: '#64748b' }}>Cidade:</span> <span>{property.city}</span>
+              <span style={{ fontWeight: 'bold', color: '#64748b' }}>Tipo:</span> <span>{property.type}</span>
+              <span style={{ fontWeight: 'bold', color: '#64748b' }}>Status:</span> <span>{property.status}</span>
+              <span style={{ fontWeight: 'bold', color: '#64748b' }}>Endereço:</span> <span>{property.address}</span>
+            </div>
+          </div>
+          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '900', marginBottom: '15px' }}>Resumo Financeiro</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div>
+                <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Total Alocado</p>
+                <p style={{ fontSize: '16px', fontWeight: '900' }}>{formatCurrency(metrics.totalInvested)}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>ROI Estimado</p>
+                <p style={{ fontSize: '16px', fontWeight: '900', color: '#10b981' }}>{metrics.roi.toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '900', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '5px' }}>Detalhamento de Despesas</h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            <thead>
+              <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                <th style={{ padding: '10px' }}>Data</th>
+                <th style={{ padding: '10px' }}>Categoria</th>
+                <th style={{ padding: '10px' }}>Descrição</th>
+                <th style={{ padding: '10px', textAlign: 'right' }}>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {propertyExpenses.map(exp => (
+                <tr key={exp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px' }}>{formatDate(exp.date)}</td>
+                  <td style={{ padding: '10px' }}>{exp.category}</td>
+                  <td style={{ padding: '10px' }}>{exp.description}</td>
+                  <td style={{ padding: '10px', textAlign: 'right' }}>{formatCurrency(exp.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: '900', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '5px' }}>Histórico de Governança</h2>
+          <div style={{ fontSize: '11px' }}>
+            {propertyLogs.slice(0, 10).map(log => (
+              <div key={log.id} style={{ marginBottom: '10px', padding: '10px', background: '#f8fafc', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                  <span style={{ fontWeight: 'bold' }}>{log.action}</span>
+                  <span style={{ color: '#64748b' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                </div>
+                <p style={{ margin: 0, color: '#475569' }}>{log.details || `Alteração realizada por ${log.userName}`}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
