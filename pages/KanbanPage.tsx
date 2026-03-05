@@ -9,32 +9,9 @@ import {
 } from '../types';
 import { 
   Plus, MoreHorizontal, Calendar, User, Tag, CheckCircle2, Clock, AlertCircle, X, 
-  MessageSquare, Building2, Users, Paperclip, Send, Trash2
+  MessageSquare, Building2, Users, Paperclip, Send, Trash2, Edit3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  DndContext, 
-  DragOverlay,
-  closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragStartEvent,
-  DragOverEvent,
-  DragEndEvent,
-  defaultDropAnimationSideEffects,
-  DropAnimation,
-  useDroppable
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface KanbanPageProps {
   currentUser: UserAccount;
@@ -43,24 +20,9 @@ interface KanbanPageProps {
   properties?: Property[];
 }
 
-const dropAnimation: DropAnimation = {
-  sideEffects: defaultDropAnimationSideEffects({
-    styles: {
-      active: {
-        opacity: '0.5',
-      },
-    },
-  }),
-};
-
-const TaskCard = ({ task, isOverlay, onClick, style, attributes, listeners, setNodeRef }: { 
+const TaskCard = ({ task, onClick }: { 
   task: Task, 
-  isOverlay?: boolean, 
-  onClick?: () => void,
-  style?: any,
-  attributes?: any,
-  listeners?: any,
-  setNodeRef?: (node: HTMLElement | null) => void
+  onClick?: () => void
 }) => {
   const getPriorityColor = (priority: TaskPriority) => {
     switch (priority) {
@@ -74,16 +36,8 @@ const TaskCard = ({ task, isOverlay, onClick, style, attributes, listeners, setN
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
       onClick={onClick}
-      className={`bg-white p-5 rounded-[20px] border group cursor-pointer relative ${
-        isOverlay 
-          ? 'shadow-2xl border-blue-500/50 rotate-3 cursor-grabbing opacity-90 scale-105' 
-          : 'shadow-sm border-slate-100 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1'
-      }`}
+      className="bg-white p-5 rounded-[20px] border shadow-sm border-slate-100 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 transition-all group cursor-pointer relative"
     >
       <div className="flex justify-between items-start mb-3">
         <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${getPriorityColor(task.priority)}`}>
@@ -134,46 +88,7 @@ const TaskCard = ({ task, isOverlay, onClick, style, attributes, listeners, setN
   );
 };
 
-const SortableTaskItem: React.FC<{ task: Task; onClick: () => void }> = ({ task, onClick }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: task.id, data: { type: 'Task', task } });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  if (isDragging) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="bg-white p-5 rounded-[20px] shadow-none border-2 border-blue-500/20 opacity-40 h-[180px]"
-      />
-    );
-  }
-
-  return (
-    <TaskCard 
-      task={task} 
-      onClick={onClick} 
-      setNodeRef={setNodeRef}
-      style={style}
-      attributes={attributes}
-      listeners={listeners}
-    />
-  );
-};
-
 const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (task: Task) => void }> = ({ status, tasks, onTaskClick }) => {
-  const { setNodeRef } = useDroppable({ id: status });
-
   const getColumnColor = (s: TaskStatus) => {
     switch (s) {
       case TaskStatus.TODO: return 'border-t-slate-400';
@@ -195,12 +110,12 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
         </span>
       </div>
       
-      <div ref={setNodeRef} className="flex-1 bg-slate-100/40 rounded-[24px] border border-slate-200/50 p-3 overflow-y-auto custom-scrollbar space-y-3 scroll-smooth">
-        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {tasks.map((task) => (
-            <SortableTaskItem key={task.id} task={task} onClick={() => onTaskClick(task)} />
-          ))}
-        </SortableContext>
+      <div className="flex-1 bg-slate-100/40 rounded-[24px] border border-slate-200/50 p-3 overflow-y-auto custom-scrollbar space-y-3 scroll-smooth">
+        {tasks.map((task) => (
+          <div key={task.id}>
+            <TaskCard task={task} onClick={() => onTaskClick(task)} />
+          </div>
+        ))}
         {tasks.length === 0 && (
           <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-slate-300 opacity-60">
             <div className="p-4 bg-white/50 rounded-full mb-3 shadow-sm border border-slate-100">
@@ -216,7 +131,6 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
 
 const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: KanbanPageProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   
@@ -232,24 +146,8 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
   });
   const [commentText, setCommentText] = useState('');
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   useEffect(() => {
     let q = query(collection(db, 'tasks'));
-    if (currentUser.role !== UserRole.ADMIN && currentUser.teamId) {
-       // Ideally we filter by department OR assignee. For now, let's fetch all and filter in memory or keep simple query
-       // q = query(collection(db, 'tasks'), where('departmentId', '==', currentUser.teamId));
-    }
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const taskList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -260,62 +158,6 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
 
     return () => unsubscribe();
   }, [currentUser]);
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id;
-    const overId = over.id;
-
-    if (activeId === overId) return;
-
-    const isActiveTask = active.data.current?.type === 'Task';
-    const isOverTask = over.data.current?.type === 'Task';
-
-    if (!isActiveTask) return;
-
-    // Dropping over another task
-    if (isActiveTask && isOverTask) {
-      setTasks((tasks) => {
-        const activeIndex = tasks.findIndex((t) => t.id === activeId);
-        const overIndex = tasks.findIndex((t) => t.id === overId);
-        
-        if (tasks[activeIndex].status !== tasks[overIndex].status) {
-           // Status changed
-           const newStatus = tasks[overIndex].status;
-           updateDoc(doc(db, 'tasks', activeId as string), { status: newStatus });
-           tasks[activeIndex].status = newStatus;
-        }
-
-        return arrayMove(tasks, activeIndex, overIndex);
-      });
-    }
-
-    // Dropping over a column
-    const isOverColumn = Object.values(TaskStatus).includes(overId as TaskStatus);
-    if (isActiveTask && isOverColumn) {
-      setTasks((tasks) => {
-        const activeIndex = tasks.findIndex((t) => t.id === activeId);
-        const newStatus = overId as TaskStatus;
-
-        if (tasks[activeIndex].status !== newStatus) {
-          updateDoc(doc(db, 'tasks', activeId as string), { status: newStatus });
-          tasks[activeIndex].status = newStatus;
-        }
-        
-        return arrayMove(tasks, activeIndex, activeIndex); // No reorder needed here really
-      });
-    }
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-  };
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,6 +195,17 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     }
   };
 
+  const handleUpdateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
+      if (editingTask && editingTask.id === taskId) {
+        setEditingTask({ ...editingTask, status: newStatus });
+      }
+    } catch (error) {
+      console.error("Error updating task status", error);
+    }
+  };
+
   const handleAddComment = async (taskId: string) => {
     if (!commentText.trim()) return;
     
@@ -370,12 +223,11 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         commentsList: arrayUnion(newComment)
       });
       setCommentText('');
+      // Update local state for immediate feedback if needed, but onSnapshot handles it
     } catch (error) {
       console.error("Error adding comment", error);
     }
   };
-
-  const activeTask = useMemo(() => tasks.find(t => t.id === activeId), [activeId, tasks]);
 
   const inputClass = "w-full bg-slate-50 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 text-sm";
 
@@ -394,29 +246,18 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         </button>
       </div>
 
-      <DndContext 
-        sensors={sensors} 
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex-1 overflow-x-auto pb-4">
-          <div className="flex gap-6 h-full min-w-[1000px]">
-            {Object.values(TaskStatus).map((status) => (
-              <KanbanColumn 
-                key={status} 
-                status={status} 
-                tasks={tasks.filter(t => t.status === status)} 
-                onTaskClick={setEditingTask}
-              />
-            ))}
-          </div>
+      <div className="flex-1 overflow-x-auto pb-4">
+        <div className="flex gap-6 h-full min-w-[1000px]">
+          {Object.values(TaskStatus).map((status) => (
+            <KanbanColumn 
+              key={status} 
+              status={status} 
+              tasks={tasks.filter(t => t.status === status)} 
+              onTaskClick={setEditingTask}
+            />
+          ))}
         </div>
-        <DragOverlay dropAnimation={dropAnimation}>
-          {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
+      </div>
 
       {/* New Task Drawer */}
       <AnimatePresence>
@@ -544,7 +385,16 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                     }`}>
                       {editingTask.priority}
                     </span>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{editingTask.status}</span>
+                    <div className="flex items-center gap-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status:</label>
+                       <select 
+                         className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-500/10"
+                         value={editingTask.status}
+                         onChange={(e) => handleUpdateTaskStatus(editingTask.id, e.target.value as TaskStatus)}
+                       >
+                         {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                       </select>
+                    </div>
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900">{editingTask.title}</h2>
                   <p className="text-slate-600 leading-relaxed">{editingTask.description || "Sem descrição."}</p>

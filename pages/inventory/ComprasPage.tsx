@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   FileText, Plus, Search, Filter, Calendar, 
-  CheckCircle2, XCircle, Clock, ArrowRight,
+  CheckCircle2, XCircle, Clock, ArrowRight, ArrowLeft,
   Trash2, Edit3, ShoppingCart, User, Zap,
   MoreHorizontal, Building, Package, X
 } from 'lucide-react';
@@ -191,6 +191,23 @@ const ComprasPage = ({
 
                   {/* Quick Actions Overlay */}
                   <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center gap-2">
+                    {column.id === QuoteStatus.COTACAO && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onUpdateQuoteStatus(quote.id, QuoteStatus.SOLICITADO); }}
+                        className="bg-white p-2 rounded-lg shadow-sm text-slate-400 hover:text-blue-600 hover:scale-110 transition-transform"
+                      >
+                        <ArrowLeft size={18} />
+                      </button>
+                    )}
+                    {column.id === QuoteStatus.APROVADO && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onUpdateQuoteStatus(quote.id, QuoteStatus.COTACAO); }}
+                        className="bg-white p-2 rounded-lg shadow-sm text-slate-400 hover:text-blue-600 hover:scale-110 transition-transform"
+                      >
+                        <ArrowLeft size={18} />
+                      </button>
+                    )}
+                    
                     {column.id === QuoteStatus.SOLICITADO && (
                       <button 
                         onClick={() => onUpdateQuoteStatus(quote.id, QuoteStatus.COTACAO)}

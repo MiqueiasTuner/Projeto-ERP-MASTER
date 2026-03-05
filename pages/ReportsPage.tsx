@@ -1,14 +1,33 @@
 
 import React, { useMemo } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, Cell, PieChart, Pie 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
+  LineChart, Line, Cell, PieChart, Pie, AreaChart, Area
 } from 'recharts';
-import { FileDown, TrendingUp, DollarSign, Package, MapPin } from 'lucide-react';
-import { Property, Expense, InventoryItem, PropertyStatus } from '../types';
+import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon } from 'lucide-react';
+import { Property, Expense, InventoryItem, PropertyStatus, ExpenseCategory } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899'];
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-4 rounded-2xl shadow-2xl border border-slate-100">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-sm font-black text-slate-900">
+              {entry.name}: {typeof entry.value === 'number' && entry.name.toLowerCase().includes('roi') ? `${entry.value.toFixed(1)}%` : formatCurrency(entry.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 const ReportsPage = ({ properties, expenses, inventory }: { properties: Property[], expenses: Expense[], inventory: InventoryItem[] }) => {
   const metrics = useMemo(() => {
@@ -52,76 +71,192 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
     const roiByCity = Object.values(cityGroups).map((g: any) => ({
       name: g.name,
       roi: g.count > 0 ? g.roi / g.count : 0
-    }));
+    })).sort((a, b) => b.roi - a.roi);
 
-    return { totalInvested, roiByCity, statusDist, avgROI, avgLeadTime };
+    // Renovation Analysis
+    const renovationCosts = propertyData.map(p => ({
+      name: p.condoName || p.neighborhood || 'Imóvel',
+      cost: (p.metrics.categoryBreakdown[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0),
+      total: p.metrics.totalInvested
+    })).sort((a, b) => b.cost - a.cost).slice(0, 6);
+
+    // Inventory Value
+    const inventoryByCategory = inventory.reduce((acc: any, item) => {
+      acc[item.category] = (acc[item.category] || 0) + (item.currentStock * (item.averageCost || 0));
+      return acc;
+    }, {});
+
+    const inventoryValueData = Object.entries(inventoryByCategory).map(([name, value]) => ({
+      name,
+      value: value as number
+    })).sort((a, b) => b.value - a.value);
+
+    return { totalInvested, roiByCity, statusDist, avgROI, avgLeadTime, renovationCosts, inventoryValueData };
   }, [properties, expenses, inventory]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Relatórios Gerenciais</h2>
-          <p className="text-slate-500 font-medium">Análise de dados para tomada de decisão.</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Relatórios Analíticos</h2>
+          <p className="text-slate-500 font-medium flex items-center gap-2">
+            <TrendingUp size={16} className="text-blue-600" />
+            Inteligência de dados para maximização de ROI
+          </p>
         </div>
-        <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all">
-          <FileDown size={18} /> Exportar Tudo (PDF)
+        <button className="flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-[24px] text-sm font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10">
+          <FileDown size={20} /> Exportar Relatório PDF
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Gráfico ROI por Cidade */}
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-slate-400 tracking-widest mb-6">Eficiência de Arremate por Praça</h3>
-          <div className="h-64">
+      {/* Top Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit mb-4">
+            <DollarSign size={24} />
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Capital Imobilizado</p>
+          <p className="text-2xl font-black text-slate-900">{formatCurrency(metrics.totalInvested)}</p>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl w-fit mb-4">
+            <TrendingUp size={24} />
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ROI Médio Líquido</p>
+          <p className="text-2xl font-black text-slate-900">{metrics.avgROI.toFixed(1)}%</p>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl w-fit mb-4">
+            <Calendar size={24} />
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Giro Médio (Dias)</p>
+          <p className="text-2xl font-black text-slate-900">{metrics.avgLeadTime} Dias</p>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl w-fit mb-4">
+            <Building2 size={24} />
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ativos em Carteira</p>
+          <p className="text-2xl font-black text-slate-900">{properties.length}</p>
+        </div>
+      </div>
+
+      {/* Main Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* ROI by City */}
+        <div className="lg:col-span-8 bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Performance por Praça (ROI)</h3>
+              <p className="text-xs text-slate-500 font-medium">Rentabilidade média por cidade de atuação</p>
+            </div>
+            <MapPin size={20} className="text-slate-300" />
+          </div>
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.roiByCity}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="city" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} unit="%" />
-                <Tooltip />
-                <Bar dataKey="roi" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+              <BarChart data={metrics.roiByCity} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} unit="%" />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} width={100} />
+                <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                <Bar dataKey="roi" name="ROI Médio" fill="#3b82f6" radius={[0, 8, 8, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Gráfico Distribuição de Status */}
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-slate-400 tracking-widest mb-6">Pipeline de Ativos</h3>
-          <div className="h-64">
+        {/* Pipeline Distribution */}
+        <div className="lg:col-span-4 bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Pipeline de Ativos</h3>
+            <PieChartIcon size={20} className="text-slate-300" />
+          </div>
+          <div className="flex-1 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={metrics.statusDist} innerRadius={60} outerRadius={80} dataKey="value">
-                  {metrics.statusDist.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                <Pie
+                  data={metrics.statusDist}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={110}
+                  paddingAngle={8}
+                  dataKey="value"
+                >
+                  {metrics.statusDist.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                  ))}
                 </Pie>
-                <Tooltip />
+                <RechartsTooltip />
               </PieChart>
             </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+              <span className="text-3xl font-black text-slate-900">{properties.length}</span>
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-[10px] font-bold uppercase">
-            {metrics.statusDist.map((s, i) => (
-              <div key={s.name} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                <span className="text-slate-500 truncate">{s.name}: {s.value}</span>
+          <div className="grid grid-cols-2 gap-4 mt-8">
+            {metrics.statusDist.map((item, index) => (
+              <div key={item.name} className="flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                  <span className="text-[10px] font-black text-slate-500 uppercase truncate">{item.name}</span>
+                </div>
+                <span className="text-sm font-black text-slate-900">{item.value}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-blue-600 p-6 rounded-2xl text-white shadow-lg">
-          <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Total Imobilizado</p>
-          <p className="text-2xl font-black">{formatCurrency(metrics.totalInvested)}</p>
+        {/* Renovation Costs Analysis */}
+        <div className="lg:col-span-6 bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Custos de Reforma por Ativo</h3>
+              <p className="text-xs text-slate-500 font-medium">Top 6 imóveis com maior investimento em obra</p>
+            </div>
+            <Package size={20} className="text-slate-300" />
+          </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={metrics.renovationCosts}>
+                <defs>
+                  <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} tickFormatter={(v) => `R$ ${v/1000}k`} />
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="cost" name="Custo Reforma" stroke="#f59e0b" strokeWidth={4} fillOpacity={1} fill="url(#colorCost)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="bg-emerald-600 p-6 rounded-2xl text-white shadow-lg">
-          <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Retorno Médio</p>
-          <p className="text-2xl font-black">{metrics.avgROI.toFixed(1)}% <span className="text-xs font-normal opacity-70">Líquido</span></p>
-        </div>
-        <div className="bg-slate-900 p-6 rounded-2xl text-white shadow-lg">
-          <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Giro Médio</p>
-          <p className="text-2xl font-black">{metrics.avgLeadTime} <span className="text-xs font-normal opacity-70">Dias</span></p>
+
+        {/* Inventory Value Distribution */}
+        <div className="lg:col-span-6 bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Valor de Estoque por Categoria</h3>
+              <p className="text-xs text-slate-500 font-medium">Distribuição financeira do capital em materiais</p>
+            </div>
+            <DollarSign size={20} className="text-slate-300" />
+          </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={metrics.inventoryValueData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} tickFormatter={(v) => `R$ ${v/1000}k`} />
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" name="Valor em Estoque" fill="#10b981" radius={[8, 8, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

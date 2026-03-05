@@ -190,9 +190,6 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
       {/* Top Header */}
       <header className="h-16 flex items-center justify-between px-4 border-b border-slate-700/50 shrink-0">
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-            <Menu size={20} />
-          </button>
           <div className="flex items-center gap-2">
             <div className="bg-blue-600 p-1 rounded-lg">
               <CalendarIcon size={20} className="text-white" />
@@ -229,8 +226,6 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
 
         <div className="flex items-center gap-2">
           <button className="p-2 hover:bg-slate-800 rounded-full"><Search size={20} /></button>
-          <button className="p-2 hover:bg-slate-800 rounded-full"><HelpCircle size={20} /></button>
-          <button className="p-2 hover:bg-slate-800 rounded-full"><Settings size={20} /></button>
           
           <div className="flex items-center gap-1 ml-4 border border-slate-700 rounded-md px-2 py-1.5 hover:bg-slate-800 cursor-pointer">
             <span className="text-sm font-medium">{view}</span>

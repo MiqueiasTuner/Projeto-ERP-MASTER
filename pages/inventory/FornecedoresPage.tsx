@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle } from 'lucide-react';
+import Papa from 'papaparse';
+import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle, FileUp } from 'lucide-react';
 import { Supplier } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -15,6 +16,37 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const importedSuppliers = results.data.map((row: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: row.nome || row.name || '',
+          cnpj: row.cnpj || '',
+          category: row.categoria || row.category || 'Geral',
+          phone: row.telefone || row.phone || '',
+        }));
+
+        importedSuppliers.forEach(s => {
+          if (s.name) onAddSupplier(s as Supplier);
+        });
+        
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        alert(`${importedSuppliers.length} fornecedores importados com sucesso!`);
+      },
+      error: (error) => {
+        console.error("CSV Error:", error);
+        alert("Erro ao processar CSV. Verifique o formato.");
+      }
+    });
+  };
 
   const filteredSuppliers = (suppliers || []).filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -51,12 +83,27 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">Fornecedores</h2>
           <p className="text-slate-500 font-medium text-sm">Gestão de parceiros e prestadores de serviço.</p>
         </div>
-        <button 
-          onClick={() => { setEditingSupplier(null); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
-        >
-          <Plus size={20} strokeWidth={3} /> <span className="text-sm">Novo Fornecedor</span>
-        </button>
+        <div className="flex gap-3">
+          <input 
+            type="file" 
+            accept=".csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white text-slate-700 px-6 py-3.5 rounded-[24px] font-black border border-slate-200 flex items-center gap-3 hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <FileUp size={20} strokeWidth={3} /> <span className="text-sm">Importar CSV</span>
+          </button>
+          <button 
+            onClick={() => { setEditingSupplier(null); setIsModalOpen(true); }}
+            className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
+          >
+            <Plus size={20} strokeWidth={3} /> <span className="text-sm">Novo Fornecedor</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">

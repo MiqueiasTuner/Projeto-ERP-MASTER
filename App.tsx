@@ -4,7 +4,7 @@ import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } f
 import { 
   LayoutDashboard, Building2, Home, Users, Box, ChevronDown, 
   ChevronUp, BarChart3, Settings, LogOut, PlusCircle, Menu, X as CloseIcon,
-  FileText, MessageSquare, Kanban, CalendarDays, User
+  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell
 } from 'lucide-react';
 import { auth, db, isConfigured } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -30,11 +30,13 @@ import SignUpPage from './pages/SignUpPage';
 import ChatPage from './pages/ChatPage';
 import KanbanPage from './pages/KanbanPage';
 import CalendarPage from './pages/CalendarPage';
+import AuctionPage from './pages/AuctionPage';
 import { 
   Property, Expense, InventoryItem, StockMovement, Supplier, 
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
-  MovementType, ExpenseCategory, Quote, QuoteStatus, Task
+  MovementType, ExpenseCategory, Quote, QuoteStatus, Task,
+  Auction, Alert
 } from './types';
 
 const INITIAL_PERMISSIONS: UserPermissions = {
@@ -157,6 +159,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
             <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
             
             <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             
             <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={hasPermission('inventory', 'view')} collapsed={isSidebarCollapsed}>
               <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>
@@ -195,8 +198,8 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 p-6 lg:p-10 relative">
-          <div className="max-w-7xl mx-auto pb-20 lg:pb-0">
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 relative ${location.pathname === '/calendario' ? '' : 'p-6 lg:p-10'}`}>
+          <div className={location.pathname === '/calendario' ? 'h-full' : 'max-w-7xl mx-auto pb-20 lg:pb-0'}>
             {children}
           </div>
           {location.pathname === '/' && (
@@ -228,6 +231,8 @@ const AppContent = () => {
   const [logs, setLogs] = useState<PropertyLog[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
@@ -256,6 +261,8 @@ const AppContent = () => {
       { name: 'logs', setter: setLogs },
       { name: 'quotes', setter: setQuotes },
       { name: 'tasks', setter: setTasks },
+      { name: 'auctions', setter: setAuctions },
+      { name: 'alerts', setter: setAlerts },
     ];
 
     const unsubscribes = collections.map(({ name, setter }) => {
@@ -475,7 +482,8 @@ const AppContent = () => {
   return (
     <ProtectedLayout currentUser={currentUser} onLogout={handleLogout}>
       <Routes>
-        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} currentUser={currentUser} />} />
+        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
+        <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
         <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await updateDoc(doc(db, 'properties', id), { status }); }} onDeleteProperty={deleteProperty} />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {

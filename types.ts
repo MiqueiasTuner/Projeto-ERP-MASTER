@@ -243,6 +243,52 @@ export interface Expense {
   attachments: Attachment[];
 }
 
+export enum AuctionStatus {
+  OPEN = 'Aberto',
+  FINISHED = 'Finalizado',
+  WON = 'Arrematado',
+  LOST = 'Perdido',
+  CANCELED = 'Cancelado'
+}
+
+export interface Bid {
+  id: string;
+  auctionId: string;
+  amount: number;
+  date: string;
+  userId: string;
+  userName: string;
+  isWinning?: boolean;
+}
+
+export interface Auction {
+  id: string;
+  title: string;
+  description?: string;
+  link?: string;
+  date: string;
+  status: AuctionStatus;
+  initialPrice: number;
+  currentBid?: number;
+  myMaxBid?: number;
+  propertyType?: PropertyType;
+  city: string;
+  neighborhood: string;
+  auctioneer?: string;
+  bids: Bid[];
+  createdAt: string;
+}
+
+export interface Alert {
+  id: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  message: string;
+  date: string;
+  read: boolean;
+  link?: string;
+}
+
 export interface Property {
   id: string;
   type: PropertyType;

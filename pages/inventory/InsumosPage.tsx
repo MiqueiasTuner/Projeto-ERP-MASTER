@@ -1,11 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Papa from 'papaparse';
 import { 
   Package, Plus, Search, Filter, Trash2, Edit, X, 
   TrendingDown, AlertTriangle, Wallet, MessageCircle, 
   ArrowUpRight, History, MoreHorizontal, ChevronRight,
-  ExternalLink, Building, XCircle
+  ExternalLink, Building, XCircle, FileUp
 } from 'lucide-react';
 import { InventoryItem, StockMovement, MovementType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -25,6 +26,39 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>('All');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const importedItems = results.data.map((row: any) => ({
+          name: row.nome || row.name || '',
+          category: row.categoria || row.category || 'Outros',
+          unit: (row.unidade || row.unit || 'un') as InventoryItem['unit'],
+          minStock: parseFloat(row.estoqueMinimo || row.minStock) || 0,
+          averageCost: parseFloat(row.custoMedio || row.averageCost) || 0,
+          currentStock: 0,
+          usageStatus: 0
+        }));
+
+        importedItems.forEach(item => {
+          if (item.name) onAddItem(item);
+        });
+        
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        alert(`${importedItems.length} insumos importados com sucesso!`);
+      },
+      error: (error) => {
+        console.error("CSV Error:", error);
+        alert("Erro ao processar CSV. Verifique o formato.");
+      }
+    });
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -181,6 +215,19 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
               </div>
             )}
           </div>
+          <input 
+            type="file" 
+            accept=".csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <FileUp size={18} /> <span>Importar CSV</span>
+          </button>
           <button 
             onClick={() => { resetForm(); setIsModalOpen(true); }}
             className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
