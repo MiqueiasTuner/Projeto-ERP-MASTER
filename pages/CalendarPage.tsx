@@ -56,6 +56,14 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
     e.preventDefault();
     if (!newEvent.title || !newEvent.start || !newEvent.end) return;
 
+    const startDate = new Date(newEvent.start);
+    const now = new Date();
+    
+    if (startDate < now) {
+      alert("Não é possível criar eventos em datas passadas.");
+      return;
+    }
+
     try {
       await addDoc(collection(db, 'events'), {
         ...newEvent,
@@ -225,13 +233,6 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-slate-800 rounded-full"><Search size={20} /></button>
-          
-          <div className="flex items-center gap-1 ml-4 border border-slate-700 rounded-md px-2 py-1.5 hover:bg-slate-800 cursor-pointer">
-            <span className="text-sm font-medium">{view}</span>
-            <ChevronDown size={14} />
-          </div>
-          
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold ml-4">
             {currentUser.name.charAt(0)}
           </div>
@@ -253,50 +254,19 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
           {/* Mini Calendar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4 px-2">
-              <span className="text-sm font-medium text-white">
-                {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                {currentDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
               </span>
               <div className="flex gap-1">
-                <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))} className="p-1 hover:bg-slate-800 rounded-full"><ChevronLeft size={14} /></button>
-                <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))} className="p-1 hover:bg-slate-800 rounded-full"><ChevronRight size={14} /></button>
+                <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))} className="p-1 hover:bg-slate-800 rounded-full text-slate-500"><ChevronLeft size={14} /></button>
+                <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))} className="p-1 hover:bg-slate-800 rounded-full text-slate-500"><ChevronRight size={14} /></button>
               </div>
             </div>
             <div className="grid grid-cols-7 gap-y-1 text-center">
               {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                <div key={`${d}-${i}`} className="text-[10px] font-bold text-slate-500">{d}</div>
+                <div key={`${d}-${i}`} className="text-[9px] font-black text-slate-600 uppercase">{d}</div>
               ))}
               {renderMiniCalendar()}
-            </div>
-          </div>
-
-          {/* Calendars List */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Minhas agendas</h3>
-              <div className="space-y-1">
-                {[
-                  { name: currentUser.name, color: 'bg-blue-600' },
-                  { name: 'Aniversários', color: 'bg-emerald-600' },
-                  { name: 'Tarefas', color: 'bg-blue-400' }
-                ].map(cal => (
-                  <div key={cal.name} className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer group">
-                    <div className={`w-4 h-4 rounded border border-slate-600 flex items-center justify-center ${cal.color}`}>
-                      <Check size={10} className="text-white" />
-                    </div>
-                    <span className="text-sm text-slate-300">{cal.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Outras agendas</h3>
-              <div className="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer">
-                <div className="w-4 h-4 rounded border border-slate-600 bg-emerald-600 flex items-center justify-center">
-                  <Check size={10} className="text-white" />
-                </div>
-                <span className="text-sm text-slate-300">Feriados no Brasil</span>
-              </div>
             </div>
           </div>
         </aside>
@@ -354,11 +324,23 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
                 <div className="flex items-center gap-4">
                   <div className="flex-1 space-y-2">
                     <label className="block text-xs font-medium text-slate-500">Início</label>
-                    <input type="datetime-local" className={inputClass} value={newEvent.start} onChange={e => setNewEvent({...newEvent, start: e.target.value})} />
+                    <input 
+                      type="datetime-local" 
+                      className={inputClass} 
+                      value={newEvent.start} 
+                      min={new Date().toISOString().slice(0, 16)}
+                      onChange={e => setNewEvent({...newEvent, start: e.target.value})} 
+                    />
                   </div>
                   <div className="flex-1 space-y-2">
                     <label className="block text-xs font-medium text-slate-500">Fim</label>
-                    <input type="datetime-local" className={inputClass} value={newEvent.end} onChange={e => setNewEvent({...newEvent, end: e.target.value})} />
+                    <input 
+                      type="datetime-local" 
+                      className={inputClass} 
+                      value={newEvent.end} 
+                      min={newEvent.start || new Date().toISOString().slice(0, 16)}
+                      onChange={e => setNewEvent({...newEvent, end: e.target.value})} 
+                    />
                   </div>
                 </div>
 

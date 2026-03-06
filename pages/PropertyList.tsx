@@ -21,7 +21,28 @@ import {
   Edit3
 } from 'lucide-react';
 import { Property, PropertyStatus, Expense } from '../types';
-import { formatCurrency, calculatePropertyMetrics, formatDate } from '../utils';
+import { 
+  DndContext, 
+  DragOverlay, 
+  closestCorners, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  defaultDropAnimationSideEffects,
+  useDroppable
+} from '@dnd-kit/core';
+import { 
+  arrayMove, 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -33,85 +54,119 @@ const PropertyKanbanCard = React.memo(({
   metrics, 
   onEdit,
   onView,
-  onDelete
+  onDelete,
+  isDragging
 }: { 
   property: Property, 
   metrics: any, 
   onEdit: () => void,
   onView: () => void,
-  onDelete: (e: React.MouseEvent) => void
-}) => (
-  <div 
-    className="bg-white rounded-[24px] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col"
-  >
-    {/* Image Section */}
-    <div className="h-32 overflow-hidden bg-slate-100 relative">
-      {property.images && property.images.length > 0 ? (
-        <img src={property.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" referrerPolicy="no-referrer" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={24} /></div>
-      )}
-      
-      {/* Overlay Badges */}
-      <div className="absolute top-3 left-3">
-        <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-white/20 flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[9px] font-black text-slate-900 uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
+  onDelete: (e: React.MouseEvent) => void,
+  isDragging?: boolean
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: property.id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-white rounded-[24px] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col cursor-grab active:cursor-grabbing"
+    >
+      {/* Image Section */}
+      <div className="h-32 overflow-hidden bg-slate-100 relative pointer-events-none">
+        {property.images && property.images.length > 0 ? (
+          <img src={property.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={24} /></div>
+        )}
+        
+        {/* Overlay Badges */}
+        <div className="absolute top-3 left-3">
+          <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-white/20 flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[9px] font-black text-slate-900 uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
+          </div>
+        </div>
+
+        <div className="absolute top-3 right-3 flex gap-1.5 pointer-events-auto">
+          <button 
+            onClick={onDelete}
+            className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 
-      <div className="absolute top-3 right-3 flex gap-1.5">
-        <button 
-          onClick={onDelete}
-          className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
-        >
-          <Trash2 size={14} />
-        </button>
+      {/* Content Section */}
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {property.title && (
+              <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border border-blue-100">
+                {property.title}
+              </span>
+            )}
+            {property.status === PropertyStatus.VENDIDO && (
+              <span className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/30 border border-emerald-400/20">
+                VENDIDO
+              </span>
+            )}
+          </div>
+          <h4 className="font-black text-slate-900 text-sm truncate mb-1 tracking-tight">
+            {property.condoName || property.neighborhood}
+          </h4>
+          <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            <MapPin size={10} className="mr-1 text-blue-500" /> 
+            <span className="truncate">{property.city}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Investido</p>
+            <p className="text-[11px] font-black text-slate-900 truncate">{formatCurrency(metrics.totalInvested)}</p>
+          </div>
+          <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Área</p>
+            <p className="text-[11px] font-black text-slate-900">{property.sizeM2}m²</p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-auto flex gap-2 pointer-events-auto">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onView(); }}
+            className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+          >
+            <Maximize2 size={12} /> Detalhes
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="p-2.5 bg-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+            title="Editar Cadastro"
+          >
+            <Edit3 size={14} />
+          </button>
+        </div>
       </div>
     </div>
-
-    {/* Content Section */}
-    <div className="p-5 flex-1 flex flex-col">
-      <div className="mb-4">
-        <h4 className="font-black text-slate-900 text-sm truncate mb-1 tracking-tight">
-          {property.condoName || property.neighborhood}
-        </h4>
-        <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-          <MapPin size={10} className="mr-1 text-blue-500" /> 
-          <span className="truncate">{property.city}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Investido</p>
-          <p className="text-[11px] font-black text-slate-900 truncate">{formatCurrency(metrics.totalInvested)}</p>
-        </div>
-        <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Área</p>
-          <p className="text-[11px] font-black text-slate-900">{property.sizeM2}m²</p>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mt-auto flex gap-2">
-        <button 
-          onClick={onView}
-          className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
-        >
-          <Maximize2 size={12} /> Detalhes
-        </button>
-        <button 
-          onClick={onEdit}
-          className="p-2.5 bg-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-          title="Editar Cadastro"
-        >
-          <Edit3 size={14} />
-        </button>
-      </div>
-    </div>
-  </div>
-));
+  );
+});
 
 interface KanbanColumnProps {
   status: PropertyStatus;
@@ -130,12 +185,17 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onView,
   onDeleteProperty
 }) => {
+  const { setNodeRef } = useDroppable({
+    id: status,
+  });
+
   const totalValue = useMemo(() => {
     return items.reduce((acc, p) => acc + calculatePropertyMetrics(p, expenses).totalInvested, 0);
   }, [items, expenses]);
 
   return (
     <div 
+      ref={setNodeRef}
       className="flex flex-col min-w-[300px] max-w-[340px] rounded-[32px] p-4 min-h-[600px] transition-all duration-300 bg-slate-100/50"
     >
       <div className="flex items-center justify-between mb-6 px-2">
@@ -154,28 +214,30 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         }`} />
       </div>
       
-      <div className="space-y-4 flex-1">
-        {items.map(p => (
-          <PropertyKanbanCard 
-            key={p.id}
-            property={p}
-            metrics={calculatePropertyMetrics(p, expenses)}
-            onEdit={() => onEdit(p)}
-            onView={() => onView(p.id)}
-            onDelete={(e) => {
-              e.stopPropagation();
-              onDeleteProperty(p.id);
-            }}
-          />
-        ))}
-        
-        {items.length === 0 && (
-          <div className="h-40 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-[24px] bg-white/30">
-            <Building size={24} className="mb-2 opacity-20" />
-            <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Vazio</p>
-          </div>
-        )}
-      </div>
+      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-4 flex-1">
+          {items.map(p => (
+            <PropertyKanbanCard 
+              key={p.id}
+              property={p}
+              metrics={calculatePropertyMetrics(p, expenses)}
+              onEdit={() => onEdit(p)}
+              onView={() => onView(p.id)}
+              onDelete={(e) => {
+                e.stopPropagation();
+                onDeleteProperty(p.id);
+              }}
+            />
+          ))}
+          
+          {items.length === 0 && (
+            <div className="h-40 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-[24px] bg-white/30">
+              <Building size={24} className="mb-2 opacity-20" />
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Vazio</p>
+            </div>
+          )}
+        </div>
+      </SortableContext>
     </div>
   );
 };
@@ -185,13 +247,36 @@ interface PropertyListProps {
   expenses: Expense[];
   onUpdateStatus: (id: string, status: PropertyStatus) => void;
   onDeleteProperty: (id: string) => void;
+  addLog?: (log: any) => Promise<void>;
 }
 
-const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }: PropertyListProps) => {
+const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, addLog }: PropertyListProps) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('kanban');
   const [search, setSearch] = useState('');
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  
+  // Sold Modal States
+  const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
+  const [soldProperty, setSoldProperty] = useState<Property | null>(null);
+  const [saleData, setSaleData] = useState({
+    salePrice: 0,
+    saleDate: new Date().toISOString().split('T')[0],
+    brokerName: '',
+    saleNotes: ''
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const filteredProperties = useMemo(() => {
     const s = search.toLowerCase();
@@ -206,6 +291,83 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }
 
   const handleViewDetails = useCallback((id: string) => navigate(`/imovel/${id}`), [navigate]);
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const propertyId = active.id as string;
+    const property = properties.find(p => p.id === propertyId);
+    if (!property) return;
+
+    // Check if we dropped over a column (status)
+    const overId = over.id as string;
+    let newStatus: PropertyStatus | null = null;
+
+    if (Object.values(PropertyStatus).includes(overId as PropertyStatus)) {
+      newStatus = overId as PropertyStatus;
+    } else {
+      // Dropped over another card, find that card's status
+      const overProperty = properties.find(p => p.id === overId);
+      if (overProperty) {
+        newStatus = overProperty.status;
+      }
+    }
+
+    if (newStatus && newStatus !== property.status) {
+      if (newStatus === PropertyStatus.VENDIDO) {
+        setSoldProperty(property);
+        setIsSoldModalOpen(true);
+      } else {
+        await onUpdateStatus(propertyId, newStatus);
+        if (addLog) {
+          await addLog({
+            propertyId,
+            action: 'Alteração de Status',
+            fromStatus: property.status,
+            toStatus: newStatus,
+            details: `Imóvel movido para ${newStatus} via Kanban.`
+          });
+        }
+      }
+    }
+  };
+
+  const handleConfirmSale = async () => {
+    if (!soldProperty) return;
+
+    try {
+      await updateDoc(doc(db, 'properties', soldProperty.id), {
+        status: PropertyStatus.VENDIDO,
+        salePrice: saleData.salePrice,
+        saleDate: saleData.saleDate,
+        brokerName: saleData.brokerName,
+        saleNotes: saleData.saleNotes
+      });
+
+      if (addLog) {
+        await addLog({
+          propertyId: soldProperty.id,
+          action: 'Venda Realizada',
+          fromStatus: soldProperty.status,
+          toStatus: PropertyStatus.VENDIDO,
+          details: `Venda registrada: ${formatCurrency(saleData.salePrice)} em ${formatDate(saleData.saleDate)}. Corretor: ${saleData.brokerName}`
+        });
+      }
+
+      setIsSoldModalOpen(false);
+      setSoldProperty(null);
+      setSaleData({ salePrice: 0, saleDate: new Date().toISOString().split('T')[0], brokerName: '', saleNotes: '' });
+    } catch (error) {
+      console.error("Error confirming sale:", error);
+    }
+  };
+
   const handleSaveProperty = async (updatedProperty: Property) => {
     try {
       await updateDoc(doc(db, 'properties', updatedProperty.id), updatedProperty as any);
@@ -214,6 +376,8 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }
       console.error("Error updating property:", error);
     }
   };
+
+  const activeProperty = activeId ? properties.find(p => p.id === activeId) : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -251,19 +415,47 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }
       </div>
 
       {viewMode === 'kanban' ? (
-        <div className="flex gap-6 overflow-x-auto pb-8 snap-x no-scrollbar -mx-6 px-6">
-          {(Object.values(PropertyStatus) as PropertyStatus[]).map(status => (
-            <KanbanColumn 
-              key={status}
-              status={status}
-              items={filteredProperties.filter(p => p.status === status)}
-              expenses={expenses}
-              onEdit={setEditingProperty}
-              onView={handleViewDetails}
-              onDeleteProperty={onDeleteProperty}
-            />
-          ))}
-        </div>
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-6 overflow-x-auto pb-8 snap-x no-scrollbar -mx-6 px-6">
+            {(Object.values(PropertyStatus) as PropertyStatus[]).map(status => (
+              <KanbanColumn 
+                key={status}
+                status={status}
+                items={filteredProperties.filter(p => p.status === status)}
+                expenses={expenses}
+                onEdit={setEditingProperty}
+                onView={handleViewDetails}
+                onDeleteProperty={onDeleteProperty}
+              />
+            ))}
+          </div>
+
+          <DragOverlay dropAnimation={{
+            sideEffects: defaultDropAnimationSideEffects({
+              styles: {
+                active: {
+                  opacity: '0.5',
+                },
+              },
+            }),
+          }}>
+            {activeProperty ? (
+              <PropertyKanbanCard 
+                property={activeProperty}
+                metrics={calculatePropertyMetrics(activeProperty, expenses)}
+                onEdit={() => {}}
+                onView={() => {}}
+                onDelete={() => {}}
+                isDragging
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filteredProperties.map(p => {
@@ -282,6 +474,13 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty }
                       <div className="absolute top-5 left-5"><span className="text-[9px] font-black uppercase tracking-[0.2em] text-white bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10">{p.status}</span></div>
                    </div>
                    <div className="p-8">
+                      {p.title && (
+                        <div className="mb-3">
+                          <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">
+                            {p.title}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-black text-slate-900 truncate flex-1 tracking-tight text-xl">
                           {p.condoName || p.neighborhood}

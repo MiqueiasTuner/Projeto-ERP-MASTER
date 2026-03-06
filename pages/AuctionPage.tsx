@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   collection, addDoc, updateDoc, doc, deleteDoc, query, where, onSnapshot 
 } from 'firebase/firestore';
@@ -150,6 +151,8 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     }
   };
 
+  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -290,131 +293,178 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
         ))}
       </div>
 
-      {/* New/Edit Auction Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl"
-            >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-                    {editingAuction ? 'Editar Leilão' : 'Novo Leilão'}
-                  </h3>
-                  <p className="text-slate-500 text-sm font-medium">Preencha os dados do edital.</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-xl border border-slate-200 shadow-sm">
-                  <XCircle size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveAuction} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Título / Endereço</label>
-                    <input name="title" defaultValue={editingAuction?.title} required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
-                  
+      {/* New/Edit Auction Drawer */}
+      {createPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-[9999]">
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => { setIsModalOpen(false); setEditingAuction(null); }}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="absolute inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl flex flex-col"
+              >
+                <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Cidade</label>
-                    <input name="city" defaultValue={editingAuction?.city} required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                      {editingAuction ? 'Editar Leilão' : 'Novo Leilão'}
+                    </h3>
+                    <p className="text-slate-500 text-sm font-medium">Preencha os dados do edital.</p>
                   </div>
-                  
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Bairro</label>
-                    <input name="neighborhood" defaultValue={editingAuction?.neighborhood} required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data do Leilão</label>
-                    <input name="date" type="date" defaultValue={editingAuction?.date} required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo de Imóvel</label>
-                    <select name="propertyType" defaultValue={editingAuction?.propertyType} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600">
-                      {Object.values(PropertyType).map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Preço Inicial (R$)</label>
-                    <input name="initialPrice" type="number" step="0.01" defaultValue={editingAuction?.initialPrice} required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Meu Lance Máximo (R$)</label>
-                    <input name="myMaxBid" type="number" step="0.01" defaultValue={editingAuction?.myMaxBid} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Link do Edital / Leiloeiro</label>
-                    <input name="link" type="url" defaultValue={editingAuction?.link} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Leiloeiro / Empresa</label>
-                    <input name="auctioneer" defaultValue={editingAuction?.auctioneer} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600" />
-                  </div>
+                  <button 
+                    onClick={() => { setIsModalOpen(false); setEditingAuction(null); }} 
+                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                  >
+                    <XCircle size={24} />
+                  </button>
                 </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
-                  <button type="submit" className="flex-1 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">Salvar Leilão</button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <form onSubmit={handleSaveAuction} className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Título / Endereço</label>
+                      <input name="title" defaultValue={editingAuction?.title} required className={inputClass} placeholder="Ex: Apartamento em Moema - 2 Quartos" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Cidade</label>
+                      <input name="city" defaultValue={editingAuction?.city} required className={inputClass} placeholder="Ex: São Paulo" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Bairro</label>
+                      <input name="neighborhood" defaultValue={editingAuction?.neighborhood} required className={inputClass} placeholder="Ex: Moema" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Leilão</label>
+                      <input name="date" type="date" defaultValue={editingAuction?.date} required className={inputClass} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Imóvel</label>
+                      <select name="propertyType" defaultValue={editingAuction?.propertyType} className={inputClass}>
+                        {Object.values(PropertyType).map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Preço Inicial (R$)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                        <input 
+                          name="initialPrice" 
+                          type="number" 
+                          step="0.01" 
+                          defaultValue={editingAuction?.initialPrice === 0 ? '' : editingAuction?.initialPrice} 
+                          onFocus={(e) => e.target.select()}
+                          required 
+                          className={`${inputClass} pl-10`}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Meu Lance Máximo (R$)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                        <input 
+                          name="myMaxBid" 
+                          type="number" 
+                          step="0.01" 
+                          defaultValue={editingAuction?.myMaxBid === 0 ? '' : editingAuction?.myMaxBid} 
+                          onFocus={(e) => e.target.select()}
+                          className={`${inputClass} pl-10`}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Link do Edital / Leiloeiro</label>
+                      <input name="link" type="url" defaultValue={editingAuction?.link} className={inputClass} placeholder="https://..." />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Leiloeiro / Empresa</label>
+                      <input name="auctioneer" defaultValue={editingAuction?.auctioneer} className={inputClass} placeholder="Ex: Zukerman Leilões" />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-8 sticky bottom-0 bg-white border-t border-slate-100 -mx-8 px-8 pb-4">
+                    <button 
+                      type="button" 
+                      onClick={() => { setIsModalOpen(false); setEditingAuction(null); }} 
+                      className="flex-1 px-8 py-4 bg-white text-slate-400 hover:text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="flex-1 px-8 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg shadow-slate-900/20"
+                    >
+                      Salvar Leilão
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Bid Modal */}
-      <AnimatePresence>
-        {isBidModalOpen && selectedAuction && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
-            >
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Gavel size={32} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Registrar Lance</h3>
-                <p className="text-slate-500 text-sm font-medium">{selectedAuction.title}</p>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor do Lance (R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(Number(e.target.value))}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none font-black text-2xl text-center text-blue-600"
-                    autoFocus
-                  />
-                  <p className="text-[10px] text-slate-400 font-bold mt-2 text-center uppercase tracking-widest">
-                    Lance Atual: {formatCurrency(selectedAuction.currentBid || 0)}
-                  </p>
+      {createPortal(
+        <AnimatePresence>
+          {isBidModalOpen && selectedAuction && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
+              >
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Gavel size={32} />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Registrar Lance</h3>
+                  <p className="text-slate-500 text-sm font-medium">{selectedAuction.title}</p>
                 </div>
 
-                <div className="flex gap-4">
-                  <button onClick={() => setIsBidModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
-                  <button onClick={handlePlaceBid} className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">Confirmar</button>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor do Lance (R$)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      value={bidAmount}
+                      onChange={(e) => setBidAmount(Number(e.target.value))}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none font-black text-2xl text-center text-blue-600"
+                      autoFocus
+                    />
+                    <p className="text-[10px] text-slate-400 font-bold mt-2 text-center uppercase tracking-widest">
+                      Lance Atual: {formatCurrency(selectedAuction.currentBid || 0)}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button onClick={() => setIsBidModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                    <button onClick={handlePlaceBid} className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">Confirmar</button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

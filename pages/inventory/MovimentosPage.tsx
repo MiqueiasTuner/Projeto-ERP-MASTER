@@ -40,17 +40,22 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
     const { name, value } = e.target;
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
+      
+      const q = name === 'quantity' ? (value === '' ? 0 : parseFloat(value)) : prev.quantity;
+      const u = name === 'unitPrice' ? (value === '' ? 0 : parseFloat(value)) : prev.unitPrice;
+      const t = name === 'totalPrice' ? (value === '' ? 0 : parseFloat(value)) : prev.totalPrice;
+
       if (name === 'quantity' || name === 'unitPrice') {
-        const q = name === 'quantity' ? parseFloat(value) : prev.quantity;
-        const u = name === 'unitPrice' ? parseFloat(value) : prev.unitPrice;
         updated.totalPrice = q * u;
-      }
-      if (name === 'totalPrice') {
-        const t = parseFloat(value);
-        if (prev.quantity > 0) {
-          updated.unitPrice = t / prev.quantity;
+        updated.quantity = q;
+        updated.unitPrice = u;
+      } else if (name === 'totalPrice') {
+        updated.totalPrice = t;
+        if (q > 0) {
+          updated.unitPrice = t / q;
         }
       }
+      
       return updated;
     });
   };
@@ -356,24 +361,23 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
       </div>
 
       {/* New Movement Drawer */}
-      {createPortal(
-        <AnimatePresence>
-          {isModalOpen && (
-            <>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsModalOpen(false)}
-                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
-              />
-              <motion.div 
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
-              >
+      <AnimatePresence mode="wait">
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[9999]">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
+            >
                 <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Movimento</h3>
@@ -451,24 +455,45 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
                         type="number" 
                         placeholder="0.00" 
                         className={inputClass} 
-                        value={formData.quantity}
+                        value={formData.quantity === 0 ? '' : formData.quantity}
+                        onFocus={(e) => e.target.select()}
                         onChange={handleFormChange}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Unitário (R$)</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
                         <input 
                           required
-                          name="totalPrice"
+                          name="unitPrice"
                           type="number" 
+                          step="0.01"
                           placeholder="0.00" 
                           className={`${inputClass} pl-10`} 
-                          value={formData.totalPrice}
+                          value={formData.unitPrice === 0 ? '' : formData.unitPrice}
+                          onFocus={(e) => e.target.select()}
                           onChange={handleFormChange}
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total (Calculado)</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                      <input 
+                        required
+                        name="totalPrice"
+                        type="number" 
+                        step="0.01"
+                        placeholder="0.00" 
+                        className={`${inputClass} pl-10 bg-slate-100/50`} 
+                        value={formData.totalPrice === 0 ? '' : formData.totalPrice}
+                        onFocus={(e) => e.target.select()}
+                        onChange={handleFormChange}
+                      />
                     </div>
                   </div>
 
@@ -518,11 +543,9 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
                   </button>
                 </div>
               </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

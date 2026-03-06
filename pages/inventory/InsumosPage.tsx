@@ -75,7 +75,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'minStock' || name === 'averageCost' ? parseFloat(value) || 0 : value
+      [name]: name === 'minStock' || name === 'averageCost' ? (value === '' ? 0 : parseFloat(value)) : value
     }));
   };
 
@@ -623,7 +623,8 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                         type="number" 
                         placeholder="0" 
                         className={inputClass} 
-                        value={formData.minStock}
+                        value={formData.minStock === 0 ? '' : formData.minStock}
+                        onFocus={(e) => e.target.select()}
                         onChange={handleFormChange}
                       />
                     </div>
@@ -638,7 +639,8 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                         type="number" 
                         placeholder="0.00" 
                         className={`${inputClass} pl-10`}
-                        value={formData.averageCost}
+                        value={formData.averageCost === 0 ? '' : formData.averageCost}
+                        onFocus={(e) => e.target.select()}
                         onChange={handleFormChange}
                       />
                     </div>

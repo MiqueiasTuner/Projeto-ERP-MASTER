@@ -291,6 +291,7 @@ export interface Alert {
 
 export interface Property {
   id: string;
+  title?: string; // New field for custom property name/label
   type: PropertyType;
   acquisitionType?: AcquisitionType;
   city: string;
@@ -302,11 +303,13 @@ export interface Property {
   sizeM2: number;
   status: PropertyStatus;
   acquisitionDate: string;
-  saleDate?: string;
   bankValuation: number;
   acquisitionPrice: number;
   auctioneerCommission: number;
   salePrice?: number;
+  saleDate?: string;
+  brokerName?: string;
+  saleNotes?: string;
   images: string[];
   
   // Legal & Registration

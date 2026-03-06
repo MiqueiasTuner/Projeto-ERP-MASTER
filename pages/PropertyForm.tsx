@@ -34,6 +34,7 @@ const InputField = ({ label, path, type = 'text', prefix, placeholder, value, on
           placeholder={placeholder || (type === 'currency' ? 'R$ 0,00' : '')}
           className={`w-full bg-slate-50 text-slate-900 ${prefix && displayValue !== '' ? 'pl-12' : 'px-5'} py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400`}
           value={displayValue}
+          onFocus={(e) => e.target.select()}
           onChange={(e) => {
             const rawValue = e.target.value;
             if (type === 'currency') {
@@ -199,6 +200,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
             <h3 className="font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs">Informações Primárias</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+            <InputField label="Título Identificador (Etiqueta)" path="title" type="text" placeholder="Ex: AP - Gran Vitta Valley - Bloco 04 Apto 203" value={formData.title} onChange={handleChange} fullWidth />
             <div><label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest ml-1">Tipo de Ativo</label><div className="relative"><select className={selectClass} value={formData.type} onChange={(e) => handleChange('type', e.target.value)}>{Object.values(PropertyType).map(t => <option key={t} value={t}>{t}</option>)}</select></div></div>
             <div><label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest ml-1">Status Operacional</label><div className="relative"><select className={selectClass} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>{Object.values(PropertyStatus).map(s => <option key={s} value={s}>{s}</option>)}</select></div></div>
             <InputField label="Cidade" path="city" type="text" placeholder="Ex: São Paulo" value={formData.city} onChange={handleChange} />

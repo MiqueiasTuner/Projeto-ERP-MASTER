@@ -53,14 +53,12 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
     if (activeChannel === 'general') {
       q = query(
         collection(db, 'messages'), 
-        where('channelId', '==', 'general'),
-        orderBy('timestamp', 'asc')
+        where('channelId', '==', 'general')
       );
     } else {
       q = query(
         collection(db, 'messages'), 
-        where('channelId', '==', activeChannel),
-        orderBy('timestamp', 'asc')
+        where('channelId', '==', activeChannel)
       );
     }
 
@@ -69,7 +67,13 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
         id: doc.id,
         ...doc.data()
       })) as ChatMessage[];
-      setMessages(msgs);
+      
+      // Sort client-side to avoid composite index requirement
+      const sortedMsgs = msgs.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      setMessages(sortedMsgs);
       setLoading(false);
     });
 

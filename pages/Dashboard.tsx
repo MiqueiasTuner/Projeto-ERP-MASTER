@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, 
   Bar, 
@@ -52,7 +53,7 @@ import { calculatePropertyMetrics, formatCurrency } from '../utils';
 const COLORS = ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6', '#64748b'];
 
 const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white rounded-[40px] border border-slate-200/60 shadow-sm p-6 lg:p-8 ${className}`}>
+  <div className={`bg-white/5 rounded-[40px] border border-white/10 shadow-sm p-6 lg:p-8 ${className}`}>
     {children}
   </div>
 );
@@ -78,6 +79,7 @@ const Dashboard = ({
   alerts?: Alert[],
   currentUser: UserAccount 
 }) => {
+  const navigate = useNavigate();
   const stats = useMemo(() => {
     const sold = properties.filter(p => p.status === PropertyStatus.VENDIDO);
     const metrics = properties.map(p => calculatePropertyMetrics(p, expenses));
@@ -90,24 +92,30 @@ const Dashboard = ({
       : 0;
 
     // 1. Monthly Balance Data
-    const last6Months = Array.from({ length: 6 }).map((_, i) => {
+    const monthlyData = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
-      return d.toLocaleString('pt-BR', { month: 'short' });
-    }).reverse();
+      const monthLabel = d.toLocaleString('pt-BR', { month: 'short' });
+      const monthIndex = d.getMonth();
+      const year = d.getFullYear();
 
-    const monthlyData = last6Months.map(month => {
-      const monthExpenses = expenses.length > 0 ? expenses.reduce((a, b) => a + b.amount, 0) / 6 : 15000;
-      const monthIncome = properties.filter(p => p.status === PropertyStatus.VENDIDO).length > 0 
-        ? properties.reduce((a, b) => a + (b.salePrice || 0), 0) / 12 
-        : 25000;
+      const monthExpenses = expenses.filter(e => {
+        const eDate = new Date(e.date);
+        return eDate.getMonth() === monthIndex && eDate.getFullYear() === year;
+      }).reduce((sum, e) => sum + e.amount, 0);
+
+      const monthIncome = properties.filter(p => {
+        if (!p.saleDate || p.status !== PropertyStatus.VENDIDO) return false;
+        const sDate = new Date(p.saleDate);
+        return sDate.getMonth() === monthIndex && sDate.getFullYear() === year;
+      }).reduce((sum, p) => sum + (p.salePrice || 0), 0);
 
       return {
-        name: month,
-        income: monthIncome + (Math.random() * 5000),
-        expenses: monthExpenses + (Math.random() * 2000)
+        name: monthLabel,
+        income: monthIncome,
+        expenses: monthExpenses
       };
-    });
+    }).reverse();
 
     // 2. Expense Sources (Donut Chart)
     const expenseByCategory = expenses.reduce((acc, e) => {
@@ -204,7 +212,7 @@ const Dashboard = ({
   }, [properties, expenses, tasks, inventory, auctions]);
 
   return (
-    <div className="min-h-screen bg-[#0A192F] -m-6 lg:-m-10 p-6 lg:p-10 space-y-8 animate-in fade-in duration-700 text-white">
+    <div className="min-h-screen bg-[#0A192F] -m-6 lg:-m-10 p-6 lg:p-10 space-y-8 animate-in fade-in duration-700 text-white overflow-x-hidden">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -224,7 +232,10 @@ const Dashboard = ({
               <span className="text-sm font-black text-white">{stats.totalProperties}</span>
             </div>
           </div>
-          <button className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all">
+          <button 
+            onClick={() => navigate('/novo')}
+            className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all"
+          >
             <PlusCircle size={20} />
           </button>
         </div>

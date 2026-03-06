@@ -198,7 +198,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
         </aside>
 
         {/* Main Content */}
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 relative ${location.pathname === '/calendario' ? '' : 'p-6 lg:p-10'}`}>
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${location.pathname === '/' ? 'bg-[#0A192F]' : 'bg-slate-50'} relative ${location.pathname === '/calendario' ? '' : 'p-6 lg:p-10'}`}>
           <div className={location.pathname === '/calendario' ? 'h-full' : 'max-w-7xl mx-auto pb-20 lg:pb-0'}>
             {children}
           </div>
@@ -484,7 +484,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
         <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
-        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await updateDoc(doc(db, 'properties', id), { status }); }} onDeleteProperty={deleteProperty} />} />
+        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await updateDoc(doc(db, 'properties', id), { status }); }} onDeleteProperty={deleteProperty} addLog={addLog} />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {
             alert("Apenas o Administrador Master pode excluir registros.");

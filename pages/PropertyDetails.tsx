@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -59,8 +60,22 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
   
   const timelineItems = useMemo(() => {
     const combined = [
-      ...propertyLogs.map(l => ({ type: 'log', data: l, date: new Date(l.timestamp) })),
-      ...propertyTasks.map(t => ({ type: 'task', data: t, date: new Date(t.createdAt || new Date().toISOString()) })) // Assuming tasks have createdAt, if not use fallback
+      ...propertyLogs.map(l => ({ 
+        type: 'log', 
+        data: l, 
+        date: new Date(l.timestamp),
+        title: l.action,
+        description: l.details,
+        user: l.userName
+      })),
+      ...propertyTasks.map(t => ({ 
+        type: 'task', 
+        data: t, 
+        date: new Date(t.createdAt || new Date().toISOString()),
+        title: `Tarefa: ${t.title}`,
+        description: t.description,
+        user: t.assigneeName
+      }))
     ];
     return combined.sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [propertyLogs, propertyTasks]);
@@ -210,6 +225,42 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
         <div className="h-64 bg-slate-100 rounded-[40px] flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200">
           <ImageIcon size={48} strokeWidth={1} className="mb-4" />
           <p className="font-black uppercase tracking-[0.2em] text-[10px]">Sem fotos cadastradas</p>
+        </div>
+      )}
+
+      {/* Dados da Venda (Se Vendido) */}
+      {property.status === PropertyStatus.VENDIDO && (
+        <div className="bg-emerald-50 p-8 rounded-[32px] border border-emerald-100 shadow-sm animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3 mb-6 text-emerald-700">
+            <div className="p-2 bg-emerald-100 rounded-xl">
+              <CheckCircle2 size={20} />
+            </div>
+            <h3 className="text-lg font-black uppercase tracking-widest">Dados da Venda</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div>
+              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Preço de Venda</p>
+              <p className="text-xl font-black text-emerald-900">{formatCurrency(property.salePrice || 0)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Data da Venda</p>
+              <p className="text-xl font-black text-emerald-900">{property.saleDate ? formatDate(property.saleDate) : '-'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Corretor / Imobiliária</p>
+              <p className="text-xl font-black text-emerald-900">{property.brokerName || '-'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Lucro Estimado</p>
+              <p className="text-xl font-black text-emerald-900">{formatCurrency((property.salePrice || 0) - metrics.totalInvested)}</p>
+            </div>
+          </div>
+          {property.saleNotes && (
+            <div className="mt-6 pt-6 border-t border-emerald-100">
+              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-2">Observações da Venda</p>
+              <p className="text-sm font-medium text-emerald-800 leading-relaxed">{property.saleNotes}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -375,72 +426,43 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center mb-12">Logs de Governança</h4>
               <div className="relative border-l-4 border-slate-100 ml-4 md:ml-8 pl-8 md:pl-12 space-y-12">
                 {timelineItems.length > 0 ? (
-                  timelineItems.map((item, idx) => {
-                    if (item.type === 'log') {
-                      const log = item.data as PropertyLog;
-                      return (
-                        <div key={`log-${log.id}`} className="relative">
-                          <div className="absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl bg-white border-4 border-slate-100 flex items-center justify-center shadow-lg z-10">
-                            <Clock size={16} className="text-slate-900" />
-                          </div>
-                          <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100 relative">
-                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                                <span className="text-sm font-black text-slate-900 tracking-tight leading-none">{log.action}</span>
-                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(log.timestamp).toLocaleString()}</span>
-                             </div>
-                             <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                                   <User size={12} className="mr-2 text-blue-600" /> {log.userName}
-                                </div>
-                                {log.fromStatus && (
-                                  <div className="flex items-center text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1.5 rounded-xl">
-                                     {log.fromStatus} <ArrowRight size={10} className="mx-2 text-slate-300" /> {log.toStatus}
-                                  </div>
-                                )}
-                                {log.details && (
-                                  <div className="w-full mt-2 text-xs text-slate-500 font-medium bg-white p-3 rounded-xl border border-slate-100">
-                                    {log.details}
-                                  </div>
-                                )}
-                             </div>
-                          </div>
-                        </div>
-                      );
-                    } else {
-                      const task = item.data as Task;
-                      return (
-                        <div key={`task-${task.id}`} className="relative">
-                          <div className="absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl bg-blue-50 border-4 border-blue-100 flex items-center justify-center shadow-lg z-10">
-                            <CheckCircle2 size={16} className="text-blue-600" />
-                          </div>
-                          <div className="bg-white p-6 rounded-[28px] border-2 border-blue-50 relative shadow-sm">
-                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                                <span className="text-sm font-black text-slate-900 tracking-tight leading-none">Tarefa: {task.title}</span>
-                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(task.createdAt || '').toLocaleString()}</span>
-                             </div>
-                             <div className="flex flex-wrap items-center gap-3">
-                                <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
-                                  task.status === 'Concluído' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'
-                                }`}>
-                                  {task.status}
-                                </div>
-                                <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                                   <User size={12} className="mr-2 text-slate-400" /> {task.assigneeName || 'Sem responsável'}
-                                </div>
-                             </div>
-                             {task.description && (
-                                <div className="mt-3 text-xs text-slate-500 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                  {task.description}
-                                </div>
-                             )}
-                          </div>
-                        </div>
-                      );
-                    }
-                  })
+                  timelineItems.map((item, idx) => (
+                    <div key={idx} className="relative">
+                      <div className={`absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl border-4 flex items-center justify-center shadow-lg z-10 ${
+                        item.type === 'log' ? 'bg-white border-slate-100' : 'bg-blue-50 border-blue-100'
+                      }`}>
+                        {item.type === 'log' ? <Clock size={16} className="text-slate-900" /> : <CheckCircle2 size={16} className="text-blue-600" />}
+                      </div>
+                      <div className={`p-6 rounded-[28px] border relative ${
+                        item.type === 'log' ? 'bg-slate-50 border-slate-100' : 'bg-white border-blue-50 shadow-sm'
+                      }`}>
+                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <span className="text-sm font-black text-slate-900 tracking-tight leading-none">{item.title}</span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{item.date.toLocaleString()}</span>
+                         </div>
+                         <div className="flex flex-wrap items-center gap-3">
+                            {item.user && (
+                              <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100">
+                                 <User size={12} className="mr-2 text-blue-600" /> {item.user}
+                              </div>
+                            )}
+                            {item.type === 'log' && (item.data as PropertyLog).fromStatus && (
+                              <div className="flex items-center text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1.5 rounded-xl">
+                                 {(item.data as PropertyLog).fromStatus} <ArrowRight size={10} className="mx-2 text-slate-300" /> {(item.data as PropertyLog).toStatus}
+                              </div>
+                            )}
+                         </div>
+                         {item.description && (
+                            <div className="mt-3 text-xs text-slate-500 font-medium bg-white/50 p-3 rounded-xl border border-slate-100">
+                              {item.description}
+                            </div>
+                         )}
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs py-10">
-                    Nenhum registro encontrado.
+                  <div className="text-center py-20">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhum registro encontrado</p>
                   </div>
                 )}
               </div>
@@ -449,87 +471,90 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
         </div>
       </div>
 
-      <AnimatePresence>
-        {isExpenseModalOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsExpenseModalOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
-            >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Gasto</h3>
-                  <p className="text-slate-500 text-sm font-medium">Registre despesas do imóvel.</p>
-                </div>
-                <button 
-                  onClick={() => setIsExpenseModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddExpenseSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data</label>
-                  <input type="date" className={inputClass} value={newExpData.date} onChange={(e) => setNewExpData({...newExpData, date: e.target.value})} />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
-                  <select className={inputClass} value={newExpData.category} onChange={(e) => setNewExpData({...newExpData, category: e.target.value as ExpenseCategory})}>
-                    {Object.values(ExpenseCategory).map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
-                  <input type="text" placeholder="Pintura, Taxas, etc..." className={inputClass} value={newExpData.description} onChange={(e) => setNewExpData({...newExpData, description: e.target.value})} />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
-                  <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</span>
-                    <input type="text" placeholder="0,00" className={inputClass + " pl-12"} value={formatBRLMask(newExpData.amount)}
-                      onChange={(e) => {
-                        const numeric = e.target.value.replace(/\D/g, '');
-                        setNewExpData({...newExpData, amount: parseBRLToFloat(numeric) || 0});
-                      }}
-                    />
+      {createPortal(
+        <AnimatePresence>
+          {isExpenseModalOpen && (
+            <div className="fixed inset-0 z-[9999]">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsExpenseModalOpen(false)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
+              >
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Gasto</h3>
+                    <p className="text-slate-500 text-sm font-medium">Registre despesas do imóvel.</p>
                   </div>
+                  <button 
+                    onClick={() => setIsExpenseModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                  >
+                    <X size={24} />
+                  </button>
                 </div>
 
-                <div className="pt-6 flex gap-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsExpenseModalOpen(false)} 
-                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Plus size={16} strokeWidth={3} /> Lançar
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                <form onSubmit={handleAddExpenseSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data</label>
+                    <input type="date" className={inputClass} value={newExpData.date} onChange={(e) => setNewExpData({...newExpData, date: e.target.value})} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                    <select className={inputClass} value={newExpData.category} onChange={(e) => setNewExpData({...newExpData, category: e.target.value as ExpenseCategory})}>
+                      {Object.values(ExpenseCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+                    <input type="text" placeholder="Pintura, Taxas, etc..." className={inputClass} value={newExpData.description} onChange={(e) => setNewExpData({...newExpData, description: e.target.value})} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
+                    <div className="relative">
+                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</span>
+                      <input type="text" placeholder="0,00" className={inputClass + " pl-12"} value={formatBRLMask(newExpData.amount)}
+                        onChange={(e) => {
+                          const numeric = e.target.value.replace(/\D/g, '');
+                          setNewExpData({...newExpData, amount: parseBRLToFloat(numeric) || 0});
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-8 flex gap-4 sticky bottom-0 bg-white border-t border-slate-100 -mx-8 px-8 pb-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsExpenseModalOpen(false)} 
+                      className="flex-1 px-8 py-4 bg-white text-slate-400 hover:text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="flex-1 px-8 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} strokeWidth={3} /> Lançar
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Hidden PDF Report Template */}
       <div id="property-report-content" style={{ display: 'none', width: '800px', padding: '40px', background: 'white' }}>

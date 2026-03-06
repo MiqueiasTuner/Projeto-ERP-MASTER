@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { UserAccount, UserRole, Team, UserPermissions, PermissionAction, PermissionModule } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { db } from '../lib/firebase';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 interface TeamsPageProps {
   currentUser: UserAccount;
@@ -31,17 +33,16 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
   const [isPermModalOpen, setIsPermModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
 
-  const isMaster = currentUser.role === UserRole.ADMIN;
+  const isMaster = currentUser.role === UserRole.ADMIN || currentUser.email === 'miqueiasyout@gmail.com';
   const isMasterUser = currentUser.email === 'miqueiasyout@gmail.com';
 
-  const addUser = (e: React.FormEvent) => {
+  const addUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isMaster) return;
+    if (!isMaster || !db) return;
     const form = e.target as HTMLFormElement;
     const role = (form.elements.namedItem('role') as HTMLSelectElement).value as UserRole;
     
-    const newUser: UserAccount = {
-      id: Math.random().toString(36).substr(2, 9),
+    const newUser: Omit<UserAccount, 'id'> = {
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       email: (form.elements.namedItem('email') as HTMLInputElement).value,
       role: role,
@@ -55,26 +56,39 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
         reports: ['view', 'edit', 'delete']
       } : { ...DEFAULT_COLLAB_PERMISSIONS }
     };
-    setUsers([...users, newUser]);
-    setIsUserModalOpen(false);
+
+    try {
+      const docRef = doc(collection(db, 'users'));
+      await setDoc(docRef, { ...newUser, id: docRef.id });
+      setIsUserModalOpen(false);
+    } catch (error) {
+      console.error("Error adding user:", error);
+      alert("Erro ao criar usuário. Verifique as permissões.");
+    }
   };
 
-  const addTeam = (e: React.FormEvent) => {
+  const addTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isMaster) return;
+    if (!isMaster || !db) return;
     const form = e.target as HTMLFormElement;
     
-    const newTeam: Team = {
-      id: Math.random().toString(36).substr(2, 9),
+    const newTeam: Omit<Team, 'id'> = {
       name: (form.elements.namedItem('teamName') as HTMLInputElement).value,
       description: (form.elements.namedItem('teamDescription') as HTMLInputElement).value,
     };
-    setTeams([...teams, newTeam]);
-    setIsTeamModalOpen(false);
+
+    try {
+      const docRef = doc(collection(db, 'teams'));
+      await setDoc(docRef, { ...newTeam, id: docRef.id });
+      setIsTeamModalOpen(false);
+    } catch (error) {
+      console.error("Error adding team:", error);
+      alert("Erro ao criar departamento.");
+    }
   };
 
-  const deleteTeam = (id: string) => {
-    if (!isMasterUser) {
+  const deleteTeam = async (id: string) => {
+    if (!isMasterUser || !db) {
       alert("Apenas o Administrador Master pode excluir registros.");
       return;
     }
@@ -84,7 +98,11 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
       return;
     }
     if (confirm('Deseja excluir este departamento?')) {
-      setTeams(prev => prev.filter(t => t.id !== id));
+      try {
+        await deleteDoc(doc(db, 'teams', id));
+      } catch (error) {
+        console.error("Error deleting team:", error);
+      }
     }
   };
 
@@ -332,22 +350,22 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
       </AnimatePresence>
 
       {/* Drawer Novo Usuário */}
-      <AnimatePresence>
-        {isUserModalOpen && createPortal(
-          <>
+      <AnimatePresence mode="wait">
+        {isUserModalOpen && (
+          <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsUserModalOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
@@ -404,28 +422,27 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
                 </div>
               </form>
             </motion.div>
-          </>,
-          document.body
+          </div>
         )}
       </AnimatePresence>
 
       {/* Drawer Novo Departamento */}
-      <AnimatePresence>
-        {isTeamModalOpen && createPortal(
-          <>
+      <AnimatePresence mode="wait">
+        {isTeamModalOpen && (
+          <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsTeamModalOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
@@ -467,8 +484,7 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
                 </div>
               </form>
             </motion.div>
-          </>,
-          document.body
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -161,7 +161,10 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.title) return;
+    if (!newTask.title) {
+      alert("Por favor, insira um título para a tarefa.");
+      return;
+    }
 
     // Date validation
     if (newTask.dueDate) {
@@ -246,8 +249,12 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         </button>
       </div>
 
-      <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-6 h-full min-w-[1000px]">
+      <div className="flex-1 overflow-x-auto scrollbar-hide">
+        <style dangerouslySetInnerHTML={{ __html: `
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        `}} />
+        <div className="flex gap-6 h-full min-w-[1000px] pb-6">
           {Object.values(TaskStatus).map((status) => (
             <KanbanColumn 
               key={status} 
@@ -260,18 +267,18 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
       </div>
 
       {/* New Task Drawer */}
-      <AnimatePresence>
-        {isNewTaskOpen && createPortal(
-          <>
+      <AnimatePresence mode="wait">
+        {isNewTaskOpen && (
+          <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsNewTaskOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
@@ -345,24 +352,23 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                 </div>
               </form>
             </motion.div>
-          </>,
-          document.body
+          </div>
         )}
       </AnimatePresence>
 
       {/* Edit Task Drawer */}
-      <AnimatePresence>
-        {editingTask && createPortal(
-          <>
+      <AnimatePresence mode="wait">
+        {editingTask && (
+          <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setEditingTask(null)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[110] flex flex-col"
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl flex flex-col"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
@@ -486,8 +492,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                 </div>
               </div>
             </motion.div>
-          </>,
-          document.body
+          </div>
         )}
       </AnimatePresence>
     </div>
