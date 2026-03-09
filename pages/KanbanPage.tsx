@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  collection, query, where, onSnapshot, addDoc, updateDoc, doc, deleteDoc, arrayUnion 
+  collection, query, where, onSnapshot, addDoc, setDoc, doc, deleteDoc, arrayUnion 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { 
@@ -12,6 +12,7 @@ import {
   MessageSquare, Building2, Users, Paperclip, Send, Trash2, Edit3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import CustomDatePicker from '../src/components/CustomDatePicker';
 
 interface KanbanPageProps {
   currentUser: UserAccount;
@@ -40,9 +41,16 @@ const TaskCard = ({ task, onClick }: {
       className="bg-white p-5 rounded-[20px] border shadow-sm border-slate-100 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 transition-all group cursor-pointer relative"
     >
       <div className="flex justify-between items-start mb-3">
-        <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${getPriorityColor(task.priority)}`}>
-          {task.priority}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border w-fit ${getPriorityColor(task.priority)}`}>
+            {task.priority}
+          </span>
+          {task.protocol && (
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-0.5">
+              #{task.protocol}
+            </span>
+          )}
+        </div>
         {task.departmentId && (
           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg">
             {task.departmentId}
@@ -132,7 +140,11 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
 const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: KanbanPageProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  
+  const editingTask = useMemo(() => 
+    editingTaskId ? tasks.find(t => t.id === editingTaskId) || null : null
+  , [editingTaskId, tasks]);
   
   // Form States
   const [newTask, setNewTask] = useState<Partial<Task>>({
@@ -181,8 +193,11 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     }
 
     try {
+      const protocol = `TK-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+      
       await addDoc(collection(db, 'tasks'), {
         ...newTask,
+        protocol,
         creatorId: currentUser.id,
         createdAt: new Date().toISOString(),
         departmentId: newTask.departmentId || currentUser.teamId || 'general',
@@ -200,12 +215,17 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
     try {
-      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
-      if (editingTask && editingTask.id === taskId) {
-        setEditingTask({ ...editingTask, status: newStatus });
-      }
+      await setDoc(doc(db, 'tasks', taskId), { status: newStatus }, { merge: true });
     } catch (error) {
       console.error("Error updating task status", error);
+    }
+  };
+
+  const handleUpdateAssignees = async (taskId: string, assigneeIds: string[]) => {
+    try {
+      await setDoc(doc(db, 'tasks', taskId), { assigneeIds }, { merge: true });
+    } catch (error) {
+      console.error("Error updating assignees", error);
     }
   };
 
@@ -222,9 +242,9 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     };
 
     try {
-      await updateDoc(doc(db, 'tasks', taskId), {
+      await setDoc(doc(db, 'tasks', taskId), {
         commentsList: arrayUnion(newComment)
-      });
+      }, { merge: true });
       setCommentText('');
       // Update local state for immediate feedback if needed, but onSnapshot handles it
     } catch (error) {
@@ -260,7 +280,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
               key={status} 
               status={status} 
               tasks={tasks.filter(t => t.status === status)} 
-              onTaskClick={setEditingTask}
+              onTaskClick={(task) => setEditingTaskId(task.id)}
             />
           ))}
         </div>
@@ -310,7 +330,12 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data de Entrega</label>
-                    <input type="date" className={inputClass} value={newTask.dueDate || ''} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} min={new Date().toISOString().split('T')[0]} />
+                    <CustomDatePicker 
+                      selected={newTask.dueDate ? new Date(newTask.dueDate + 'T00:00:00') : null}
+                      onChange={(date) => setNewTask({...newTask, dueDate: date ? date.toISOString().split('T')[0] : ''})}
+                      minDate={new Date()}
+                      placeholderText="DD/MM/AAAA"
+                    />
                   </div>
                 </div>
 
@@ -362,7 +387,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
           <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setEditingTask(null)}
+              onClick={() => setEditingTaskId(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
@@ -375,7 +400,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">Detalhes da Tarefa</h3>
                   <p className="text-slate-500 text-sm font-medium">Visualize e edite as informações.</p>
                 </div>
-                <button onClick={() => setEditingTask(null)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100">
+                <button onClick={() => setEditingTaskId(null)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100">
                   <X size={24} />
                 </button>
               </div>
@@ -383,14 +408,21 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
               <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
-                      editingTask.priority === TaskPriority.URGENT ? 'bg-rose-100 text-rose-600 border-rose-200' :
-                      editingTask.priority === TaskPriority.HIGH ? 'bg-orange-100 text-orange-600 border-orange-200' :
-                      editingTask.priority === TaskPriority.MEDIUM ? 'bg-blue-100 text-blue-600 border-blue-200' :
-                      'bg-emerald-100 text-emerald-600 border-emerald-200'
-                    }`}>
-                      {editingTask.priority}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border w-fit ${
+                        editingTask.priority === TaskPriority.URGENT ? 'bg-rose-100 text-rose-600 border-rose-200' :
+                        editingTask.priority === TaskPriority.HIGH ? 'bg-orange-100 text-orange-600 border-orange-200' :
+                        editingTask.priority === TaskPriority.MEDIUM ? 'bg-blue-100 text-blue-600 border-blue-200' :
+                        'bg-emerald-100 text-emerald-600 border-emerald-200'
+                      }`}>
+                        {editingTask.priority}
+                      </span>
+                      {editingTask.protocol && (
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                          Protocolo: #{editingTask.protocol}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status:</label>
                        <select 
@@ -409,16 +441,31 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Responsáveis</label>
-                    <div className="flex -space-x-2">
-                      {editingTask.assigneeIds?.map(uid => {
-                        const user = users.find(u => u.id === uid);
-                        return (
-                          <div key={uid} title={user?.name} className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-600">
-                            {user?.name?.substring(0, 2).toUpperCase() || uid.substring(0, 2)}
-                          </div>
-                        );
-                      })}
-                      {(!editingTask.assigneeIds || editingTask.assigneeIds.length === 0) && <span className="text-sm text-slate-400">Ninguém atribuído</span>}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex -space-x-2">
+                        {editingTask.assigneeIds?.map(uid => {
+                          const user = users.find(u => u.id === uid);
+                          return (
+                            <div key={uid} title={user?.name} className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-600">
+                              {user?.name?.substring(0, 2).toUpperCase() || uid.substring(0, 2)}
+                            </div>
+                          );
+                        })}
+                        {(!editingTask.assigneeIds || editingTask.assigneeIds.length === 0) && <span className="text-sm text-slate-400">Ninguém atribuído</span>}
+                      </div>
+                      
+                      <select 
+                        multiple 
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500/10 h-24"
+                        value={editingTask.assigneeIds || []}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+                          handleUpdateAssignees(editingTask.id, selected);
+                        }}
+                      >
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                      <p className="text-[8px] text-slate-400 uppercase font-bold">Segure Ctrl/Cmd para múltiplos</p>
                     </div>
                   </div>
                   <div>

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Save, X, AlertCircle, Info, Landmark, ShieldCheck, HardHat, Image as ImageIcon, Plus, Trash2, Upload } from 'lucide-react';
 import { Property, PropertyStatus, PropertyType } from '../types';
 import { formatBRLMask, parseBRLToFloat } from '../utils';
+import CustomDatePicker from '../src/components/CustomDatePicker';
 
 interface InputFieldProps {
   label: string;
@@ -19,6 +20,19 @@ interface InputFieldProps {
 const InputField = ({ label, path, type = 'text', prefix, placeholder, value, onChange, fullWidth }: InputFieldProps) => {
   // Se for moeda, usa a máscara. Se o valor for null/undefined, a máscara retornará string vazia.
   const displayValue = type === 'currency' ? formatBRLMask(value) : (value === undefined || value === null ? '' : value);
+
+  if (type === 'date') {
+    return (
+      <div className={`flex-1 min-w-[240px] ${fullWidth ? 'md:col-span-2 lg:col-span-3' : ''}`}>
+        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest ml-1">{label}</label>
+        <CustomDatePicker 
+          selected={value ? new Date(value + 'T00:00:00') : null}
+          onChange={(date) => onChange(path, date ? date.toISOString().split('T')[0] : null)}
+          placeholderText="DD/MM/AAAA"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`flex-1 min-w-[240px] ${fullWidth ? 'md:col-span-2 lg:col-span-3' : ''}`}>

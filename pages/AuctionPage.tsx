@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  collection, addDoc, updateDoc, doc, deleteDoc, query, where, onSnapshot 
+  collection, addDoc, setDoc, doc, deleteDoc, query, where, onSnapshot 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, formatDate } from '../utils';
+import CustomDatePicker from '../src/components/CustomDatePicker';
 
 interface AuctionPageProps {
   auctions: Auction[];
@@ -40,6 +41,16 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     });
   }, [auctions, searchTerm, statusFilter]);
 
+  const [auctionDate, setAuctionDate] = useState<string>('');
+
+  useEffect(() => {
+    if (editingAuction) {
+      setAuctionDate(editingAuction.date);
+    } else {
+      setAuctionDate('');
+    }
+  }, [editingAuction, isModalOpen]);
+
   const handleSaveAuction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -48,7 +59,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       title: formData.get('title') as string,
       description: formData.get('description') as string,
       link: formData.get('link') as string,
-      date: formData.get('date') as string,
+      date: auctionDate,
       status: (formData.get('status') as AuctionStatus) || AuctionStatus.OPEN,
       initialPrice: Number(formData.get('initialPrice')),
       myMaxBid: Number(formData.get('myMaxBid')),
@@ -62,7 +73,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
     try {
       if (editingAuction) {
-        await updateDoc(doc(db, 'auctions', editingAuction.id), auctionData as any);
+        await setDoc(doc(db, 'auctions', editingAuction.id), auctionData as any, { merge: true });
       } else {
         await addDoc(collection(db, 'auctions'), auctionData);
       }
@@ -89,10 +100,10 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     const currentBid = Math.max(...updatedBids.map(b => b.amount));
 
     try {
-      await updateDoc(doc(db, 'auctions', selectedAuction.id), {
+      await setDoc(doc(db, 'auctions', selectedAuction.id), {
         bids: updatedBids,
         currentBid: currentBid
-      });
+      }, { merge: true });
       setIsBidModalOpen(false);
       setSelectedAuction(null);
       setBidAmount(0);
@@ -106,7 +117,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
     try {
       // 1. Update auction status
-      await updateDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON });
+      await setDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON }, { merge: true });
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
@@ -342,7 +353,11 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
                     <div className="space-y-2">
                       <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Leilão</label>
-                      <input name="date" type="date" defaultValue={editingAuction?.date} required className={inputClass} />
+                      <CustomDatePicker 
+                        selected={auctionDate ? new Date(auctionDate + 'T00:00:00') : null}
+                        onChange={(date) => setAuctionDate(date ? date.toISOString().split('T')[0] : '')}
+                        placeholderText="DD/MM/AAAA"
+                      />
                     </div>
 
                     <div className="space-y-2">

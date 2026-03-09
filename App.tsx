@@ -9,7 +9,7 @@ import {
 import { auth, db, isConfigured } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
-  collection, onSnapshot, doc, setDoc, updateDoc, 
+  collection, onSnapshot, doc, setDoc, 
   deleteDoc, addDoc, query, where, getDocs,
   writeBatch
 } from 'firebase/firestore';
@@ -275,7 +275,11 @@ const AppContent = () => {
     return () => unsubscribes.forEach(unsub => unsub());
   }, [session]);
 
-  const currentUser: UserAccount = users.find(u => u.email === session?.email) || {
+  const foundUser = users.find(u => u.email === session?.email);
+  const currentUser: UserAccount = foundUser ? {
+    ...foundUser,
+    permissions: foundUser.permissions || INITIAL_PERMISSIONS
+  } : {
     id: session?.uid || 'loading',
     name: session?.displayName || 'Usuário',
     email: session?.email || '',
@@ -300,8 +304,8 @@ const AppContent = () => {
 
   const saveProperty = async (p: Property) => {
     const { id, ...data } = p;
-    if (id && properties.some(item => item.id === id)) {
-      await updateDoc(doc(db, 'properties', id), data as any);
+    if (id) {
+      await setDoc(doc(db, 'properties', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'properties'));
       await setDoc(docRef, { ...data, id: docRef.id } as any);
@@ -323,7 +327,7 @@ const AppContent = () => {
   const addInventoryItem = async (item: Omit<InventoryItem, 'id'> & { id?: string }) => {
     if (item.id) {
       const { id, ...data } = item;
-      await updateDoc(doc(db, 'inventory', id), data as any);
+      await setDoc(doc(db, 'inventory', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'inventory'));
       await setDoc(docRef, { ...item, id: docRef.id } as any);
@@ -340,9 +344,9 @@ const AppContent = () => {
   };
 
   const addSupplier = async (s: Supplier) => {
-    if (s.id && suppliers.some(item => item.id === s.id)) {
+    if (s.id) {
       const { id, ...data } = s;
-      await updateDoc(doc(db, 'suppliers', id), data as any);
+      await setDoc(doc(db, 'suppliers', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'suppliers'));
       const { id, ...data } = s;
@@ -381,7 +385,7 @@ const AppContent = () => {
     if (item) {
       const quantityChange = mov.type === MovementType.ENTRADA_COMPRA ? mov.quantity : -mov.quantity;
       const newStock = item.currentStock + quantityChange;
-      await updateDoc(doc(db, 'inventory', item.id), { currentStock: newStock });
+      await setDoc(doc(db, 'inventory', item.id), { currentStock: newStock }, { merge: true });
     }
   };
 
@@ -396,7 +400,7 @@ const AppContent = () => {
   };
 
   const updateQuoteStatus = async (id: string, status: QuoteStatus) => {
-    await updateDoc(doc(db, 'quotes', id), { status });
+    await setDoc(doc(db, 'quotes', id), { status }, { merge: true });
   };
 
   const deleteQuote = async (id: string) => {
@@ -484,7 +488,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
         <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
-        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await updateDoc(doc(db, 'properties', id), { status }); }} onDeleteProperty={deleteProperty} addLog={addLog} />} />
+        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {
             alert("Apenas o Administrador Master pode excluir registros.");

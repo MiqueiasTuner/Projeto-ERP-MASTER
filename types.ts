@@ -192,6 +192,7 @@ export interface TaskComment {
 
 export interface Task {
   id: string;
+  protocol?: string;
   title: string;
   description?: string;
   status: TaskStatus;

@@ -106,22 +106,33 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
     }
   };
 
-  const togglePermission = (module: PermissionModule, action: PermissionAction) => {
-    if (!selectedUser || !selectedUser.permissions) return;
+  const togglePermission = async (module: PermissionModule, action: PermissionAction) => {
+    if (!selectedUser || !selectedUser.permissions || !db) return;
     const currentPerms = selectedUser.permissions[module] || [];
     const newPerms = currentPerms.includes(action)
       ? currentPerms.filter(a => a !== action)
       : [...currentPerms, action];
 
-    const updatedUser = {
-      ...selectedUser,
-      permissions: {
-        ...selectedUser.permissions,
-        [module]: newPerms
-      }
+    const updatedPermissions = {
+      ...selectedUser.permissions,
+      [module]: newPerms
     };
-    setSelectedUser(updatedUser);
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+    try {
+      await setDoc(doc(db, 'users', selectedUser.id), {
+        permissions: updatedPermissions
+      }, { merge: true });
+      
+      const updatedUser = {
+        ...selectedUser,
+        permissions: updatedPermissions
+      };
+      setSelectedUser(updatedUser);
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      alert("Erro ao atualizar permissões.");
+    }
   };
 
   const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
@@ -351,7 +362,7 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
 
       {/* Drawer Novo Usuário */}
       <AnimatePresence mode="wait">
-        {isUserModalOpen && (
+        {isUserModalOpen && createPortal(
           <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }}
@@ -361,11 +372,11 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ x: '100%' }}
+              initial={{ x: '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
+              className="absolute inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
@@ -422,13 +433,14 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
                 </div>
               </form>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
 
       {/* Drawer Novo Departamento */}
       <AnimatePresence mode="wait">
-        {isTeamModalOpen && (
+        {isTeamModalOpen && createPortal(
           <div className="fixed inset-0 z-[9999]">
             <motion.div 
               initial={{ opacity: 0 }}
@@ -438,11 +450,11 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ x: '100%' }}
+              initial={{ x: '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
+              className="absolute inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                 <div>
@@ -484,7 +496,8 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
                 </div>
               </form>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
     </div>

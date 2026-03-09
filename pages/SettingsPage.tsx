@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, User, Bell, Shield, Database, Trash2, DatabaseZap, CheckCircle2, AlertCircle, Save, Building } from 'lucide-react';
 import { seedInitialData } from '../lib/seedService';
 import { UserAccount } from '../types';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
@@ -46,11 +46,15 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
     setSaveMessage('');
     
     try {
-      await updateDoc(doc(db, 'users', currentUser.id), {
+      await setDoc(doc(db, 'users', currentUser.id), {
         name: formData.name,
         photoUrl: formData.photoUrl,
-        companyLogo: formData.companyLogo
-      });
+        companyLogo: formData.companyLogo,
+        email: currentUser.email,
+        role: currentUser.role,
+        active: currentUser.active,
+        permissions: currentUser.permissions
+      }, { merge: true });
       setSaveMessage('Perfil atualizado com sucesso!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {

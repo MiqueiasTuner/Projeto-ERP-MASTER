@@ -23,6 +23,7 @@ import {
 import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task } from '../types';
 import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloat, formatDate } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
+import CustomDatePicker from '../src/components/CustomDatePicker';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -505,7 +506,11 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                 <form onSubmit={handleAddExpenseSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data</label>
-                    <input type="date" className={inputClass} value={newExpData.date} onChange={(e) => setNewExpData({...newExpData, date: e.target.value})} />
+                    <CustomDatePicker 
+                      selected={newExpData.date ? new Date(newExpData.date + 'T00:00:00') : null}
+                      onChange={(date) => setNewExpData({...newExpData, date: date ? date.toISOString().split('T')[0] : ''})}
+                      placeholderText="DD/MM/AAAA"
+                    />
                   </div>
 
                   <div className="space-y-2">

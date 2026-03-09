@@ -7,6 +7,7 @@ import {
   MapPin, 
   Building, 
   ChevronRight, 
+  ChevronLeft,
   LayoutGrid, 
   Kanban as KanbanIcon, 
   ArrowRight, 
@@ -21,31 +22,11 @@ import {
   Edit3
 } from 'lucide-react';
 import { Property, PropertyStatus, Expense } from '../types';
-import { 
-  DndContext, 
-  DragOverlay, 
-  closestCorners, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-  defaultDropAnimationSideEffects,
-  useDroppable
-} from '@dnd-kit/core';
-import { 
-  arrayMove, 
-  SortableContext, 
-  sortableKeyboardCoordinates, 
-  verticalListSortingStrategy,
-  useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
-import { doc, updateDoc } from 'firebase/firestore';
+import CustomDatePicker from '../src/components/CustomDatePicker';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 // --- Card Individual Redesenhado ---
@@ -55,39 +36,23 @@ const PropertyKanbanCard = React.memo(({
   onEdit,
   onView,
   onDelete,
-  isDragging
+  onMoveLeft,
+  onMoveRight
 }: { 
   property: Property, 
   metrics: any, 
   onEdit: () => void,
   onView: () => void,
   onDelete: (e: React.MouseEvent) => void,
-  isDragging?: boolean
+  onMoveLeft?: () => void,
+  onMoveRight?: () => void
 }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: property.id });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
   return (
     <div 
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="bg-white rounded-[24px] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col cursor-grab active:cursor-grabbing"
+      className="bg-white rounded-[24px] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col"
     >
       {/* Image Section */}
-      <div className="h-32 overflow-hidden bg-slate-100 relative pointer-events-none">
+      <div className="h-32 overflow-hidden bg-slate-100 relative">
         {property.images && property.images.length > 0 ? (
           <img src={property.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" referrerPolicy="no-referrer" />
         ) : (
@@ -102,13 +67,35 @@ const PropertyKanbanCard = React.memo(({
           </div>
         </div>
 
-        <div className="absolute top-3 right-3 flex gap-1.5 pointer-events-auto">
+        <div className="absolute top-3 right-3 flex gap-1.5">
           <button 
             onClick={onDelete}
             className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
           >
             <Trash2 size={14} />
           </button>
+        </div>
+
+        {/* Navigation Arrows */}
+        <div className="absolute inset-x-0 bottom-2 flex justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onMoveLeft ? (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onMoveLeft(); }}
+              className="p-1.5 bg-white/90 backdrop-blur-md rounded-lg text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+              title="Mover para esquerda"
+            >
+              <ChevronLeft size={14} />
+            </button>
+          ) : <div />}
+          {onMoveRight ? (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onMoveRight(); }}
+              className="p-1.5 bg-white/90 backdrop-blur-md rounded-lg text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+              title="Mover para direita"
+            >
+              <ChevronRight size={14} />
+            </button>
+          ) : <div />}
         </div>
       </div>
 
@@ -175,6 +162,7 @@ interface KanbanColumnProps {
   onEdit: (property: Property) => void;
   onView: (id: string) => void;
   onDeleteProperty: (id: string) => void;
+  onMoveProperty: (id: string, direction: 'left' | 'right') => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -183,19 +171,18 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   expenses, 
   onEdit,
   onView,
-  onDeleteProperty
+  onDeleteProperty,
+  onMoveProperty
 }) => {
-  const { setNodeRef } = useDroppable({
-    id: status,
-  });
-
   const totalValue = useMemo(() => {
     return items.reduce((acc, p) => acc + calculatePropertyMetrics(p, expenses).totalInvested, 0);
   }, [items, expenses]);
 
+  const statuses = Object.values(PropertyStatus) as PropertyStatus[];
+  const currentIndex = statuses.indexOf(status);
+
   return (
     <div 
-      ref={setNodeRef}
       className="flex flex-col min-w-[300px] max-w-[340px] rounded-[32px] p-4 min-h-[600px] transition-all duration-300 bg-slate-100/50"
     >
       <div className="flex items-center justify-between mb-6 px-2">
@@ -214,30 +201,30 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         }`} />
       </div>
       
-      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4 flex-1">
-          {items.map(p => (
-            <PropertyKanbanCard 
-              key={p.id}
-              property={p}
-              metrics={calculatePropertyMetrics(p, expenses)}
-              onEdit={() => onEdit(p)}
-              onView={() => onView(p.id)}
-              onDelete={(e) => {
-                e.stopPropagation();
-                onDeleteProperty(p.id);
-              }}
-            />
-          ))}
-          
-          {items.length === 0 && (
-            <div className="h-40 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-[24px] bg-white/30">
-              <Building size={24} className="mb-2 opacity-20" />
-              <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Vazio</p>
-            </div>
-          )}
-        </div>
-      </SortableContext>
+      <div className="space-y-4 flex-1">
+        {items.map(p => (
+          <PropertyKanbanCard 
+            key={p.id}
+            property={p}
+            metrics={calculatePropertyMetrics(p, expenses)}
+            onEdit={() => onEdit(p)}
+            onView={() => onView(p.id)}
+            onDelete={(e) => {
+              e.stopPropagation();
+              onDeleteProperty(p.id);
+            }}
+            onMoveLeft={currentIndex > 0 ? () => onMoveProperty(p.id, 'left') : undefined}
+            onMoveRight={currentIndex < statuses.length - 1 ? () => onMoveProperty(p.id, 'right') : undefined}
+          />
+        ))}
+        
+        {items.length === 0 && (
+          <div className="h-40 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-[24px] bg-white/30">
+            <Building size={24} className="mb-2 opacity-20" />
+            <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Vazio</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -255,7 +242,6 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('kanban');
   const [search, setSearch] = useState('');
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
   
   // Sold Modal States
   const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
@@ -266,17 +252,6 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     brokerName: '',
     saleNotes: ''
   });
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   const filteredProperties = useMemo(() => {
     const s = search.toLowerCase();
@@ -291,47 +266,29 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
   const handleViewDetails = useCallback((id: string) => navigate(`/imovel/${id}`), [navigate]);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over) return;
-
-    const propertyId = active.id as string;
-    const property = properties.find(p => p.id === propertyId);
+  const handleMoveProperty = async (id: string, direction: 'left' | 'right') => {
+    const property = properties.find(p => p.id === id);
     if (!property) return;
 
-    // Check if we dropped over a column (status)
-    const overId = over.id as string;
-    let newStatus: PropertyStatus | null = null;
+    const statuses = Object.values(PropertyStatus) as PropertyStatus[];
+    const currentIndex = statuses.indexOf(property.status);
+    const nextIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
 
-    if (Object.values(PropertyStatus).includes(overId as PropertyStatus)) {
-      newStatus = overId as PropertyStatus;
-    } else {
-      // Dropped over another card, find that card's status
-      const overProperty = properties.find(p => p.id === overId);
-      if (overProperty) {
-        newStatus = overProperty.status;
-      }
-    }
-
-    if (newStatus && newStatus !== property.status) {
+    if (nextIndex >= 0 && nextIndex < statuses.length) {
+      const newStatus = statuses[nextIndex];
+      
       if (newStatus === PropertyStatus.VENDIDO) {
         setSoldProperty(property);
         setIsSoldModalOpen(true);
       } else {
-        await onUpdateStatus(propertyId, newStatus);
+        await onUpdateStatus(id, newStatus);
         if (addLog) {
           await addLog({
-            propertyId,
+            propertyId: id,
             action: 'Alteração de Status',
             fromStatus: property.status,
             toStatus: newStatus,
-            details: `Imóvel movido para ${newStatus} via Kanban.`
+            details: `Imóvel movido para ${newStatus} via setas de navegação.`
           });
         }
       }
@@ -342,13 +299,13 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     if (!soldProperty) return;
 
     try {
-      await updateDoc(doc(db, 'properties', soldProperty.id), {
+      await setDoc(doc(db, 'properties', soldProperty.id), {
         status: PropertyStatus.VENDIDO,
         salePrice: saleData.salePrice,
         saleDate: saleData.saleDate,
         brokerName: saleData.brokerName,
         saleNotes: saleData.saleNotes
-      });
+      }, { merge: true });
 
       if (addLog) {
         await addLog({
@@ -370,14 +327,12 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
   const handleSaveProperty = async (updatedProperty: Property) => {
     try {
-      await updateDoc(doc(db, 'properties', updatedProperty.id), updatedProperty as any);
+      await setDoc(doc(db, 'properties', updatedProperty.id), updatedProperty as any, { merge: true });
       setEditingProperty(null);
     } catch (error) {
       console.error("Error updating property:", error);
     }
   };
-
-  const activeProperty = activeId ? properties.find(p => p.id === activeId) : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -415,47 +370,20 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
       </div>
 
       {viewMode === 'kanban' ? (
-        <DndContext 
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex gap-6 overflow-x-auto pb-8 snap-x no-scrollbar -mx-6 px-6">
-            {(Object.values(PropertyStatus) as PropertyStatus[]).map(status => (
-              <KanbanColumn 
-                key={status}
-                status={status}
-                items={filteredProperties.filter(p => p.status === status)}
-                expenses={expenses}
-                onEdit={setEditingProperty}
-                onView={handleViewDetails}
-                onDeleteProperty={onDeleteProperty}
-              />
-            ))}
-          </div>
-
-          <DragOverlay dropAnimation={{
-            sideEffects: defaultDropAnimationSideEffects({
-              styles: {
-                active: {
-                  opacity: '0.5',
-                },
-              },
-            }),
-          }}>
-            {activeProperty ? (
-              <PropertyKanbanCard 
-                property={activeProperty}
-                metrics={calculatePropertyMetrics(activeProperty, expenses)}
-                onEdit={() => {}}
-                onView={() => {}}
-                onDelete={() => {}}
-                isDragging
-              />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+        <div className="flex gap-6 overflow-x-auto pb-8 snap-x no-scrollbar -mx-6 px-6">
+          {(Object.values(PropertyStatus) as PropertyStatus[]).map(status => (
+            <KanbanColumn 
+              key={status}
+              status={status}
+              items={filteredProperties.filter(p => p.status === status)}
+              expenses={expenses}
+              onEdit={setEditingProperty}
+              onView={handleViewDetails}
+              onDeleteProperty={onDeleteProperty}
+              onMoveProperty={handleMoveProperty}
+            />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filteredProperties.map(p => {
@@ -537,6 +465,91 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
               </div>
             </motion.div>
           </>,
+          document.body
+        )}
+      </AnimatePresence>
+
+      {/* Sold Modal */}
+      <AnimatePresence>
+        {isSoldModalOpen && soldProperty && createPortal(
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl"
+            >
+              <div className="text-center mb-10">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <DollarSign size={40} />
+                </div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Confirmar Venda</h3>
+                <p className="text-slate-500 font-medium mt-2">Registre os detalhes da transação final.</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Preço de Venda (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">R$</span>
+                    <input 
+                      type="text"
+                      className="w-full bg-slate-50 pl-12 pr-6 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-black text-xl text-emerald-600"
+                      value={formatBRLMask(saleData.salePrice)}
+                      onChange={(e) => setSaleData({...saleData, salePrice: parseBRLToFloat(e.target.value) || 0})}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data da Venda</label>
+                    <CustomDatePicker 
+                      selected={saleData.saleDate ? new Date(saleData.saleDate + 'T00:00:00') : null}
+                      onChange={(date) => setSaleData({...saleData, saleDate: date ? date.toISOString().split('T')[0] : ''})}
+                      placeholderText="DD/MM/AAAA"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Corretor Responsável</label>
+                    <input 
+                      type="text"
+                      className="w-full bg-slate-50 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-sm"
+                      placeholder="Nome do corretor"
+                      value={saleData.brokerName}
+                      onChange={(e) => setSaleData({...saleData, brokerName: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Observações da Venda</label>
+                  <textarea 
+                    className="w-full bg-slate-50 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-sm h-24 resize-none"
+                    placeholder="Detalhes adicionais..."
+                    value={saleData.saleNotes}
+                    onChange={(e) => setSaleData({...saleData, saleNotes: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    onClick={() => setIsSoldModalOpen(false)} 
+                    className="flex-1 px-8 py-5 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleConfirmSale}
+                    className="flex-1 px-8 py-5 bg-emerald-600 text-white rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20"
+                  >
+                    Confirmar Venda
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>,
           document.body
         )}
       </AnimatePresence>
