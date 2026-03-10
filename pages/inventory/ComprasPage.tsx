@@ -1,15 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  FileText, Plus, Search, Filter, Calendar, 
+import {
+  FileText, Plus, Search, Filter, Calendar,
   CheckCircle2, XCircle, Clock, ArrowRight, ArrowLeft,
   Trash2, Edit3, ShoppingCart, User, Zap,
   MoreHorizontal, Building, Package, X
 } from 'lucide-react';
 import { Quote, QuoteStatus, Supplier, InventoryItem, Property } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTenant } from '../../src/contexts/TenantContext';
+import { useTenant } from '../../src/context/TenantContext';
 
 interface ComprasPageProps {
   quotes: Quote[];
@@ -22,13 +22,13 @@ interface ComprasPageProps {
   onPurchaseQuote: (quote: Quote) => void;
 }
 
-const ComprasPage = ({ 
-  quotes, 
-  suppliers, 
-  inventory, 
+const ComprasPage = ({
+  quotes,
+  suppliers,
+  inventory,
   properties,
-  onAddQuote, 
-  onUpdateQuoteStatus, 
+  onAddQuote,
+  onUpdateQuoteStatus,
   onDeleteQuote,
   onPurchaseQuote
 }: ComprasPageProps) => {
@@ -96,7 +96,7 @@ const ComprasPage = ({
   ];
 
   const filteredQuotes = useMemo(() => {
-    return quotes.filter(q => 
+    return quotes.filter(q =>
       q.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.items.some(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -115,15 +115,15 @@ const ComprasPage = ({
         <div className="flex gap-3">
           <div className="relative w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar pedidos..." 
+            <input
+              type="text"
+              placeholder="Buscar pedidos..."
               className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button 
+          <button
             onClick={() => setIsAdding(true)}
             className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
           >
@@ -156,7 +156,7 @@ const ComprasPage = ({
 
             <div className="flex-1 space-y-4 min-h-[500px] bg-slate-100/50 p-3 rounded-[24px] border border-dashed border-slate-200">
               {filteredQuotes.filter(q => q.status === column.id).map(quote => (
-                <motion.div 
+                <motion.div
                   layoutId={quote.id}
                   key={quote.id}
                   className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer group relative"
@@ -167,11 +167,11 @@ const ComprasPage = ({
                       <MoreHorizontal size={16} />
                     </button>
                   </div>
-                  
+
                   <h4 className="font-bold text-slate-900 text-sm mb-1 line-clamp-2">
                     {quote.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
                   </h4>
-                  
+
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                       <User size={12} />
@@ -195,7 +195,7 @@ const ComprasPage = ({
                   {/* Quick Actions Overlay */}
                   <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center gap-2">
                     {column.id === QuoteStatus.COTACAO && (
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); onUpdateQuoteStatus(quote.id, QuoteStatus.SOLICITADO); }}
                         className="bg-white p-2 rounded-lg shadow-sm text-slate-400 hover:text-blue-600 hover:scale-110 transition-transform"
                       >
@@ -203,16 +203,16 @@ const ComprasPage = ({
                       </button>
                     )}
                     {column.id === QuoteStatus.APROVADO && (
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); onUpdateQuoteStatus(quote.id, QuoteStatus.COTACAO); }}
                         className="bg-white p-2 rounded-lg shadow-sm text-slate-400 hover:text-blue-600 hover:scale-110 transition-transform"
                       >
                         <ArrowLeft size={18} />
                       </button>
                     )}
-                    
+
                     {column.id === QuoteStatus.SOLICITADO && (
-                      <button 
+                      <button
                         onClick={() => onUpdateQuoteStatus(quote.id, QuoteStatus.COTACAO)}
                         className="bg-white p-2 rounded-lg shadow-sm text-blue-600 hover:scale-110 transition-transform"
                       >
@@ -220,7 +220,7 @@ const ComprasPage = ({
                       </button>
                     )}
                     {column.id === QuoteStatus.COTACAO && (
-                      <button 
+                      <button
                         onClick={() => onUpdateQuoteStatus(quote.id, QuoteStatus.APROVADO)}
                         className="bg-white p-2 rounded-lg shadow-sm text-emerald-600 hover:scale-110 transition-transform"
                       >
@@ -228,14 +228,14 @@ const ComprasPage = ({
                       </button>
                     )}
                     {column.id === QuoteStatus.APROVADO && (
-                      <button 
+                      <button
                         onClick={() => onPurchaseQuote(quote)}
                         className="bg-emerald-600 p-2 rounded-lg shadow-sm text-white hover:scale-110 transition-transform"
                       >
                         <ShoppingCart size={18} />
                       </button>
                     )}
-                    <button 
+                    <button
                       onClick={() => onDeleteQuote(quote.id)}
                       className="bg-white p-2 rounded-lg shadow-sm text-rose-500 hover:scale-110 transition-transform"
                     >
@@ -254,14 +254,14 @@ const ComprasPage = ({
         <AnimatePresence>
           {isAdding && (
             <>
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsAdding(false)}
                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
               />
-              <motion.div 
+              <motion.div
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
@@ -273,7 +273,7 @@ const ComprasPage = ({
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Orçamento</h3>
                     <p className="text-slate-500 text-sm font-medium">Inicie uma nova cotação.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsAdding(false)}
                     className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
                   >
@@ -284,7 +284,7 @@ const ComprasPage = ({
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Fornecedor</label>
-                    <select 
+                    <select
                       required
                       className={inputClass}
                       value={selectedSupplierId}
@@ -300,7 +300,7 @@ const ComprasPage = ({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Itens do Orçamento</label>
-                      <button 
+                      <button
                         type="button"
                         onClick={handleAddItem}
                         className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"
@@ -308,11 +308,11 @@ const ComprasPage = ({
                         <Plus size={14} /> Adicionar Item
                       </button>
                     </div>
-                    
+
                     {quoteItems.map((item, index) => (
                       <div key={index} className="grid grid-cols-12 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                         <div className="col-span-12 md:col-span-5">
-                          <select 
+                          <select
                             required
                             className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium"
                             value={item.itemId}
@@ -325,7 +325,7 @@ const ComprasPage = ({
                           </select>
                         </div>
                         <div className="col-span-6 md:col-span-3">
-                          <input 
+                          <input
                             type="number"
                             placeholder="Qtd"
                             required
@@ -336,7 +336,7 @@ const ComprasPage = ({
                           />
                         </div>
                         <div className="col-span-6 md:col-span-3">
-                          <input 
+                          <input
                             type="number"
                             placeholder="R$ Unit"
                             required
@@ -348,7 +348,7 @@ const ComprasPage = ({
                           />
                         </div>
                         <div className="col-span-12 md:col-span-1 flex items-center justify-center">
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
                             className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
@@ -362,7 +362,7 @@ const ComprasPage = ({
 
                   <div className="space-y-2">
                     <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Observações</label>
-                    <textarea 
+                    <textarea
                       className={`${inputClass} min-h-[100px]`}
                       placeholder="Condições de pagamento, prazo de entrega, etc..."
                       value={notes}
@@ -371,14 +371,14 @@ const ComprasPage = ({
                   </div>
 
                   <div className="pt-6 flex gap-4">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setIsAdding(false)}
                       className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
                     >
                       Cancelar
                     </button>
-                    <button 
+                    <button
                       type="submit"
                       className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
                     >
