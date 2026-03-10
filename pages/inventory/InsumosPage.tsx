@@ -6,11 +6,12 @@ import {
   Package, Plus, Search, Filter, Trash2, Edit, X, 
   TrendingDown, AlertTriangle, Wallet, MessageCircle, 
   ArrowUpRight, History, MoreHorizontal, ChevronRight,
-  ExternalLink, Building, XCircle, FileUp
+  ExternalLink, Building, XCircle, FileUp, FileDown, Loader2
 } from 'lucide-react';
 import { InventoryItem, StockMovement, MovementType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTenant } from '../../src/contexts/TenantContext';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface InsumosPageProps {
   items: InventoryItem[];
@@ -20,15 +21,46 @@ interface InsumosPageProps {
 }
 
 const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: InsumosPageProps) => {
-  const { organizationId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F8FAFC'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`relatorio-insumos-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,8 +77,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           minStock: parseFloat(row.estoqueMinimo || row.minStock) || 0,
           averageCost: parseFloat(row.custoMedio || row.averageCost) || 0,
           currentStock: 0,
-          usageStatus: 0,
-          organizationId: organizationId || ''
+          usageStatus: 0
         }));
 
         importedItems.forEach(item => {
@@ -106,15 +137,13 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
         await onAddItem({
           ...formData,
           currentStock: items.find(i => i.id === formData.id)?.currentStock || 0,
-          usageStatus: items.find(i => i.id === formData.id)?.usageStatus || 0,
-          organizationId: organizationId || ''
+          usageStatus: items.find(i => i.id === formData.id)?.usageStatus || 0
         } as any);
       } else {
         await onAddItem({
           ...formData,
           currentStock: 0,
-          usageStatus: 0,
-          organizationId: organizationId || ''
+          usageStatus: 0
         } as any);
       }
       setIsModalOpen(false);
@@ -191,7 +220,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
   const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] space-y-8 pb-20">
+    <div ref={pageRef} className="min-h-screen bg-[#F8FAFC] space-y-8 pb-20">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -199,6 +228,14 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           <p className="text-slate-500 font-medium">Controle de estoque, cotações e eficiência operacional.</p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
           <div className="relative">
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}

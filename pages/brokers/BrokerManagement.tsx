@@ -1,12 +1,14 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Plus, Search, Mail, Phone, MapPin, UserCheck, UserX, 
-  Edit2, Trash2, Building2, LayoutGrid, Kanban as KanbanIcon, X, Save
+  Edit2, Trash2, Building2, LayoutGrid, Kanban as KanbanIcon, X, Save, FileDown, Loader2
 } from 'lucide-react';
 import { Broker, BrokerStatus } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const BrokerManagement = ({ brokers, onAddBroker, onUpdateBroker, onDeleteBroker }: { 
   brokers: Broker[], 
@@ -17,7 +19,39 @@ const BrokerManagement = ({ brokers, onAddBroker, onUpdateBroker, onDeleteBroker
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const [editingBroker, setEditingBroker] = useState<Broker | null>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F8FAFC'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`relatorio-corretores-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [formData, setFormData] = useState<Partial<Broker>>({
     name: '',
     cpfCnpj: '',
@@ -154,13 +188,21 @@ const BrokerManagement = ({ brokers, onAddBroker, onUpdateBroker, onDeleteBroker
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div ref={pageRef} className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Gestão de Corretores</h2>
           <p className="text-slate-500 font-medium">Cadastre e gerencie seus parceiros comerciais.</p>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white text-slate-700 px-6 py-3 rounded-2xl font-black text-sm border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
           <div className="bg-white border border-slate-200 rounded-2xl p-1 flex shadow-sm">
             <button 
               onClick={() => setViewMode('grid')} 

@@ -23,10 +23,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { 
   MoreVertical, Phone, Mail, MapPin, Calendar, 
   Plus, Search, Filter, X, CheckCircle2, AlertCircle,
-  DollarSign, Info
+  DollarSign, Info, FileDown, Loader2
 } from 'lucide-react';
 import { Lead, LeadStatus, Property } from '../../types';
 import { formatCurrency, parseBRLToFloat, formatBRLMask } from '../../utils';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const COLUMNS = Object.values(LeadStatus);
 
@@ -128,8 +130,40 @@ const BrokerLeads = ({ leads, properties, onUpdateLead }: {
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [pendingSaleLead, setPendingSaleLead] = useState<Lead | null>(null);
   const [saleValueInput, setSaleValueInput] = useState('');
+  const pageRef = React.useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F8FAFC'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for kanban
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`funil-vendas-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -203,13 +237,21 @@ const BrokerLeads = ({ leads, properties, onUpdateLead }: {
   const activeLead = activeId ? leads.find(l => l.id === activeId) : null;
 
   return (
-    <div className="h-[calc(100vh-180px)] flex flex-col space-y-8 animate-in fade-in duration-500">
+    <div ref={pageRef} className="h-[calc(100vh-180px)] flex flex-col space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Funil de Vendas</h2>
           <p className="text-slate-500 font-medium">Gerencie seus leads e acompanhe o progresso das negociações.</p>
         </div>
         <div className="flex items-center space-x-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white text-slate-700 px-6 py-3 rounded-2xl font-black text-sm border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
           <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3">
             <Search size={18} className="text-slate-400" />
             <input type="text" placeholder="Buscar lead..." className="bg-transparent border-none outline-none text-xs font-bold uppercase tracking-widest placeholder:text-slate-300 w-40" />

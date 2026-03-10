@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Search, 
@@ -18,15 +18,19 @@ import {
   TrendingUp,
   Calendar,
   Maximize2,
-  Edit3
+  Edit3,
+  FileUp,
+  Loader2,
+  Download
 } from 'lucide-react';
-import { Property, PropertyStatus, Expense } from '../types';
+import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType } from '../types';
 import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
 import CustomDatePicker from '../src/components/CustomDatePicker';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import Papa from 'papaparse';
 
 // --- Card Individual Redesenhado ---
 const PropertyKanbanCard = React.memo(({ 
@@ -241,6 +245,8 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('kanban');
   const [search, setSearch] = useState('');
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Modal States
   const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
@@ -374,6 +380,89 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     }
   };
 
+  const downloadCSVTemplate = () => {
+    const headers = [
+      'Titulo', 'Tipo', 'TipoAquisicao', 'Cidade', 'Bairro', 'Bairro2', 
+      'Condominio', 'Imobiliaria', 'Endereco', 'Area', 'Status', 
+      'DataAquisicao', 'ValorAvaliacao', 'ValorAquisicao', 'ComissaoLeiloeiro'
+    ];
+    const csvContent = headers.join(',') + '\n' + 
+      'Exemplo Imovel,Apartamento,Leilão Judicial,São Paulo,Centro,Bela Vista,Condominio Master,Imobiliaria X,Rua Exemplo 123,55,Arrematado,2024-01-01,500000,300000,15000';
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'template_imoveis.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const importedProperties: Property[] = results.data.map((row: any) => {
+            const id = crypto.randomUUID();
+            return {
+              id,
+              title: row.Titulo || row.title || '',
+              type: (row.Tipo || row.type || PropertyType.APARTAMENTO) as PropertyType,
+              acquisitionType: (row.TipoAquisicao || row.acquisitionType || AcquisitionType.LEILAO_JUDICIAL) as AcquisitionType,
+              city: row.Cidade || row.city || '',
+              neighborhood: row.Bairro || row.neighborhood || '',
+              neighborhood2: row.Bairro2 || row.neighborhood2 || '',
+              condoName: row.Condominio || row.condoName || '',
+              realEstateAgency: row.Imobiliaria || row.realEstateAgency || '',
+              address: row.Endereco || row.address || '',
+              sizeM2: parseFloat(row.Area || row.sizeM2) || 0,
+              status: (row.Status || row.status || PropertyStatus.ARREMATADO) as PropertyStatus,
+              acquisitionDate: row.DataAquisicao || row.acquisitionDate || new Date().toISOString().split('T')[0],
+              bankValuation: parseFloat(row.ValorAvaliacao || row.bankValuation) || 0,
+              acquisitionPrice: parseFloat(row.ValorAquisicao || row.acquisitionPrice) || 0,
+              auctioneerCommission: parseFloat(row.ComissaoLeiloeiro || row.auctioneerCommission) || 0,
+              images: [],
+              itbiPaid: false,
+              registroPaid: false
+            };
+          });
+
+          for (const prop of importedProperties) {
+            await setDoc(doc(collection(db, 'properties'), prop.id), prop);
+            if (addLog) {
+              await addLog({
+                propertyId: prop.id,
+                action: 'Importação CSV',
+                toStatus: prop.status,
+                details: `Imóvel importado via arquivo CSV.`
+              });
+            }
+          }
+          alert(`${importedProperties.length} imóveis importados com sucesso!`);
+        } catch (error) {
+          console.error("Erro ao importar CSV:", error);
+          alert("Erro ao processar o arquivo CSV. Verifique o formato.");
+        } finally {
+          setIsImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      },
+      error: (error) => {
+        console.error("Erro no PapaParse:", error);
+        setIsImporting(false);
+        alert("Erro ao ler o arquivo CSV.");
+      }
+    });
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -382,7 +471,29 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
           <p className="text-slate-500 font-medium">Controle de portfólio e pipeline de obras.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-           <div className="bg-white border border-slate-200 rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-1">
+           <input 
+             type="file" 
+             accept=".csv" 
+             className="hidden" 
+             ref={fileInputRef} 
+             onChange={handleImportCSV} 
+           />
+           <button 
+             onClick={downloadCSVTemplate}
+             className="bg-white border border-slate-200 text-slate-600 p-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
+             title="Baixar Template CSV"
+           >
+             <Download size={20} />
+           </button>
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             disabled={isImporting}
+             className="bg-white border border-slate-200 text-slate-600 px-6 py-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
+           >
+             {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
+             <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
+           </button>
+           <div className="bg-white border border-slate-200 rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-3">
               <button onClick={() => setViewMode('kanban')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
                 <KanbanIcon size={18} /> <span>Kanban</span>
               </button>

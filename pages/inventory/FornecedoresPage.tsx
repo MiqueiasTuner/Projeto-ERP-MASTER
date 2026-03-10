@@ -2,10 +2,11 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Papa from 'papaparse';
-import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle, FileUp } from 'lucide-react';
+import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle, FileUp, FileDown, Loader2 } from 'lucide-react';
 import { Supplier } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTenant } from '../../src/contexts/TenantContext';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface FornecedoresPageProps {
   suppliers: Supplier[];
@@ -14,11 +15,42 @@ interface FornecedoresPageProps {
 }
 
 const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: FornecedoresPageProps) => {
-  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F8FAFC'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`relatorio-fornecedores-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,7 +66,6 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
           cnpj: row.cnpj || '',
           category: row.categoria || row.category || 'Geral',
           phone: row.telefone || row.phone || '',
-          organizationId: organizationId || ''
         }));
 
         importedSuppliers.forEach(s => {
@@ -66,7 +97,6 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
       cnpj: (form.elements.namedItem('cnpj') as HTMLInputElement).value,
       category: (form.elements.namedItem('category') as HTMLInputElement).value,
       phone: (form.elements.namedItem('phone') as HTMLInputElement).value,
-      organizationId: organizationId || ''
     };
     onAddSupplier(newSupplier);
     setIsModalOpen(false);
@@ -81,13 +111,21 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
   const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div ref={pageRef} className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">Fornecedores</h2>
           <p className="text-slate-500 font-medium text-sm">Gestão de parceiros e prestadores de serviço.</p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white text-slate-700 px-6 py-3.5 rounded-[24px] font-black border border-slate-200 flex items-center gap-3 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
+            <span className="text-sm">{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
           <input 
             type="file" 
             accept=".csv" 

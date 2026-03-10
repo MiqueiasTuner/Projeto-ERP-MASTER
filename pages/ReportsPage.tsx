@@ -1,12 +1,14 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, Cell, PieChart, Pie, AreaChart, Area
 } from 'recharts';
-import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon, Gavel, HardHat } from 'lucide-react';
+import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon, Gavel, HardHat, Loader2 } from 'lucide-react';
 import { Property, Expense, InventoryItem, PropertyStatus, ExpenseCategory } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899'];
 
@@ -30,6 +32,39 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const ReportsPage = ({ properties, expenses, inventory }: { properties: Property[], expenses: Expense[], inventory: InventoryItem[] }) => {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const exportToPDF = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8fafc'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`relatorio-master-imoveis-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const metrics = useMemo(() => {
     const propertyData = properties.map(p => ({
       ...p,
@@ -109,7 +144,7 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
   }, [properties, expenses, inventory]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div ref={reportRef} className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -119,8 +154,13 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
             Inteligência de dados para maximização de ROI
           </p>
         </div>
-        <button className="flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-[24px] text-sm font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10">
-          <FileDown size={20} /> Exportar Relatório PDF
+        <button 
+          onClick={exportToPDF}
+          disabled={isExporting}
+          className="flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-[24px] text-sm font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isExporting ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
+          {isExporting ? 'Exportando...' : 'Exportar Relatório PDF'}
         </button>
       </div>
 

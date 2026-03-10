@@ -18,9 +18,13 @@ import {
   Settings,
   Menu,
   Check,
-  ChevronDown
+  ChevronDown,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface CalendarPageProps {
   currentUser: UserAccount;
@@ -32,6 +36,38 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [view, setView] = useState<'Mês' | 'Semana' | 'Dia'>('Mês');
+  const [isExporting, setIsExporting] = useState(false);
+  const pageRef = React.useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#1F1F1F'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`agenda-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [newEvent, setNewEvent] = useState<Partial<CalendarEvent>>({
     title: '',
     start: new Date().toISOString().slice(0, 16),
@@ -194,7 +230,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   const inputClass = "w-full bg-slate-800 px-4 py-3 rounded-lg border border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white text-sm";
 
   return (
-    <div className="h-full flex flex-col bg-[#1F1F1F] text-slate-300 overflow-hidden font-sans">
+    <div ref={pageRef} className="h-full flex flex-col bg-[#1F1F1F] text-slate-300 overflow-hidden font-sans">
       {/* Top Header */}
       <header className="h-16 flex items-center justify-between px-4 border-b border-slate-700/50 shrink-0">
         <div className="flex items-center gap-4">
@@ -233,6 +269,14 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-1.5 border border-slate-700 rounded-md text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={16} /> : <FileDown size={16} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold ml-4">
             {currentUser.name.charAt(0)}
           </div>

@@ -33,7 +33,9 @@ import {
   Wallet,
   PlusCircle,
   Gavel,
-  HardHat
+  HardHat,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import { 
   Property, 
@@ -50,6 +52,8 @@ import {
   Alert
 } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const COLORS = ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6', '#64748b'];
 
@@ -81,6 +85,39 @@ const Dashboard = ({
   currentUser: UserAccount 
 }) => {
   const navigate = useNavigate();
+  const [isExporting, setIsExporting] = React.useState(false);
+  const pageRef = React.useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#0A192F'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`dashboard-executivo-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const stats = useMemo(() => {
     const sold = properties.filter(p => p.status === PropertyStatus.VENDIDO);
     const metrics = properties.map(p => calculatePropertyMetrics(p, expenses));
@@ -220,7 +257,7 @@ const Dashboard = ({
   }, [properties, expenses, tasks, inventory, auctions]);
 
   return (
-    <div className="min-h-screen bg-[#0A192F] -m-6 lg:-m-10 p-6 lg:p-10 space-y-8 animate-in fade-in duration-700 text-white overflow-x-hidden">
+    <div ref={pageRef} className="min-h-screen bg-[#0A192F] -m-6 lg:-m-10 p-6 lg:p-10 space-y-8 animate-in fade-in duration-700 text-white overflow-x-hidden">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -231,6 +268,14 @@ const Dashboard = ({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white/5 text-white px-6 py-4 rounded-2xl font-black text-sm border border-white/10 flex items-center gap-2 hover:bg-white/10 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
           <div className="bg-white/5 p-2 rounded-2xl border border-white/10 shadow-sm flex items-center gap-3 px-4">
             <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
               <Building2 size={18} />

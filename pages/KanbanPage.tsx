@@ -9,10 +9,12 @@ import {
 } from '../types';
 import { 
   Plus, MoreHorizontal, Calendar, User, Tag, CheckCircle2, Clock, AlertCircle, X, 
-  MessageSquare, Building2, Users, Paperclip, Send, Trash2, Edit3
+  MessageSquare, Building2, Users, Paperclip, Send, Trash2, Edit3, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import CustomDatePicker from '../src/components/CustomDatePicker';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface KanbanPageProps {
   currentUser: UserAccount;
@@ -137,13 +139,42 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
   );
 };
 
-import { useTenant } from '../src/contexts/TenantContext';
-
 const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: KanbanPageProps) => {
-  const { organizationId } = useTenant();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const pageRef = React.useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F8FAFC'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for Kanban
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`quadro-tarefas-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
   
   const editingTask = useMemo(() => 
     editingTaskId ? tasks.find(t => t.id === editingTaskId) || null : null
@@ -162,8 +193,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
   const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
-    if (!organizationId) return;
-    let q = query(collection(db, 'tasks'), where('organizationId', '==', organizationId));
+    let q = query(collection(db, 'tasks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const taskList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -173,7 +203,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     });
 
     return () => unsubscribe();
-  }, [organizationId]);
+  }, [currentUser]);
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,8 +235,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         creatorId: currentUser.id,
         createdAt: new Date().toISOString(),
         departmentId: newTask.departmentId || currentUser.teamId || 'general',
-        commentsList: [],
-        organizationId: organizationId
+        commentsList: []
       });
       setIsNewTaskOpen(false);
       setNewTask({ 
@@ -260,18 +289,28 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
   const inputClass = "w-full bg-slate-50 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 text-sm";
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 p-6 overflow-hidden">
+    <div ref={pageRef} className="h-full flex flex-col bg-slate-50 p-6 overflow-hidden">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Tarefas Internas</h2>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestão de Fluxo e Projetos</p>
         </div>
-        <button 
-          onClick={() => setIsNewTaskOpen(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30"
-        >
-          <Plus size={16} strokeWidth={3} /> Nova Tarefa
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white text-slate-700 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm border border-slate-200 disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={16} /> : <FileDown size={16} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
+          <button 
+            onClick={() => setIsNewTaskOpen(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30"
+          >
+            <Plus size={16} strokeWidth={3} /> Nova Tarefa
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-x-auto scrollbar-hide">

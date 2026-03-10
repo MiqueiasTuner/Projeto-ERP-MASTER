@@ -10,11 +10,13 @@ import {
 import { 
   Plus, Search, Gavel, Calendar, MapPin, ExternalLink, 
   TrendingUp, Trash2, Edit3, CheckCircle2, XCircle, Clock,
-  DollarSign, Building2, Filter, MoreVertical
+  DollarSign, Building2, Filter, MoreVertical, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, formatDate } from '../utils';
 import CustomDatePicker from '../src/components/CustomDatePicker';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface AuctionPageProps {
   auctions: Auction[];
@@ -22,17 +24,46 @@ interface AuctionPageProps {
   currentUser: UserAccount;
 }
 
-import { useTenant } from '../src/contexts/TenantContext';
-
 const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, currentUser }) => {
-  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<AuctionStatus | 'all'>('all');
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [bidAmount, setBidAmount] = useState<number>(0);
+  const pageRef = React.useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!pageRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F8FAFC'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`relatorio-leiloes-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const filteredAuctions = useMemo(() => {
     return auctions.filter(a => {
@@ -71,8 +102,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       neighborhood: formData.get('neighborhood') as string,
       auctioneer: formData.get('auctioneer') as string,
       createdAt: new Date().toISOString(),
-      bids: editingAuction?.bids || [],
-      organizationId: organizationId
+      bids: editingAuction?.bids || []
     };
 
     try {
@@ -106,8 +136,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     try {
       await setDoc(doc(db, 'auctions', selectedAuction.id), {
         bids: updatedBids,
-        currentBid: currentBid,
-        organizationId: organizationId
+        currentBid: currentBid
       }, { merge: true });
       setIsBidModalOpen(false);
       setSelectedAuction(null);
@@ -122,7 +151,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
     try {
       // 1. Update auction status
-      await setDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON, organizationId }, { merge: true });
+      await setDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON }, { merge: true });
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
@@ -138,8 +167,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
         auctioneerCommission: (auction.currentBid || auction.initialPrice) * 0.05,
         images: [],
         itbiPaid: false,
-        registroPaid: false,
-        organizationId: organizationId || ''
+        registroPaid: false
       };
 
       await addDoc(collection(db, 'properties'), propertyData);
@@ -171,19 +199,29 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
   const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div ref={pageRef} className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">Módulo de Arrematação</h2>
           <p className="text-slate-500 font-medium">Busca, lances e gestão de leilões imobiliários.</p>
         </div>
-        <button 
-          onClick={() => { setEditingAuction(null); setIsModalOpen(true); }}
-          className="bg-slate-900 text-white p-4 px-8 rounded-2xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest"
-        >
-          <Plus size={20} />
-          <span>Novo Leilão</span>
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="bg-white text-slate-700 px-6 py-4 rounded-2xl font-black text-sm border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
+            <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
+          </button>
+          <button 
+            onClick={() => { setEditingAuction(null); setIsModalOpen(true); }}
+            className="bg-slate-900 text-white p-4 px-8 rounded-2xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest"
+          >
+            <Plus size={20} />
+            <span>Novo Leilão</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
