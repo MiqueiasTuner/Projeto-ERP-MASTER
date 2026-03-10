@@ -240,7 +240,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Preço de Venda</p>
+              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Valor de Venda</p>
               <p className="text-xl font-black text-emerald-900">{formatCurrency(property.salePrice || 0)}</p>
             </div>
             <div>

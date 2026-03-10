@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createPortal } from 'react-dom';
 import { 
   Search, 
   MapPin, 
@@ -243,9 +242,10 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
   const [search, setSearch] = useState('');
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   
-  // Sold Modal States
+  // Modal States
   const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
-  const [soldProperty, setSoldProperty] = useState<Property | null>(null);
+  const [isAskingPriceModalOpen, setIsAskingPriceModalOpen] = useState(false);
+  const [targetProperty, setTargetProperty] = useState<Property | null>(null);
   const [saleData, setSaleData] = useState({
     salePrice: 0,
     saleDate: new Date().toISOString().split('T')[0],
@@ -278,8 +278,21 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
       const newStatus = statuses[nextIndex];
       
       if (newStatus === PropertyStatus.VENDIDO) {
-        setSoldProperty(property);
+        setTargetProperty(property);
+        setSaleData({
+          salePrice: property.salePrice || 0,
+          saleDate: new Date().toISOString().split('T')[0],
+          brokerName: property.brokerName || '',
+          saleNotes: property.saleNotes || ''
+        });
         setIsSoldModalOpen(true);
+      } else if (newStatus === PropertyStatus.A_VENDA) {
+        setTargetProperty(property);
+        setSaleData({
+          ...saleData,
+          salePrice: property.salePrice || 0
+        });
+        setIsAskingPriceModalOpen(true);
       } else {
         await onUpdateStatus(id, newStatus);
         if (addLog) {
@@ -296,10 +309,10 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
   };
 
   const handleConfirmSale = async () => {
-    if (!soldProperty) return;
+    if (!targetProperty) return;
 
     try {
-      await setDoc(doc(db, 'properties', soldProperty.id), {
+      await setDoc(doc(db, 'properties', targetProperty.id), {
         status: PropertyStatus.VENDIDO,
         salePrice: saleData.salePrice,
         saleDate: saleData.saleDate,
@@ -309,19 +322,46 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
       if (addLog) {
         await addLog({
-          propertyId: soldProperty.id,
+          propertyId: targetProperty.id,
           action: 'Venda Realizada',
-          fromStatus: soldProperty.status,
+          fromStatus: targetProperty.status,
           toStatus: PropertyStatus.VENDIDO,
           details: `Venda registrada: ${formatCurrency(saleData.salePrice)} em ${formatDate(saleData.saleDate)}. Corretor: ${saleData.brokerName}`
         });
       }
 
       setIsSoldModalOpen(false);
-      setSoldProperty(null);
+      setTargetProperty(null);
       setSaleData({ salePrice: 0, saleDate: new Date().toISOString().split('T')[0], brokerName: '', saleNotes: '' });
     } catch (error) {
       console.error("Error confirming sale:", error);
+    }
+  };
+
+  const handleConfirmAskingPrice = async () => {
+    if (!targetProperty) return;
+
+    try {
+      await setDoc(doc(db, 'properties', targetProperty.id), {
+        status: PropertyStatus.A_VENDA,
+        salePrice: saleData.salePrice
+      }, { merge: true });
+
+      if (addLog) {
+        await addLog({
+          propertyId: targetProperty.id,
+          action: 'Colocado à Venda',
+          fromStatus: targetProperty.status,
+          toStatus: PropertyStatus.A_VENDA,
+          details: `Imóvel colocado à venda por ${formatCurrency(saleData.salePrice)}`
+        });
+      }
+
+      setIsAskingPriceModalOpen(false);
+      setTargetProperty(null);
+      setSaleData({ salePrice: 0, saleDate: new Date().toISOString().split('T')[0], brokerName: '', saleNotes: '' });
+    } catch (error) {
+      console.error("Error setting asking price:", error);
     }
   };
 
@@ -429,7 +469,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
       {/* Edit Property Drawer */}
       <AnimatePresence>
-        {editingProperty && createPortal(
+        {editingProperty && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -464,14 +504,13 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 />
               </div>
             </motion.div>
-          </>,
-          document.body
+          </>
         )}
       </AnimatePresence>
 
       {/* Sold Modal */}
       <AnimatePresence>
-        {isSoldModalOpen && soldProperty && createPortal(
+        {isSoldModalOpen && targetProperty && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -489,7 +528,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Preço de Venda (R$)</label>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor de Venda Real (R$)</label>
                   <div className="relative">
                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">R$</span>
                     <input 
@@ -549,8 +588,60 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 </div>
               </div>
             </motion.div>
-          </div>,
-          document.body
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Asking Price Modal */}
+      <AnimatePresence>
+        {isAskingPriceModalOpen && targetProperty && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl"
+            >
+              <div className="text-center mb-10">
+                <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <TrendingUp size={40} />
+                </div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Colocar à Venda</h3>
+                <p className="text-slate-500 font-medium mt-2">Defina o valor de anúncio do imóvel.</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor de Venda Pretendido (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">R$</span>
+                    <input 
+                      type="text"
+                      className="w-full bg-slate-50 pl-12 pr-6 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-black text-xl text-blue-600"
+                      value={formatBRLMask(saleData.salePrice)}
+                      onChange={(e) => setSaleData({...saleData, salePrice: parseBRLToFloat(e.target.value) || 0})}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    onClick={() => setIsAskingPriceModalOpen(false)} 
+                    className="flex-1 px-8 py-5 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleConfirmAskingPrice}
+                    className="flex-1 px-8 py-5 bg-blue-600 text-white rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20"
+                  >
+                    Confirmar Valor
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

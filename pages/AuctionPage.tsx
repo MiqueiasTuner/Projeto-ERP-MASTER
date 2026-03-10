@@ -22,7 +22,10 @@ interface AuctionPageProps {
   currentUser: UserAccount;
 }
 
+import { useTenant } from '../src/contexts/TenantContext';
+
 const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, currentUser }) => {
+  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<AuctionStatus | 'all'>('all');
@@ -68,7 +71,8 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       neighborhood: formData.get('neighborhood') as string,
       auctioneer: formData.get('auctioneer') as string,
       createdAt: new Date().toISOString(),
-      bids: editingAuction?.bids || []
+      bids: editingAuction?.bids || [],
+      organizationId: organizationId
     };
 
     try {
@@ -102,7 +106,8 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     try {
       await setDoc(doc(db, 'auctions', selectedAuction.id), {
         bids: updatedBids,
-        currentBid: currentBid
+        currentBid: currentBid,
+        organizationId: organizationId
       }, { merge: true });
       setIsBidModalOpen(false);
       setSelectedAuction(null);
@@ -117,7 +122,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
     try {
       // 1. Update auction status
-      await setDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON }, { merge: true });
+      await setDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON, organizationId }, { merge: true });
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
@@ -133,7 +138,8 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
         auctioneerCommission: (auction.currentBid || auction.initialPrice) * 0.05,
         images: [],
         itbiPaid: false,
-        registroPaid: false
+        registroPaid: false,
+        organizationId: organizationId || ''
       };
 
       await addDoc(collection(db, 'properties'), propertyData);

@@ -31,18 +31,31 @@ const SignUpPage = () => {
           displayName: name
         });
 
+        // Create new organization
+        const orgRef = doc(collection(db, 'organizations'));
+        const organizationId = orgRef.id;
+
+        await setDoc(orgRef, {
+          id: organizationId,
+          name: `${name}'s Organization`,
+          plan: 'free',
+          ownerId: userCredential.user.uid,
+          createdAt: new Date().toISOString()
+        });
+
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           id: userCredential.user.uid,
           name: name,
           email: trimmedEmail,
-          role: UserRole.OPERADOR,
+          role: UserRole.ADMIN, // First user is Admin/Owner
+          organizationId: organizationId,
           active: true,
           permissions: {
-            properties: ['view'],
-            inventory: ['view'],
-            finances: [],
-            teams: [],
-            reports: ['view']
+            properties: ['view', 'edit', 'delete'],
+            inventory: ['view', 'edit', 'delete'],
+            finances: ['view', 'edit', 'delete'],
+            teams: ['view', 'edit', 'delete'],
+            reports: ['view', 'edit', 'delete']
           }
         });
 

@@ -31,12 +31,17 @@ import ChatPage from './pages/ChatPage';
 import KanbanPage from './pages/KanbanPage';
 import CalendarPage from './pages/CalendarPage';
 import AuctionPage from './pages/AuctionPage';
+import BrokerManagement from './pages/brokers/BrokerManagement';
+import BrokerDashboard from './pages/brokers/BrokerDashboard';
+import BrokerProperties from './pages/brokers/BrokerProperties';
+import BrokerPropertyDetails from './pages/brokers/BrokerPropertyDetails';
+import BrokerLeads from './pages/brokers/BrokerLeads';
 import { 
   Property, Expense, InventoryItem, StockMovement, Supplier, 
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
   MovementType, ExpenseCategory, Quote, QuoteStatus, Task,
-  Auction, Alert
+  Auction, Alert, Broker, Lead, Proposal, Reservation
 } from './types';
 
 const INITIAL_PERMISSIONS: UserPermissions = {
@@ -44,7 +49,8 @@ const INITIAL_PERMISSIONS: UserPermissions = {
   inventory: ['view', 'edit', 'delete'],
   finances: ['view', 'edit', 'delete'],
   teams: ['view', 'edit', 'delete'],
-  reports: ['view', 'edit', 'delete']
+  reports: ['view', 'edit', 'delete'],
+  brokers: ['view', 'edit', 'delete']
 };
 
 const SidebarItem = ({ to, icon: Icon, label, active, visible = true, onClick, collapsed = false }: { to?: string, icon: any, label: string, active: boolean, visible?: boolean, onClick?: () => void, collapsed?: boolean }) => {
@@ -94,6 +100,8 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
 
   const closeSidebar = () => setIsSidebarOpen(false);
   const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+
+  const isBroker = currentUser.role === UserRole.BROKER;
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
@@ -153,42 +161,55 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto py-4 px-2 custom-scrollbar overflow-x-hidden">
-            <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={true} collapsed={isSidebarCollapsed} />
-            
-            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
-            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
-            
-            <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            
-            <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={hasPermission('inventory', 'view')} collapsed={isSidebarCollapsed}>
-              <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>
-              <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>
-              <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>
-              <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>
-            </SidebarGroup>
+            {isBroker ? (
+              <>
+                <SidebarItem to="/corretor" icon={LayoutDashboard} label="Painel" active={location.pathname === '/corretor'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/corretor/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/corretor/imoveis') || location.pathname.startsWith('/corretor/imovel')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/corretor/leads" icon={Users} label="Meus Leads" active={location.pathname.startsWith('/corretor/leads')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              </>
+            ) : (
+              <>
+                <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={true} collapsed={isSidebarCollapsed} />
+                
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
+                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                
+                <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                
+                <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={hasPermission('inventory', 'view')} collapsed={isSidebarCollapsed}>
+                  <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>
+                  <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>
+                  <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>
+                  <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>
+                </SidebarGroup>
 
-            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
-            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
+                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-            <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={hasPermission('reports', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            
-            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
-            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={hasPermission('reports', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/gestao-corretores" icon={Users} label="Corretores" active={location.pathname === '/gestao-corretores'} visible={hasPermission('brokers', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
+                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-            <SidebarItem to="/chat" icon={MessageSquare} label="Chat Interno" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas Internas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            
-            <div title="Em breve" className="opacity-50 cursor-not-allowed">
-              <SidebarItem icon={FileText} label="Ligações" active={false} visible={true} collapsed={isSidebarCollapsed} onClick={() => {}} />
-            </div>
+                <SidebarItem to="/chat" icon={MessageSquare} label="Chat Interno" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas Internas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                
+                <div title="Em breve" className="opacity-50 cursor-not-allowed">
+                  <SidebarItem icon={FileText} label="Ligações" active={false} visible={true} collapsed={isSidebarCollapsed} onClick={() => {}} />
+                </div>
 
-            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
-            <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
+                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-            <SidebarItem to="/equipe" icon={User} label="Equipe e Acessos" active={location.pathname === '/equipe'} visible={hasPermission('teams', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-            <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/equipe" icon={User} label="Equipe e Acessos" active={location.pathname === '/equipe'} visible={hasPermission('teams', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+              </>
+            )}
             
             <button onClick={onLogout} className="flex items-center space-x-3 px-4 py-3 w-full rounded-2xl text-rose-400 hover:bg-rose-500/10 transition-colors mt-2 group">
               <LogOut size={20} className="flex-shrink-0" /> 
@@ -233,6 +254,10 @@ const AppContent = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
@@ -249,7 +274,7 @@ const AppContent = () => {
   useEffect(() => {
     if (!session || !db) return;
 
-    const collections = [
+    const collections: any[] = [
       { name: 'properties', setter: setProperties },
       { name: 'expenses', setter: setExpenses },
       { name: 'inventory', setter: setInventory },
@@ -263,6 +288,10 @@ const AppContent = () => {
       { name: 'tasks', setter: setTasks },
       { name: 'auctions', setter: setAuctions },
       { name: 'alerts', setter: setAlerts },
+      { name: 'brokers', setter: setBrokers },
+      { name: 'leads', setter: setLeads },
+      { name: 'proposals', setter: setProposals },
+      { name: 'reservations', setter: setReservations },
     ];
 
     const unsubscribes = collections.map(({ name, setter }) => {
@@ -276,9 +305,18 @@ const AppContent = () => {
   }, [session]);
 
   const foundUser = users.find(u => u.email === session?.email);
+  const foundBroker = brokers.find(b => b.email === session?.email);
+
   const currentUser: UserAccount = foundUser ? {
     ...foundUser,
     permissions: foundUser.permissions || INITIAL_PERMISSIONS
+  } : foundBroker ? {
+    id: foundBroker.id,
+    name: foundBroker.name,
+    email: foundBroker.email,
+    role: UserRole.BROKER,
+    active: foundBroker.active,
+    permissions: { ...INITIAL_PERMISSIONS, brokers: [] }
   } : {
     id: session?.uid || 'loading',
     name: session?.displayName || 'Usuário',
@@ -447,6 +485,38 @@ const AppContent = () => {
     await batch.commit();
   };
 
+  // Broker Module Handlers
+  const addBroker = async (b: Broker) => {
+    const { id, ...data } = b;
+    const docRef = doc(collection(db, 'brokers'));
+    await setDoc(docRef, { ...data, id: docRef.id });
+  };
+
+  const updateBroker = async (b: Broker) => {
+    const { id, ...data } = b;
+    await setDoc(doc(db, 'brokers', id), data, { merge: true });
+  };
+
+  const deleteBroker = async (id: string) => {
+    if (!isMasterUser) {
+      alert("Apenas o Administrador Master pode excluir registros.");
+      return;
+    }
+    if (!window.confirm("Deseja excluir este corretor?")) return;
+    await deleteDoc(doc(db, 'brokers', id));
+  };
+
+  const addLead = async (l: Lead) => {
+    const { id, ...data } = l;
+    const docRef = doc(collection(db, 'leads'));
+    await setDoc(docRef, { ...data, id: docRef.id });
+  };
+
+  const updateLead = async (l: Lead) => {
+    const { id, ...data } = l;
+    await setDoc(doc(db, 'leads', id), data, { merge: true });
+  };
+
   if (!isConfigured) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
@@ -509,7 +579,15 @@ const AppContent = () => {
         <Route path="/tarefas" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
         <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        
+        {/* Broker Routes */}
+        <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
+        <Route path="/corretor" element={<BrokerDashboard leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} />} />
+        <Route path="/corretor/imoveis" element={<BrokerProperties properties={properties} />} />
+        <Route path="/corretor/imovel/:id" element={<BrokerPropertyDetails properties={properties} onAddLead={addLead} currentUser={currentUser} />} />
+        <Route path="/corretor/leads" element={<BrokerLeads leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} onUpdateLead={updateLead} />} />
+        
+        <Route path="*" element={<Navigate to={currentUser.role === UserRole.BROKER ? "/corretor" : "/"} />} />
       </Routes>
     </ProtectedLayout>
   );

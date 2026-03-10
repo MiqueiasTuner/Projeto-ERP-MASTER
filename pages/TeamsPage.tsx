@@ -23,7 +23,8 @@ const DEFAULT_COLLAB_PERMISSIONS: UserPermissions = {
   inventory: ['view'],
   finances: [],
   teams: [],
-  reports: ['view']
+  reports: ['view'],
+  brokers: []
 };
 
 const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageProps) => {
@@ -53,7 +54,8 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
         inventory: ['view', 'edit', 'delete'],
         finances: ['view', 'edit', 'delete'],
         teams: ['view', 'edit', 'delete'],
-        reports: ['view', 'edit', 'delete']
+        reports: ['view', 'edit', 'delete'],
+        brokers: ['view', 'edit', 'delete']
       } : { ...DEFAULT_COLLAB_PERMISSIONS }
     };
 
@@ -322,7 +324,8 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
                       { id: 'inventory', label: 'Gestão de Estoque' },
                       { id: 'finances', label: 'Engenharia Financeira' },
                       { id: 'teams', label: 'Governança/Equipe' },
-                      { id: 'reports', label: 'Business Intelligence' }
+                      { id: 'reports', label: 'Business Intelligence' },
+                      { id: 'brokers', label: 'Gestão de Corretores' }
                     ] as const).map(mod => (
                       <tr key={mod.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-5 font-black text-slate-800 text-sm tracking-tight">{mod.label}</td>

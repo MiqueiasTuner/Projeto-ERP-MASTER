@@ -5,6 +5,7 @@ import Papa from 'papaparse';
 import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle, FileUp } from 'lucide-react';
 import { Supplier } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTenant } from '../../src/contexts/TenantContext';
 
 interface FornecedoresPageProps {
   suppliers: Supplier[];
@@ -13,6 +14,7 @@ interface FornecedoresPageProps {
 }
 
 const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: FornecedoresPageProps) => {
+  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -32,6 +34,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
           cnpj: row.cnpj || '',
           category: row.categoria || row.category || 'Geral',
           phone: row.telefone || row.phone || '',
+          organizationId: organizationId || ''
         }));
 
         importedSuppliers.forEach(s => {
@@ -63,6 +66,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
       cnpj: (form.elements.namedItem('cnpj') as HTMLInputElement).value,
       category: (form.elements.namedItem('category') as HTMLInputElement).value,
       phone: (form.elements.namedItem('phone') as HTMLInputElement).value,
+      organizationId: organizationId || ''
     };
     onAddSupplier(newSupplier);
     setIsModalOpen(false);

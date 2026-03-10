@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, Cell, PieChart, Pie, AreaChart, Area
 } from 'recharts';
-import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon } from 'lucide-react';
+import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon, Gavel, HardHat } from 'lucide-react';
 import { Property, Expense, InventoryItem, PropertyStatus, ExpenseCategory } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
 
@@ -91,7 +91,21 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
       value: value as number
     })).sort((a, b) => b.value - a.value);
 
-    return { totalInvested, roiByCity, statusDist, avgROI, avgLeadTime, renovationCosts, inventoryValueData };
+    // Profitability Analysis
+    const profitabilityData = propertyData.filter(p => p.status === PropertyStatus.VENDIDO).map(p => {
+      const renovation = (p.metrics.categoryBreakdown[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0);
+      const otherCosts = p.metrics.totalInvested - p.acquisitionPrice - renovation;
+      return {
+        name: p.condoName || p.neighborhood || 'Imóvel',
+        arremate: p.acquisitionPrice,
+        reforma: renovation,
+        outros: otherCosts,
+        venda: p.salePrice || 0,
+        lucro: p.metrics.realizedProfit
+      };
+    }).slice(0, 10);
+
+    return { totalInvested, roiByCity, statusDist, avgROI, avgLeadTime, renovationCosts, inventoryValueData, profitabilityData };
   }, [properties, expenses, inventory]);
 
   return (
@@ -111,12 +125,53 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
       </div>
 
       {/* Top Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-blue-500/30 transition-all">
+          <div className="flex items-center justify-between mb-6">
+            <div className="p-4 bg-blue-50 text-blue-600 rounded-3xl">
+              <Gavel size={32} />
+            </div>
+            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Investimento</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Arrematado</p>
+            <p className="text-3xl font-black text-slate-900">{formatCurrency(properties.reduce((acc, p) => acc + (p.acquisitionPrice || 0), 0))}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-orange-500/30 transition-all">
+          <div className="flex items-center justify-between mb-6">
+            <div className="p-4 bg-orange-50 text-orange-600 rounded-3xl">
+              <HardHat size={32} />
+            </div>
+            <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-full">Obras</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Total em Reformas</p>
+            <p className="text-3xl font-black text-slate-900">{formatCurrency(expenses.reduce((acc, e) => acc + e.amount, 0))}</p>
+          </div>
+        </div>
+
+        <div className="bg-emerald-50 p-8 rounded-[40px] border border-emerald-100 shadow-sm flex flex-col justify-between group hover:border-emerald-500 transition-all">
+          <div className="flex items-center justify-between mb-6">
+            <div className="p-4 bg-emerald-100 text-emerald-600 rounded-3xl">
+              <DollarSign size={32} />
+            </div>
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100 px-3 py-1 rounded-full">Vendas</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Vendas Realizadas</p>
+            <p className="text-3xl font-black text-slate-900">{formatCurrency(properties.filter(p => p.status === PropertyStatus.VENDIDO).reduce((acc, p) => acc + (p.salePrice || 0), 0))}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit mb-4">
             <DollarSign size={24} />
           </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Capital Imobilizado</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Capital Alocado</p>
           <p className="text-2xl font-black text-slate-900">{formatCurrency(metrics.totalInvested)}</p>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
@@ -254,6 +309,31 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} tickFormatter={(v) => `R$ ${v/1000}k`} />
                 <RechartsTooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" name="Valor em Estoque" fill="#10b981" radius={[8, 8, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Profitability Analysis */}
+        <div className="lg:col-span-12 bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Análise de Lucratividade Detalhada</h3>
+              <p className="text-xs text-slate-500 font-medium">Comparativo entre Arremate, Reforma, Outros Custos e Valor de Venda</p>
+            </div>
+            <TrendingUp size={20} className="text-slate-300" />
+          </div>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={metrics.profitabilityData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} tickFormatter={(v) => `R$ ${v/1000}k`} />
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Bar dataKey="arremate" name="Arremate" stackId="a" fill="#3b82f6" />
+                <Bar dataKey="reforma" name="Reforma" stackId="a" fill="#f59e0b" />
+                <Bar dataKey="outros" name="Outros Custos" stackId="a" fill="#94a3b8" />
+                <Bar dataKey="venda" name="Valor de Venda" fill="#10b981" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

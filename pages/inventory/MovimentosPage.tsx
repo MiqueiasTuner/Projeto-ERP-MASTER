@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { StockMovement, InventoryItem, Supplier, Property, MovementType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTenant } from '../../src/contexts/TenantContext';
 
 interface MovimentosPageProps {
   movements: StockMovement[];
@@ -19,6 +20,7 @@ interface MovimentosPageProps {
 }
 
 const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement }: MovimentosPageProps) => {
+  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'ENTRY' | 'EXIT'>('ALL');
@@ -74,7 +76,8 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
         ...formData,
         quantity: Number(formData.quantity),
         totalPrice: Number(formData.totalPrice),
-        unitPrice: Number(formData.totalPrice) / Number(formData.quantity)
+        unitPrice: Number(formData.totalPrice) / Number(formData.quantity),
+        organizationId: organizationId || ''
       };
       await onAddMovement(movement);
       setIsModalOpen(false);

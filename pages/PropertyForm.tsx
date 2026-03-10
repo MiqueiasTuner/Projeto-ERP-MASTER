@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, X, AlertCircle, Info, Landmark, ShieldCheck, HardHat, Image as ImageIcon, Plus, Trash2, Upload } from 'lucide-react';
+import { Save, X, AlertCircle, Info, Landmark, ShieldCheck, HardHat, Image as ImageIcon, Plus, Trash2, Upload, Users, DollarSign } from 'lucide-react';
 import { Property, PropertyStatus, PropertyType } from '../types';
 import { formatBRLMask, parseBRLToFloat } from '../utils';
 import CustomDatePicker from '../src/components/CustomDatePicker';
@@ -207,6 +207,38 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
           </div>
         </section>
 
+        {/* DESTAQUE COMERCIAL */}
+        <section className="bg-emerald-50 p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border border-emerald-100 shadow-sm space-y-8">
+          <div className="flex items-center justify-between border-b border-emerald-200/50 pb-4">
+            <div className="flex items-center space-x-3 text-emerald-700">
+              <div className="p-2.5 bg-emerald-100 rounded-2xl"><DollarSign size={20} strokeWidth={2.5} /></div>
+              <h3 className="font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs">Destaque Comercial</h3>
+            </div>
+            <div className="hidden sm:block">
+              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100/50 px-3 py-1 rounded-full">Valor de Mercado</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-10">
+            <div className="sm:col-span-2 bg-white p-8 rounded-[32px] border border-emerald-200/30 shadow-inner">
+               <label className="block text-[11px] font-black text-emerald-600 mb-3 uppercase tracking-widest ml-1">Valor de Venda Alvo (Destaque)</label>
+               <div className="relative">
+                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-2xl z-10">R$</span>
+                 <input 
+                   type="text"
+                   className="w-full bg-emerald-50/30 text-emerald-700 pl-16 pr-8 py-6 rounded-[24px] border border-emerald-100 outline-none focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-black text-3xl sm:text-4xl placeholder:text-emerald-200"
+                   placeholder="0,00"
+                   value={formatBRLMask(formData.salePrice)}
+                   onChange={(e) => handleChange('salePrice', parseBRLToFloat(e.target.value))}
+                   onFocus={(e) => e.target.select()}
+                 />
+               </div>
+               <p className="mt-4 text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                 <Info size={12} /> Este valor será usado para cálculos de ROI e exibição para corretores.
+               </p>
+            </div>
+          </div>
+        </section>
+
         {/* INFO */}
         <section className="bg-white p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border border-slate-200 shadow-sm space-y-8">
           <div className="flex items-center space-x-3 text-blue-600 border-b border-slate-50 pb-4">
@@ -283,6 +315,48 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
             <InputField label="Corretagem" path="brokerage" type="currency" prefix="R$" value={formData.brokerage} onChange={handleChange} />
             <InputField label="Taxas Venda" path="salesTax" type="currency" prefix="R$" value={formData.salesTax} onChange={handleChange} />
             <InputField label="Outros Custos" path="otherCosts" type="currency" prefix="R$" value={formData.otherCosts} onChange={handleChange} />
+          </div>
+        </section>
+
+        {/* MÓDULO CORRETORES */}
+        <section className="bg-white p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border border-slate-200 shadow-sm space-y-8">
+          <div className="flex items-center space-x-3 text-emerald-600 border-b border-slate-50 pb-4">
+            <div className="p-2.5 bg-emerald-50 rounded-2xl"><Users size={20} strokeWidth={2.5} /></div>
+            <h3 className="font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs">Módulo de Corretores</h3>
+          </div>
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <input 
+                type="checkbox" 
+                id="availableForBrokers"
+                className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                checked={formData.availableForBrokers || false}
+                onChange={(e) => handleChange('availableForBrokers', e.target.checked)}
+              />
+              <label htmlFor="availableForBrokers" className="text-sm font-bold text-slate-700 cursor-pointer">Disponível para Corretores</label>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6">
+              <div className="flex-1">
+                <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest ml-1">Descrição Comercial</label>
+                <textarea 
+                  className="w-full bg-slate-50 text-slate-900 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium placeholder:text-slate-400 min-h-[120px]"
+                  placeholder="Descrição completa para os corretores..."
+                  value={formData.description || ''}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-widest ml-1">Benfeitorias Realizadas</label>
+                <textarea 
+                  className="w-full bg-slate-50 text-slate-900 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium placeholder:text-slate-400 min-h-[100px]"
+                  placeholder="Liste as melhorias feitas no imóvel..."
+                  value={formData.improvements || ''}
+                  onChange={(e) => handleChange('improvements', e.target.value)}
+                />
+              </div>
+              <InputField label="Localização Aproximada" path="locationApprox" type="text" placeholder="Ex: Próximo ao metrô Moema" value={formData.locationApprox} onChange={handleChange} fullWidth />
+            </div>
           </div>
         </section>
 

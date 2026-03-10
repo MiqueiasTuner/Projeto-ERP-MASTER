@@ -3,13 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { Settings, User, Bell, Shield, Database, Trash2, DatabaseZap, CheckCircle2, AlertCircle, Save, Building } from 'lucide-react';
 import { seedInitialData } from '../lib/seedService';
 import { UserAccount } from '../types';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { db, storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTenant } from '../src/contexts/TenantContext';
 
 const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
+  const { organization, organizationId } = useTenant();
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
   const [formData, setFormData] = useState({
@@ -17,7 +21,8 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
     email: currentUser.email || '',
     role: currentUser.role || '',
     photoUrl: currentUser.photoUrl || '',
-    companyLogo: currentUser.companyLogo || ''
+    companyLogo: currentUser.companyLogo || '',
+    orgName: organization?.name || ''
   });
 
   useEffect(() => {
@@ -26,9 +31,10 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
       email: currentUser.email || '',
       role: currentUser.role || '',
       photoUrl: currentUser.photoUrl || '',
-      companyLogo: currentUser.companyLogo || ''
+      companyLogo: currentUser.companyLogo || '',
+      orgName: organization?.name || ''
     });
-  }, [currentUser]);
+  }, [currentUser, organization]);
 
   const handleSeed = async () => {
     if (!confirm('Deseja popular o banco de dados com dados de exemplo? Isso criará novos registros de imóveis, insumos e fornecedores.')) return;
@@ -40,12 +46,44 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
     setIsSeeding(false);
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !organizationId || !storage) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `organizations/${organizationId}/logo`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      // Update organization document
+      await updateDoc(doc(db, 'organizations', organizationId), {
+        logoUrl: downloadURL
+      });
+      
+      // Also update user's companyLogo for backward compatibility/quick access
+      await updateDoc(doc(db, 'users', currentUser.id), {
+        companyLogo: downloadURL
+      });
+
+      setFormData(prev => ({ ...prev, companyLogo: downloadURL }));
+      setSaveMessage('Logo atualizada com sucesso!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      setSaveMessage('Erro ao fazer upload da logo.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSaveMessage('');
     
     try {
+      // Update User Profile
       await setDoc(doc(db, 'users', currentUser.id), {
         name: formData.name,
         photoUrl: formData.photoUrl,
@@ -53,8 +91,17 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
         email: currentUser.email,
         role: currentUser.role,
         active: currentUser.active,
-        permissions: currentUser.permissions
+        permissions: currentUser.permissions,
+        organizationId: currentUser.organizationId
       }, { merge: true });
+
+      // Update Organization Name if changed and user is owner
+      if (organizationId && formData.orgName !== organization?.name) {
+        await updateDoc(doc(db, 'organizations', organizationId), {
+          name: formData.orgName
+        });
+      }
+
       setSaveMessage('Perfil atualizado com sucesso!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
@@ -159,22 +206,33 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL da Logo da Empresa</label>
-              <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                  {formData.companyLogo ? (
-                    <img src={formData.companyLogo} alt="Logo" className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Organização</label>
+              <input 
+                type="text" 
+                className={inputClass} 
+                value={formData.orgName} 
+                onChange={e => setFormData({...formData, orgName: e.target.value})}
+                placeholder="Nome da sua empresa"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Logo da Empresa (Upload)</label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                  {formData.companyLogo || organization?.logoUrl ? (
+                    <img src={formData.companyLogo || organization?.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" referrerPolicy="no-referrer" />
                   ) : (
-                    <Building size={20} className="text-slate-300" />
+                    <Building size={24} className="text-slate-300" />
                   )}
                 </div>
-                <input 
-                  type="text" 
-                  className={inputClass} 
-                  value={formData.companyLogo} 
-                  onChange={e => setFormData({...formData, companyLogo: e.target.value})}
-                  placeholder="https://exemplo.com/logo.png"
-                />
+                <div className="flex-1">
+                  <label className="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 cursor-pointer hover:bg-slate-50 transition-all">
+                    <span>{isUploading ? 'Enviando...' : 'Selecionar Arquivo'}</span>
+                    <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploading} />
+                  </label>
+                  <p className="text-[10px] text-slate-400 mt-2 font-medium">Recomendado: 512x512px (PNG ou JPG)</p>
+                </div>
               </div>
             </div>
 

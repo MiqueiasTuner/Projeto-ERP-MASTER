@@ -32,7 +32,8 @@ import {
   CreditCard,
   Wallet,
   PlusCircle,
-  Gavel
+  Gavel,
+  HardHat
 } from 'lucide-react';
 import { 
   Property, 
@@ -86,6 +87,10 @@ const Dashboard = ({
     
     const totalInvested = metrics.reduce((acc, m) => acc + m.totalInvested, 0);
     const totalProfit = metrics.reduce((acc, m) => acc + m.realizedProfit, 0);
+    const totalSaleValue = properties.filter(p => p.status === PropertyStatus.VENDIDO).reduce((acc, p) => acc + (p.salePrice || 0), 0);
+    const totalAcquisition = properties.reduce((acc, p) => acc + (p.acquisitionPrice || 0), 0);
+    const totalRenovation = expenses.reduce((acc, e) => acc + e.amount, 0);
+    
     const avgROI = sold.length > 0 
       ? metrics.filter((_, i) => properties[i].status === PropertyStatus.VENDIDO)
           .reduce((acc, m) => acc + m.roi, 0) / sold.length 
@@ -199,6 +204,9 @@ const Dashboard = ({
     return {
       totalInvested,
       totalProfit,
+      totalSaleValue,
+      totalAcquisition,
+      totalRenovation,
       avgROI,
       monthlyData,
       expenseSourcesData,
@@ -269,52 +277,65 @@ const Dashboard = ({
       {/* Top Bento Row: Property Focus */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Stats Card */}
-        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 flex flex-col justify-between group hover:bg-white/10 transition-all cursor-default">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-500/20 text-blue-400 rounded-2xl">
-                <DollarSign size={24} />
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/5 p-8 rounded-[40px] border border-white/10 flex flex-col justify-between group hover:bg-white/10 transition-all cursor-default shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="p-4 bg-blue-500/20 text-blue-400 rounded-3xl">
+                <Gavel size={32} />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg">Investido</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 px-4 py-2 rounded-xl">Investimento</span>
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Capital Alocado</p>
-              <h3 className="text-2xl font-black text-white tracking-tight">{formatCurrency(stats.totalInvested)}</h3>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Arrematado</p>
+              <h3 className="text-4xl font-black text-white tracking-tight leading-none">{formatCurrency(stats.totalAcquisition)}</h3>
+              <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ativos em Carteira</span>
+                <span className="text-sm font-black text-blue-400">{properties.filter(p => p.status !== PropertyStatus.VENDIDO).length} Unidades</span>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 flex flex-col justify-between group hover:bg-white/10 transition-all cursor-default">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl">
-                <TrendingUp size={24} />
+          <div className="bg-white/5 p-8 rounded-[40px] border border-white/10 flex flex-col justify-between group hover:bg-white/10 transition-all cursor-default shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="p-4 bg-orange-500/20 text-orange-400 rounded-3xl">
+                <HardHat size={32} />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">+12%</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-orange-400 bg-orange-500/10 px-4 py-2 rounded-xl">Reformas</span>
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Lucro Realizado</p>
-              <h3 className="text-2xl font-black text-white tracking-tight">{formatCurrency(stats.totalProfit)}</h3>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Investimento em Obras</p>
+              <h3 className="text-4xl font-black text-white tracking-tight leading-none">{formatCurrency(stats.totalRenovation)}</h3>
+              <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Custo Operacional</span>
+                <span className="text-sm font-black text-orange-400">Global</span>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 flex flex-col justify-between group hover:bg-white/10 transition-all cursor-default">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-500/20 text-purple-400 rounded-2xl">
-                <ArrowUpRight size={24} />
+          <div className="bg-emerald-500/10 p-8 rounded-[40px] border border-emerald-500/20 flex flex-col justify-between group hover:bg-emerald-500/20 transition-all cursor-default shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="p-4 bg-emerald-500/20 text-emerald-400 rounded-3xl">
+                <DollarSign size={32} />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-purple-400 bg-purple-500/10 px-2 py-1 rounded-lg">Média</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/20 px-4 py-2 rounded-xl">Vendas</span>
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">ROI Médio Vendas</p>
-              <h3 className="text-2xl font-black text-white tracking-tight">{stats.avgROI.toFixed(1)}%</h3>
+              <p className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-2">Vendas Realizadas</p>
+              <h3 className="text-4xl font-black text-white tracking-tight leading-none">{formatCurrency(stats.totalSaleValue)}</h3>
+              <div className="mt-6 pt-6 border-t border-emerald-500/10 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest">Lucro Líquido</span>
+                <span className="text-sm font-black text-emerald-400">{formatCurrency(stats.totalProfit)}</span>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Markup Chart - Prioritized */}
-          <div className="md:col-span-3 bg-white/5 p-8 rounded-[40px] border border-white/10">
+        {/* Markup Chart - Prioritized */}
+        <div className="lg:col-span-8 bg-white/5 p-8 rounded-[40px] border border-white/10">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest">Markup de Reforma vs Mercado</h3>
-                <p className="text-xs text-slate-500 font-medium">Análise de custos e margem de segurança</p>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest">Análise de Markup</h3>
+                <p className="text-xs text-slate-500 font-medium">Comparativo de custos vs. valor de mercado</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
@@ -345,11 +366,10 @@ const Dashboard = ({
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
 
         {/* Pipeline Status Card */}
         <div className="lg:col-span-4 bg-white/5 p-8 rounded-[40px] border border-white/10 flex flex-col">
-          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-8">Status do Pipeline</h3>
+          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-8">Status do Portfólio</h3>
           
           <div className="flex-1 space-y-8">
             {stats.statusData.map((s) => (
@@ -387,7 +407,7 @@ const Dashboard = ({
         {/* Monthly Balance Chart */}
         <div className="lg:col-span-8 bg-white/5 p-8 rounded-[40px] border border-white/10">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Balanço Mensal</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Fluxo de Caixa</h3>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-1 bg-blue-500 rounded-full" />
@@ -429,7 +449,7 @@ const Dashboard = ({
         {/* Expense Sources Donut */}
         <div className="lg:col-span-4 bg-white/5 p-8 rounded-[40px] border border-white/10">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Fontes de Despesa</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Distribuição de Despesas</h3>
           </div>
           <div className="h-[240px] w-full relative">
             <ResponsiveContainer width="100%" height="100%">
@@ -473,7 +493,7 @@ const Dashboard = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-6 bg-white/5 p-8 rounded-[40px] border border-white/10">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Produtividade</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Gestão de Tarefas</h3>
             <span className="text-[10px] font-black text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full uppercase tracking-widest">Tarefas</span>
           </div>
           <div className="flex items-end gap-10">
@@ -508,7 +528,7 @@ const Dashboard = ({
 
         <div className="lg:col-span-6 bg-white/5 p-8 rounded-[40px] border border-white/10">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Estoque Crítico</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Alertas de Estoque</h3>
             <button className="text-[10px] font-black text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full uppercase tracking-widest">Ver Todos</button>
           </div>
           <div className="space-y-6">

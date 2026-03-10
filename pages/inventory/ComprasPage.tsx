@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Quote, QuoteStatus, Supplier, InventoryItem, Property } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTenant } from '../../src/contexts/TenantContext';
 
 interface ComprasPageProps {
   quotes: Quote[];
@@ -31,6 +32,7 @@ const ComprasPage = ({
   onDeleteQuote,
   onPurchaseQuote
 }: ComprasPageProps) => {
+  const { organizationId } = useTenant();
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -71,7 +73,8 @@ const ComprasPage = ({
       totalAmount,
       status: QuoteStatus.SOLICITADO,
       date: new Date().toISOString().split('T')[0],
-      notes
+      notes,
+      organizationId: organizationId || ''
     };
 
     onAddQuote(newQuote);

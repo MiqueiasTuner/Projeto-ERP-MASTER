@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { InventoryItem, StockMovement, MovementType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTenant } from '../../src/contexts/TenantContext';
 
 interface InsumosPageProps {
   items: InventoryItem[];
@@ -19,6 +20,7 @@ interface InsumosPageProps {
 }
 
 const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: InsumosPageProps) => {
+  const { organizationId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -43,7 +45,8 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           minStock: parseFloat(row.estoqueMinimo || row.minStock) || 0,
           averageCost: parseFloat(row.custoMedio || row.averageCost) || 0,
           currentStock: 0,
-          usageStatus: 0
+          usageStatus: 0,
+          organizationId: organizationId || ''
         }));
 
         importedItems.forEach(item => {
@@ -103,13 +106,15 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
         await onAddItem({
           ...formData,
           currentStock: items.find(i => i.id === formData.id)?.currentStock || 0,
-          usageStatus: items.find(i => i.id === formData.id)?.usageStatus || 0
+          usageStatus: items.find(i => i.id === formData.id)?.usageStatus || 0,
+          organizationId: organizationId || ''
         } as any);
       } else {
         await onAddItem({
           ...formData,
           currentStock: 0,
-          usageStatus: 0
+          usageStatus: 0,
+          organizationId: organizationId || ''
         } as any);
       }
       setIsModalOpen(false);

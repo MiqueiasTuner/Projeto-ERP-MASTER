@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Warehouse as WarehouseIcon, Plus, MapPin, Trash2, Edit, X } from 'lucide-react';
 import { Warehouse } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTenant } from '../../src/contexts/TenantContext';
 
 interface AlmoxarifadosPageProps {
   warehouses: Warehouse[];
@@ -12,6 +13,7 @@ interface AlmoxarifadosPageProps {
 }
 
 const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: AlmoxarifadosPageProps) => {
+  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
@@ -22,6 +24,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
       id: editingWarehouse?.id || Math.random().toString(36).substr(2, 9),
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       location: (form.elements.namedItem('location') as HTMLInputElement).value,
+      organizationId: organizationId || ''
     };
     onAddWarehouse(newWarehouse);
     setIsModalOpen(false);

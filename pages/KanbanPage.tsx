@@ -137,7 +137,10 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
   );
 };
 
+import { useTenant } from '../src/contexts/TenantContext';
+
 const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: KanbanPageProps) => {
+  const { organizationId } = useTenant();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -159,7 +162,8 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
   const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
-    let q = query(collection(db, 'tasks'));
+    if (!organizationId) return;
+    let q = query(collection(db, 'tasks'), where('organizationId', '==', organizationId));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const taskList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -169,7 +173,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [organizationId]);
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +205,8 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         creatorId: currentUser.id,
         createdAt: new Date().toISOString(),
         departmentId: newTask.departmentId || currentUser.teamId || 'general',
-        commentsList: []
+        commentsList: [],
+        organizationId: organizationId
       });
       setIsNewTaskOpen(false);
       setNewTask({ 

@@ -120,10 +120,11 @@ export interface Warehouse {
 
 export enum UserRole {
   ADMIN = 'Administrador',
-  OPERADOR = 'Operador'
+  OPERADOR = 'Operador',
+  BROKER = 'Corretor'
 }
 
-export type PermissionModule = 'properties' | 'inventory' | 'finances' | 'teams' | 'reports';
+export type PermissionModule = 'properties' | 'inventory' | 'finances' | 'teams' | 'reports' | 'brokers';
 export type PermissionAction = 'view' | 'edit' | 'delete';
 
 export interface UserPermissions {
@@ -132,6 +133,7 @@ export interface UserPermissions {
   finances: PermissionAction[];
   teams: PermissionAction[];
   reports: PermissionAction[];
+  brokers: PermissionAction[];
 }
 
 export interface Team {
@@ -334,6 +336,78 @@ export interface Property {
   
   itbiPaid?: boolean;
   registroPaid?: boolean;
+
+  // Broker Module Fields
+  availableForBrokers?: boolean;
+  description?: string;
+  improvements?: string;
+  locationApprox?: string;
+}
+
+export enum LeadStatus {
+  RECEIVED = 'Lead recebido',
+  FIRST_CONTACT = 'Primeiro contato',
+  VISIT_SCHEDULED = 'Visita agendada',
+  PROPOSAL_SENT = 'Proposta enviada',
+  NEGOTIATION = 'Negociação',
+  SOLD = 'Venda concluída',
+  LOST = 'Negociação perdida'
+}
+
+export enum BrokerStatus {
+  PENDING = 'Pendente',
+  ACTIVE = 'Ativo',
+  INACTIVE = 'Inativo'
+}
+
+export interface Broker {
+  id: string;
+  name: string;
+  cpfCnpj: string;
+  phone: string;
+  email: string;
+  realEstateAgency?: string;
+  region?: string;
+  active: boolean;
+  status: BrokerStatus;
+  userId?: string;
+}
+
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  city: string;
+  interestType: string;
+  observations?: string;
+  propertyId: string;
+  brokerId: string;
+  status: LeadStatus;
+  createdAt: string;
+  updatedAt: string;
+  saleValue?: number;
+}
+
+export interface Proposal {
+  id: string;
+  leadId: string;
+  propertyId: string;
+  brokerId: string;
+  amount: number;
+  paymentMethod: string;
+  observations?: string;
+  date: string;
+  status: 'pending' | 'accepted' | 'rejected';
+}
+
+export interface Reservation {
+  id: string;
+  propertyId: string;
+  brokerId: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'expired' | 'cancelled';
 }
 
 export interface PropertyCalculations {
