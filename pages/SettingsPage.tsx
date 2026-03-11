@@ -42,6 +42,27 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
     setIsSeeding(false);
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !storage) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `avatars/user-${currentUser.id}-${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      setFormData(prev => ({ ...prev, photoUrl: downloadURL }));
+      setSaveMessage('Foto de perfil atualizada!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      setSaveMessage('Erro ao fazer upload da foto.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !storage) return;
@@ -133,16 +154,21 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
               )}
             </div>
             
-            <div className="flex items-center gap-6 mb-8">
-              <div className="w-20 h-20 rounded-3xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden">
+            <div className="flex items-center gap-6 mb-8 p-6 bg-slate-50/50 rounded-[24px] border border-slate-100">
+              <div className="w-24 h-24 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center text-slate-400 overflow-hidden relative group">
                 {formData.photoUrl ? (
                   <img src={formData.photoUrl} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <User size={32} />
+                  <User size={40} />
                 )}
+                <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Trocar</span>
+                  <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} disabled={isUploading} />
+                </label>
               </div>
               <div className="flex-1 space-y-2">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL da Foto</label>
+                <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Foto do Perfil</h4>
+                <p className="text-xs font-medium text-slate-500">Clique na imagem para fazer upload ou insira uma URL abaixo.</p>
                 <input 
                   type="text" 
                   className={inputClass} 

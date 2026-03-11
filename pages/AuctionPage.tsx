@@ -32,6 +32,12 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [bidAmount, setBidAmount] = useState<number>(0);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [auctionToWon, setAuctionToWon] = useState<Auction | null>(null);
+  const [isProcessingWon, setIsProcessingWon] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [auctionToDelete, setAuctionToDelete] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const pageRef = React.useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
@@ -126,43 +132,59 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     }
   };
 
-  const handleMarkAsWon = async (auction: Auction) => {
-    if (!window.confirm("Deseja marcar este leilão como ARREMATADO e criar um novo imóvel no sistema?")) return;
+  const handleMarkAsWon = async () => {
+    if (!auctionToWon) return;
+    setIsProcessingWon(true);
 
     try {
       // 1. Update auction status
-      await setDoc(doc(db, 'auctions', auction.id), { status: AuctionStatus.WON }, { merge: true });
+      await setDoc(doc(db, 'auctions', auctionToWon.id), { status: AuctionStatus.WON }, { merge: true });
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
-        type: auction.propertyType || PropertyType.CASA,
-        city: auction.city,
-        neighborhood: auction.neighborhood,
-        address: auction.title, // Use title as address placeholder
+        type: auctionToWon.propertyType || PropertyType.CASA,
+        city: auctionToWon.city,
+        neighborhood: auctionToWon.neighborhood,
+        address: auctionToWon.title, // Use title as address placeholder
         sizeM2: 0,
         status: PropertyStatus.ARREMATADO,
         acquisitionDate: new Date().toISOString().split('T')[0],
-        acquisitionPrice: auction.currentBid || auction.initialPrice,
-        bankValuation: (auction.currentBid || auction.initialPrice) * 1.5,
-        auctioneerCommission: (auction.currentBid || auction.initialPrice) * 0.05,
+        acquisitionPrice: auctionToWon.currentBid || auctionToWon.initialPrice,
+        bankValuation: (auctionToWon.currentBid || auctionToWon.initialPrice) * 1.5,
+        auctioneerCommission: (auctionToWon.currentBid || auctionToWon.initialPrice) * 0.05,
         images: [],
         itbiPaid: false,
         registroPaid: false
       };
 
       await addDoc(collection(db, 'properties'), propertyData);
-      alert("Leilão arrematado com sucesso! Imóvel criado na aba de Ativos.");
+      setSuccessMessage("Leilão arrematado com sucesso! Imóvel criado na aba de Ativos.");
+      setTimeout(() => setSuccessMessage(null), 5000);
+      setIsConfirmModalOpen(false);
+      setAuctionToWon(null);
     } catch (error) {
       console.error("Error marking as won:", error);
+    } finally {
+      setIsProcessingWon(false);
     }
   };
 
-  const handleDeleteAuction = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir este leilão?")) return;
+  const handleDeleteAuction = async () => {
+    if (!auctionToDelete) return;
     try {
-      await deleteDoc(doc(db, 'auctions', id));
+      await deleteDoc(doc(db, 'auctions', auctionToDelete));
+      setIsDeleteModalOpen(false);
+      setAuctionToDelete(null);
     } catch (error) {
       console.error("Error deleting auction:", error);
+    }
+  };
+
+  const handleUpdateStatus = async (auctionId: string, newStatus: AuctionStatus) => {
+    try {
+      await setDoc(doc(db, 'auctions', auctionId), { status: newStatus }, { merge: true });
+    } catch (error) {
+      console.error("Error updating auction status:", error);
     }
   };
 
@@ -240,9 +262,22 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
           >
             <div className="p-6 flex-1 space-y-4">
               <div className="flex items-start justify-between">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(auction.status)}`}>
-                  {auction.status}
-                </span>
+                <div className="relative group/status">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(auction.status)} cursor-pointer`}>
+                    {auction.status}
+                  </span>
+                  <div className="absolute top-full left-0 mt-1 hidden group-hover/status:block z-10 bg-white border border-slate-200 rounded-xl shadow-xl p-1 min-w-[140px]">
+                    {Object.values(AuctionStatus).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => handleUpdateStatus(auction.id, s)}
+                        className={`w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors ${auction.status === s ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                      >
+                        Mudar para {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => { setEditingAuction(auction); setIsModalOpen(true); }}
@@ -251,7 +286,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     <Edit3 size={16} />
                   </button>
                   <button 
-                    onClick={() => handleDeleteAuction(auction.id)}
+                    onClick={() => { setAuctionToDelete(auction.id); setIsDeleteModalOpen(true); }}
                     className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
                   >
                     <Trash2 size={16} />
@@ -317,7 +352,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
               </button>
               {auction.status === AuctionStatus.OPEN && (
                 <button 
-                  onClick={() => handleMarkAsWon(auction)}
+                  onClick={() => { setAuctionToWon(auction); setIsConfirmModalOpen(true); }}
                   className="bg-emerald-500 text-white p-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
                 >
                   <CheckCircle2 size={16} />
@@ -392,6 +427,13 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     </div>
 
                     <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Status do Leilão</label>
+                      <select name="status" defaultValue={editingAuction?.status || AuctionStatus.OPEN} className={inputClass}>
+                        {Object.values(AuctionStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
                       <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Preço Inicial (R$)</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
@@ -451,6 +493,96 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     </button>
                   </div>
                 </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Success Message Toast */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[10000] bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl font-black text-sm flex items-center gap-3"
+          >
+            <CheckCircle2 size={20} />
+            {successMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirm Won Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {isConfirmModalOpen && auctionToWon && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
+              >
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Confirmar Arrematação</h3>
+                  <p className="text-slate-500 text-sm font-medium">
+                    Deseja marcar "{auctionToWon.title}" como arrematado? Isso criará um novo imóvel no sistema.
+                  </p>
+                </div>
+
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => { setIsConfirmModalOpen(false); setAuctionToWon(null); }} 
+                    disabled={isProcessingWon}
+                    className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleMarkAsWon} 
+                    disabled={isProcessingWon}
+                    className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isProcessingWon ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                    Confirmar
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Delete Confirm Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {isDeleteModalOpen && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
+              >
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Trash2 size={32} />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Excluir Leilão</h3>
+                  <p className="text-slate-500 text-sm font-medium">Tem certeza que deseja excluir este leilão? Esta ação não pode ser desfeita.</p>
+                </div>
+
+                <div className="flex gap-4">
+                  <button onClick={() => { setIsDeleteModalOpen(false); setAuctionToDelete(null); }} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                  <button onClick={handleDeleteAuction} className="flex-1 px-6 py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/20">Excluir</button>
+                </div>
               </motion.div>
             </div>
           )}

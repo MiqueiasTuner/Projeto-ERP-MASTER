@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Building2, Home, Users, Box, ChevronDown, 
   ChevronUp, BarChart3, Settings, LogOut, PlusCircle, Menu, X as CloseIcon,
-  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell
+  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell, Search, Clock
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, isConfigured } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
@@ -40,7 +41,7 @@ import {
   Property, Expense, InventoryItem, StockMovement, Supplier, 
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
-  MovementType, ExpenseCategory, Quote, QuoteStatus, Task,
+  MovementType, ExpenseCategory, Quote, QuoteStatus, Task, TaskStatus,
   Auction, Alert, Broker, Lead, Proposal, Reservation
 } from './types';
 
@@ -88,10 +89,13 @@ const SidebarGroup = ({ label, icon: Icon, children, active, visible = true, col
   );
 };
 
-const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.ReactNode, currentUser: UserAccount, onLogout: () => void }) => {
+const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { children: React.ReactNode, currentUser: UserAccount, onLogout: () => void, tasks?: Task[] }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Default open on desktop
+  const [navSearchTerm, setNavSearchTerm] = useState('');
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const hasPermission = (module: PermissionModule, action: PermissionAction) => {
     if (currentUser.role === UserRole.ADMIN) return true;
@@ -102,6 +106,47 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
   const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
 
   const isBroker = currentUser.role === UserRole.BROKER;
+
+  const notifications = useMemo(() => {
+    const today = new Date();
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
+
+    return tasks.filter(task => {
+      if (!task.dueDate || task.status === TaskStatus.DONE) return false;
+      const dueDate = new Date(task.dueDate);
+      return dueDate <= threeDaysFromNow;
+    }).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+  }, [tasks]);
+
+  const unreadNotificationsCount = notifications.length;
+
+  const menuItems = useMemo(() => {
+    const items = [
+      { to: '/', icon: LayoutDashboard, label: 'Dashboard', visible: !isBroker },
+      { to: '/corretor', icon: LayoutDashboard, label: 'Painel', visible: isBroker },
+      { to: '/imoveis', icon: Home, label: 'Imóveis', visible: !isBroker && hasPermission('properties', 'view') },
+      { to: '/corretor/imoveis', icon: Home, label: 'Imóveis', visible: isBroker },
+      { to: '/leiloes', icon: Gavel, label: 'Leilões', visible: !isBroker && hasPermission('properties', 'view') },
+      { to: '/estoque/insumos', icon: Box, label: 'Insumos', visible: !isBroker && hasPermission('inventory', 'view') },
+      { to: '/estoque/movimentos', icon: Box, label: 'Movimentos', visible: !isBroker && hasPermission('inventory', 'view') },
+      { to: '/estoque/fornecedores', icon: Box, label: 'Fornecedores', visible: !isBroker && hasPermission('inventory', 'view') },
+      { to: '/estoque/orcamentos', icon: Box, label: 'Orçamentos', visible: !isBroker && hasPermission('inventory', 'view') },
+      { to: '/relatorios', icon: BarChart3, label: 'Relatórios', visible: !isBroker && hasPermission('reports', 'view') },
+      { to: '/gestao-corretores', icon: Users, label: 'Corretores', visible: !isBroker && hasPermission('brokers', 'view') },
+      { to: '/corretor/leads', icon: Users, label: 'Meus Leads', visible: isBroker },
+      {to: '/chat', icon: MessageSquare, label: 'Chat', visible: true},
+      {to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: !isBroker},
+      {to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: true},
+      {to: '/equipe', icon: User, label: 'Equipe', visible: !isBroker && hasPermission('teams', 'view')},
+      {to: '/configuracoes', icon: Settings, label: 'Ajustes', visible: true},
+    ];
+    return items.filter(item => item.visible && item.label.toLowerCase().includes(navSearchTerm.toLowerCase()));
+  }, [isBroker, currentUser, navSearchTerm]);
+
+  const isVisible = (label: string) => {
+    return menuItems.some(item => item.label === label);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
@@ -139,12 +184,106 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50">
-              <div className="w-6 h-6 rounded-full bg-[#FFD700] flex items-center justify-center text-[10px] font-black text-[#0A192F]">
-                {currentUser.name.substring(0, 2).toUpperCase()}
+        <div className="flex items-center gap-4 flex-1 max-w-2xl mx-4 lg:mx-12">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar no menu..." 
+              value={navSearchTerm}
+              onChange={(e) => setNavSearchTerm(e.target.value)}
+              className="w-full bg-slate-800/50 border border-slate-700/50 rounded-full py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 lg:gap-4">
+           {/* Notifications */}
+           <div className="relative">
+             <button 
+               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+               className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors relative"
+             >
+               <Bell size={22} />
+               {unreadNotificationsCount > 0 && (
+                 <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-[#0A192F]">
+                   {unreadNotificationsCount}
+                 </span>
+               )}
+             </button>
+
+             <AnimatePresence>
+               {isNotificationsOpen && (
+                 <>
+                   <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
+                   <motion.div 
+                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                     animate={{ opacity: 1, y: 0, scale: 1 }}
+                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                     className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden"
+                   >
+                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                       <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Notificações</h3>
+                       <span className="text-[10px] font-bold text-slate-400 uppercase">{notifications.length} Pendentes</span>
+                     </div>
+                     <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                       {notifications.length > 0 ? (
+                         notifications.map(task => (
+                           <div 
+                             key={task.id} 
+                             onClick={() => { navigate('/tarefas'); setIsNotificationsOpen(false); }}
+                             className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group"
+                           >
+                             <div className="flex items-start gap-3">
+                               <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                                 new Date(task.dueDate!) < new Date() ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'
+                               }`} />
+                               <div>
+                                 <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">{task.title}</p>
+                                 <div className="flex items-center gap-2 mt-1">
+                                   <Clock size={12} className="text-slate-400" />
+                                   <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                     new Date(task.dueDate!) < new Date() ? 'text-rose-500' : 'text-slate-500'
+                                   }`}>
+                                     Prazo: {new Date(task.dueDate!).toLocaleDateString('pt-BR')}
+                                   </span>
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         ))
+                       ) : (
+                         <div className="p-8 text-center">
+                           <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                             <Bell size={24} className="text-slate-300" />
+                           </div>
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sem notificações</p>
+                         </div>
+                       )}
+                     </div>
+                     {notifications.length > 0 && (
+                       <button 
+                         onClick={() => { navigate('/tarefas'); setIsNotificationsOpen(false); }}
+                         className="w-full p-3 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] hover:bg-blue-50 transition-colors border-t border-slate-100"
+                       >
+                         Ver todas as tarefas
+                       </button>
+                     )}
+                   </motion.div>
+                 </>
+               )}
+             </AnimatePresence>
+           </div>
+
+           <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50 hover:bg-slate-800 transition-colors cursor-pointer" onClick={() => navigate('/configuracoes')}>
+              <div className="w-8 h-8 rounded-full bg-[#FFD700] flex items-center justify-center text-xs font-black text-[#0A192F] overflow-hidden border-2 border-slate-700">
+                {currentUser.photoUrl ? (
+                  <img src={currentUser.photoUrl} alt={currentUser.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  currentUser.name.substring(0, 2).toUpperCase()
+                )}
               </div>
-              <span className="text-xs font-bold text-slate-300 pr-2">{currentUser.name}</span>
+              <span className="hidden sm:block text-xs font-bold text-slate-300 pr-2">{currentUser.name}</span>
            </div>
         </div>
       </header>
@@ -163,51 +302,51 @@ const ProtectedLayout = ({ children, currentUser, onLogout }: { children: React.
           <nav className="flex-1 space-y-1 overflow-y-auto py-4 px-2 custom-scrollbar overflow-x-hidden">
             {isBroker ? (
               <>
-                <SidebarItem to="/corretor" icon={LayoutDashboard} label="Painel" active={location.pathname === '/corretor'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/corretor/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/corretor/imoveis') || location.pathname.startsWith('/corretor/imovel')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/corretor/leads" icon={Users} label="Meus Leads" active={location.pathname.startsWith('/corretor/leads')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/corretor" icon={LayoutDashboard} label="Painel" active={location.pathname === '/corretor'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Painel')} />
+                <SidebarItem to="/corretor/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/corretor/imoveis') || location.pathname.startsWith('/corretor/imovel')} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Imóveis')} />
+                <SidebarItem to="/corretor/leads" icon={Users} label="Meus Leads" active={location.pathname.startsWith('/corretor/leads')} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Meus Leads')} />
+                <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Chat')} />
+                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Agenda')} />
               </>
             ) : (
               <>
-                <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={true} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={isVisible('Dashboard')} collapsed={isSidebarCollapsed} />
                 
                 <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
                 <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
                 
-                <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={hasPermission('properties', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={isVisible('Imóveis')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={isVisible('Leilões')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 
-                <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={hasPermission('inventory', 'view')} collapsed={isSidebarCollapsed}>
-                  <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>
-                  <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>
-                  <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>
-                  <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>
+                <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={isVisible('Insumos') || isVisible('Movimentos') || isVisible('Fornecedores') || isVisible('Orçamentos')} collapsed={isSidebarCollapsed}>
+                  {isVisible('Insumos') && <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>}
+                  {isVisible('Movimentos') && <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>}
+                  {isVisible('Fornecedores') && <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>}
+                  {isVisible('Orçamentos') && <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>}
                 </SidebarGroup>
 
                 <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
                 <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-                <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={hasPermission('reports', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/gestao-corretores" icon={Users} label="Corretores" active={location.pathname === '/gestao-corretores'} visible={hasPermission('brokers', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={isVisible('Relatórios')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/gestao-corretores" icon={Users} label="Corretores" active={location.pathname === '/gestao-corretores'} visible={isVisible('Corretores')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 
                 <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
                 <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-                <SidebarItem to="/chat" icon={MessageSquare} label="Chat Interno" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas Internas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Chat')} />
+                <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Tarefas')} />
+                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Agenda')} />
                 
                 <div title="Em breve" className="opacity-50 cursor-not-allowed">
-                  <SidebarItem icon={FileText} label="Ligações" active={false} visible={true} collapsed={isSidebarCollapsed} onClick={() => {}} />
+                  <SidebarItem icon={FileText} label="Ligações" active={false} visible={isVisible('Ligações')} collapsed={isSidebarCollapsed} onClick={() => {}} />
                 </div>
 
                 <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
                 <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-                <SidebarItem to="/equipe" icon={User} label="Equipe e Acessos" active={location.pathname === '/equipe'} visible={hasPermission('teams', 'view')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/equipe" icon={User} label="Equipe" active={location.pathname === '/equipe'} visible={isVisible('Equipe')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Ajustes')} />
               </>
             )}
             
@@ -583,7 +722,7 @@ const AppContent = () => {
   }
 
   return (
-    <ProtectedLayout currentUser={currentUser} onLogout={handleLogout}>
+    <ProtectedLayout currentUser={currentUser} onLogout={handleLogout} tasks={tasks}>
       <Routes>
         <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
         <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />

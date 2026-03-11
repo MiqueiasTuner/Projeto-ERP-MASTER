@@ -109,7 +109,7 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
   };
 
   return (
-    <div className="flex flex-col min-w-[320px] w-[320px] h-full">
+    <div className="flex flex-col w-80 flex-shrink-0 h-full">
       <div className={`flex items-center justify-between mb-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm border-t-4 ${getColumnColor(status)}`}>
         <div className="flex items-center gap-3">
           <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">{status}</h3>
@@ -119,7 +119,7 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
         </span>
       </div>
       
-      <div className="flex-1 bg-slate-100/40 rounded-[24px] border border-slate-200/50 p-3 overflow-y-auto custom-scrollbar space-y-3 scroll-smooth">
+      <div className="flex-1 bg-slate-100/40 rounded-[24px] border border-slate-200/50 p-3 overflow-y-auto custom-scrollbar space-y-3 scroll-smooth min-h-0">
         {tasks.map((task) => (
           <div key={task.id}>
             <TaskCard task={task} onClick={() => onTaskClick(task)} />
@@ -293,12 +293,8 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto scrollbar-hide">
-        <style dangerouslySetInnerHTML={{ __html: `
-          .scrollbar-hide::-webkit-scrollbar { display: none; }
-          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        `}} />
-        <div className="flex gap-6 h-full min-w-[1000px] pb-6">
+      <div className="flex-1 overflow-x-auto custom-scrollbar pb-4">
+        <div className="flex gap-6 h-full min-w-max pr-6">
           {Object.values(TaskStatus).map((status) => (
             <KanbanColumn 
               key={status} 

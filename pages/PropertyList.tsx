@@ -478,6 +478,8 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     });
   };
 
+  const handleEditProperty = useCallback((p: Property) => navigate(`/editar/${p.id}`), [navigate]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -551,7 +553,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
               status={status}
               items={filteredProperties.filter(p => p.status === status)}
               expenses={expenses}
-              onEdit={setEditingProperty}
+              onEdit={handleEditProperty}
               onView={handleViewDetails}
               onDeleteProperty={onDeleteProperty}
               onMoveProperty={handleMoveProperty}
@@ -592,7 +594,24 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
                         {p.city} {p.neighborhood2 ? `• ${p.neighborhood2}` : ''}
                       </p>
-                      <div className="flex justify-between items-end border-t border-slate-50 pt-6"><div className="min-w-0"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Capital Alocado</p><p className="font-black text-slate-900 text-lg truncate">{formatCurrency(metrics.totalInvested)}</p></div><div className="bg-slate-900 text-white p-3 rounded-2xl group-hover:bg-blue-600 transition-all"><ArrowRight size={20} /></div></div>
+                      <div className="flex justify-between items-end border-t border-slate-50 pt-6">
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Capital Alocado</p>
+                          <p className="font-black text-slate-900 text-lg truncate">{formatCurrency(metrics.totalInvested)}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleEditProperty(p); }}
+                            className="p-3 bg-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
+                            title="Editar Cadastro"
+                          >
+                            <Edit3 size={20} />
+                          </button>
+                          <div className="bg-slate-900 text-white p-3 rounded-2xl group-hover:bg-blue-600 transition-all">
+                            <ArrowRight size={20} />
+                          </div>
+                        </div>
+                      </div>
                    </div>
                  </div>
               </div>
@@ -601,46 +620,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
         </div>
       )}
 
-      {/* Edit Property Drawer */}
-      <AnimatePresence>
-        {editingProperty && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setEditingProperty(null)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
-            />
-            <motion.div 
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-4xl bg-white shadow-2xl z-[110] flex flex-col"
-            >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Editar Ativo</h3>
-                  <p className="text-slate-500 text-sm font-medium">Altere os dados do imóvel.</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button onClick={() => { setEditingProperty(null); handleViewDetails(editingProperty.id); }} className="text-blue-600 text-xs font-black uppercase tracking-widest hover:underline">
-                    Ver Detalhes Completos
-                  </button>
-                  <button onClick={() => setEditingProperty(null)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100">
-                    <X size={24} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50">
-                <PropertyForm 
-                  properties={[editingProperty]} 
-                  onSave={handleSaveProperty} 
-                  onCancel={() => setEditingProperty(null)}
-                />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Edit Property Drawer - REMOVED as per user request to navigate to edit page */}
 
       {/* Sold Modal */}
       <AnimatePresence>
