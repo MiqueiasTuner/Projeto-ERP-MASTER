@@ -23,8 +23,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { reportService } from '../ReportService';
 
 interface CalendarPageProps {
   currentUser: UserAccount;
@@ -40,28 +39,9 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   const pageRef = React.useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
-    if (!pageRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(pageRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#1F1F1F'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('l', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgScaledWidth = imgWidth * ratio;
-      const imgScaledHeight = imgHeight * ratio;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
-      pdf.save(`agenda-${new Date().toISOString().split('T')[0]}.pdf`);
+      await reportService.generateDashboardReport('calendar-view');
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
     } finally {
@@ -230,7 +210,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   const inputClass = "w-full bg-slate-800 px-4 py-3 rounded-lg border border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white text-sm";
 
   return (
-    <div ref={pageRef} className="h-full flex flex-col bg-[#1F1F1F] text-slate-300 overflow-hidden font-sans">
+    <div id="calendar-view" ref={pageRef} className="h-full flex flex-col bg-[#1F1F1F] text-slate-300 overflow-hidden font-sans">
       {/* Top Header */}
       <header className="h-16 flex items-center justify-between px-4 border-b border-slate-700/50 shrink-0">
         <div className="flex items-center gap-4">

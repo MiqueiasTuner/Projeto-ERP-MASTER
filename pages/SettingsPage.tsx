@@ -6,10 +6,8 @@ import { UserAccount } from '../types';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useTenant } from '../src/context/TenantContext';
 
 const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
-  const { organization, organizationId } = useTenant();
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -21,8 +19,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
     email: currentUser.email || '',
     role: currentUser.role || '',
     photoUrl: currentUser.photoUrl || '',
-    companyLogo: currentUser.companyLogo || '',
-    orgName: organization?.name || ''
+    companyLogo: currentUser.companyLogo || ''
   });
 
   useEffect(() => {
@@ -31,14 +28,13 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
       email: currentUser.email || '',
       role: currentUser.role || '',
       photoUrl: currentUser.photoUrl || '',
-      companyLogo: currentUser.companyLogo || '',
-      orgName: organization?.name || ''
+      companyLogo: currentUser.companyLogo || ''
     });
-  }, [currentUser, organization]);
+  }, [currentUser]);
 
   const handleSeed = async () => {
     if (!confirm('Deseja popular o banco de dados com dados de exemplo? Isso criará novos registros de imóveis, insumos e fornecedores.')) return;
-
+    
     setIsSeeding(true);
     setSeedResult(null);
     const result = await seedInitialData();
@@ -48,24 +44,14 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !organizationId || !storage) return;
+    if (!file || !storage) return;
 
     setIsUploading(true);
     try {
-      const storageRef = ref(storage, `organizations/${organizationId}/logo`);
+      const storageRef = ref(storage, `logos/user-${currentUser.id}-${file.name}`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
-
-      // Update organization document
-      await updateDoc(doc(db, 'organizations', organizationId), {
-        logoUrl: downloadURL
-      });
-
-      // Also update user's companyLogo for backward compatibility/quick access
-      await updateDoc(doc(db, 'users', currentUser.id), {
-        companyLogo: downloadURL
-      });
-
+      
       setFormData(prev => ({ ...prev, companyLogo: downloadURL }));
       setSaveMessage('Logo atualizada com sucesso!');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -81,7 +67,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
     e.preventDefault();
     setIsSaving(true);
     setSaveMessage('');
-
+    
     try {
       // Update User Profile
       await setDoc(doc(db, 'users', currentUser.id), {
@@ -91,16 +77,8 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
         email: currentUser.email,
         role: currentUser.role,
         active: currentUser.active,
-        permissions: currentUser.permissions,
-        organizationId: currentUser.organizationId
+        permissions: currentUser.permissions
       }, { merge: true });
-
-      // Update Organization Name if changed and user is owner
-      if (organizationId && formData.orgName !== organization?.name) {
-        await updateDoc(doc(db, 'organizations', organizationId), {
-          name: formData.orgName
-        });
-      }
 
       setSaveMessage('Perfil atualizado com sucesso!');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -154,7 +132,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
                 </span>
               )}
             </div>
-
+            
             <div className="flex items-center gap-6 mb-8">
               <div className="w-20 h-20 rounded-3xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden">
                 {formData.photoUrl ? (
@@ -165,11 +143,11 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
               </div>
               <div className="flex-1 space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL da Foto</label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  value={formData.photoUrl}
-                  onChange={e => setFormData({ ...formData, photoUrl: e.target.value })}
+                <input 
+                  type="text" 
+                  className={inputClass} 
+                  value={formData.photoUrl} 
+                  onChange={e => setFormData({...formData, photoUrl: e.target.value})}
                   placeholder="https://exemplo.com/foto.jpg"
                 />
               </div>
@@ -178,41 +156,30 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome de Exibição</label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                <input 
+                  type="text" 
+                  className={inputClass} 
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cargo / Função</label>
-                <input
+                <input 
                   disabled
-                  type="text"
-                  className={`${inputClass} opacity-60 cursor-not-allowed`}
-                  value={formData.role}
+                  type="text" 
+                  className={`${inputClass} opacity-60 cursor-not-allowed`} 
+                  value={formData.role} 
                 />
               </div>
             </div>
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Acesso</label>
-              <input
+              <input 
                 disabled
-                type="email"
-                className={`${inputClass} opacity-60 cursor-not-allowed`}
-                value={formData.email}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Organização</label>
-              <input
-                type="text"
-                className={inputClass}
-                value={formData.orgName}
-                onChange={e => setFormData({ ...formData, orgName: e.target.value })}
-                placeholder="Nome da sua empresa"
+                type="email" 
+                className={`${inputClass} opacity-60 cursor-not-allowed`} 
+                value={formData.email} 
               />
             </div>
 
@@ -220,8 +187,8 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Logo da Empresa (Upload)</label>
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                  {formData.companyLogo || organization?.logoUrl ? (
-                    <img src={formData.companyLogo || organization?.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" referrerPolicy="no-referrer" />
+                  {formData.companyLogo ? (
+                    <img src={formData.companyLogo} alt="Logo" className="w-full h-full object-contain p-2" referrerPolicy="no-referrer" />
                   ) : (
                     <Building size={24} className="text-slate-300" />
                   )}
@@ -237,7 +204,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
             </div>
 
             <div className="pt-4">
-              <button
+              <button 
                 type="submit"
                 disabled={isSaving}
                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2"
@@ -260,7 +227,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
               Administração de Dados
             </h3>
             <p className="text-sm text-slate-500 font-medium">Inicie o sistema com dados de exemplo para testes rápidos.</p>
-
+            
             {seedResult && (
               <div className={`p-4 rounded-2xl flex items-start gap-3 border ${seedResult.success ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
                 {seedResult.success ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <AlertCircle size={18} className="shrink-0 mt-0.5" />}
@@ -268,7 +235,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
               </div>
             )}
 
-            <button
+            <button 
               onClick={handleSeed}
               disabled={isSeeding}
               className="flex items-center space-x-2 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
@@ -285,7 +252,7 @@ const SettingsPage = ({ currentUser }: { currentUser: UserAccount }) => {
           <div className="bg-rose-50/30 p-8 rounded-[32px] border border-rose-100 shadow-sm space-y-4">
             <h3 className="font-black text-xl text-rose-600 tracking-tight">Zona de Perigo</h3>
             <p className="text-sm text-rose-500/70 font-medium">Ações que podem resultar em perda de dados permanente.</p>
-            <button
+            <button 
               onClick={clearData}
               className="flex items-center space-x-2 px-6 py-3 bg-white text-rose-600 rounded-xl font-bold hover:bg-rose-600 hover:text-white transition-all border border-rose-200 shadow-sm"
             >

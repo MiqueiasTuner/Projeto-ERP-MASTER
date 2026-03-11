@@ -24,8 +24,7 @@ import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task }
 import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloat, formatDate } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import CustomDatePicker from '../src/components/CustomDatePicker';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { reportService } from '../ReportService';
 
 interface PropertyDetailsProps {
   properties: Property[];
@@ -86,29 +85,8 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
   const exportToPdf = async () => {
     if (!property || !metrics) return;
     setIsGeneratingPdf(true);
-    
-    const element = document.getElementById('property-report-content');
-    if (!element) return;
-
     try {
-      // Temporarily show the hidden report
-      element.style.display = 'block';
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      element.style.display = 'none';
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Relatorio_${property.neighborhood.replace(/\s+/g, '_')}.pdf`);
+      await reportService.generatePropertyDetailReport(property, propertyExpenses);
     } catch (error) {
       console.error("Error generating PDF", error);
       alert("Erro ao gerar PDF. Tente novamente.");

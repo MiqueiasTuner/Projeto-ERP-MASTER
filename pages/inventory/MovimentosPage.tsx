@@ -1,15 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  ArrowRightLeft, Plus, Search, Filter, Trash2, Edit, X,
-  ArrowUpRight, TrendingDown, Clock, Paperclip,
+import { 
+  ArrowRightLeft, Plus, Search, Filter, Trash2, Edit, X, 
+  ArrowUpRight, TrendingDown, Clock, Paperclip, 
   Building, Package, ChevronRight, MoreHorizontal,
   ArrowDownRight, CheckCircle2, AlertCircle, XCircle
 } from 'lucide-react';
 import { StockMovement, InventoryItem, Supplier, Property, MovementType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTenant } from '../../src/context/TenantContext';
 
 interface MovimentosPageProps {
   movements: StockMovement[];
@@ -20,7 +19,6 @@ interface MovimentosPageProps {
 }
 
 const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement }: MovimentosPageProps) => {
-  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'ENTRY' | 'EXIT'>('ALL');
@@ -42,7 +40,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
     const { name, value } = e.target;
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
-
+      
       const q = name === 'quantity' ? (value === '' ? 0 : parseFloat(value)) : prev.quantity;
       const u = name === 'unitPrice' ? (value === '' ? 0 : parseFloat(value)) : prev.unitPrice;
       const t = name === 'totalPrice' ? (value === '' ? 0 : parseFloat(value)) : prev.totalPrice;
@@ -57,7 +55,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
           updated.unitPrice = t / q;
         }
       }
-
+      
       return updated;
     });
   };
@@ -76,8 +74,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
         ...formData,
         quantity: Number(formData.quantity),
         totalPrice: Number(formData.totalPrice),
-        unitPrice: Number(formData.totalPrice) / Number(formData.quantity),
-        organizationId: organizationId || ''
+        unitPrice: Number(formData.totalPrice) / Number(formData.quantity)
       };
       await onAddMovement(movement);
       setIsModalOpen(false);
@@ -103,16 +100,16 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
   const stats = useMemo(() => {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
+    
     const totalEntradas = movements
       .filter(m => m.type === MovementType.ENTRADA_COMPRA && new Date(m.date) >= firstDayOfMonth)
       .reduce((acc, m) => acc + m.totalPrice, 0);
-
+      
     const totalSaidas = movements
       .filter(m => m.type === MovementType.SAIDA_OBRA && new Date(m.date) >= firstDayOfMonth)
       .reduce((acc, m) => acc + m.totalPrice, 0);
-
-    const lastUpdate = movements.length > 0
+      
+    const lastUpdate = movements.length > 0 
       ? new Date(Math.max(...movements.map(m => new Date(m.date).getTime())))
       : null;
 
@@ -123,13 +120,13 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
     return movements
       .filter(m => {
         const item = items.find(i => i.id === m.itemId);
-        const matchesSearch = item?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          m.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesType = filterType === 'ALL' ||
-          (filterType === 'ENTRY' && m.type === MovementType.ENTRADA_COMPRA) ||
-          (filterType === 'EXIT' && m.type === MovementType.SAIDA_OBRA);
-
+        const matchesSearch = item?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             m.description.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesType = filterType === 'ALL' || 
+                           (filterType === 'ENTRY' && m.type === MovementType.ENTRADA_COMPRA) ||
+                           (filterType === 'EXIT' && m.type === MovementType.SAIDA_OBRA);
+                           
         return matchesSearch && matchesType;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -146,7 +143,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
           <p className="text-slate-500 font-medium">Auditoria completa de entradas e saídas de estoque.</p>
         </div>
         <div className="flex gap-3">
-          <button
+          <button 
             onClick={() => setIsModalOpen(true)}
             className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
           >
@@ -157,7 +154,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
 
       {/* Top Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div
+        <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm"
@@ -175,7 +172,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
           <p className="text-[10px] text-slate-400 mt-2 font-medium">Volume de compras de materiais</p>
         </motion.div>
 
-        <motion.div
+        <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -194,7 +191,7 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
           <p className="text-[10px] text-slate-400 mt-2 font-medium">Valor enviado e aplicado nas obras</p>
         </motion.div>
 
-        <motion.div
+        <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -220,28 +217,28 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
           <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="relative w-full md:w-80">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="Buscar por insumo ou descrição..."
+              <input 
+                type="text" 
+                placeholder="Buscar por insumo ou descrição..." 
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
-              <button
+              <button 
                 onClick={() => setFilterType('ALL')}
                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Todos
               </button>
-              <button
+              <button 
                 onClick={() => setFilterType('ENTRY')}
                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'ENTRY' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Entradas
               </button>
-              <button
+              <button 
                 onClick={() => setFilterType('EXIT')}
                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'EXIT' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
@@ -273,18 +270,20 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
               {filteredMovements.map((mov) => {
                 const item = items.find(i => i.id === mov.itemId);
                 const property = properties.find(p => p.id === mov.propertyId);
-
+                
                 return (
                   <tr key={mov.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                          }`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                        }`}>
                           {mov.type === MovementType.ENTRADA_COMPRA ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                         </div>
                         <div>
-                          <p className={`text-[10px] font-black uppercase tracking-widest ${mov.type === MovementType.ENTRADA_COMPRA ? 'text-emerald-600' : 'text-blue-600'
-                            }`}>
+                          <p className={`text-[10px] font-black uppercase tracking-widest ${
+                            mov.type === MovementType.ENTRADA_COMPRA ? 'text-emerald-600' : 'text-blue-600'
+                          }`}>
                             {mov.type === MovementType.ENTRADA_COMPRA ? 'Entrada' : 'Saída'}
                           </p>
                           <p className="text-[9px] text-slate-400 font-bold">Auditado</p>
@@ -365,183 +364,185 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
       <AnimatePresence mode="wait">
         {isModalOpen && (
           <div className="fixed inset-0 z-[9999]">
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div
+            <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
             >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Movimento</h3>
-                  <p className="text-slate-500 text-sm font-medium">Audite entradas e saídas.</p>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Operação</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, type: MovementType.ENTRADA_COMPRA }))}
-                      className={`flex-1 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${formData.type === MovementType.ENTRADA_COMPRA
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200 ring-2 ring-emerald-500/20'
-                          : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
-                        }`}
-                    >
-                      <ArrowUpRight size={16} /> Entrada
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, type: MovementType.SAIDA_OBRA }))}
-                      className={`flex-1 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${formData.type === MovementType.SAIDA_OBRA
-                          ? 'bg-blue-50 text-blue-600 border-blue-200 ring-2 ring-blue-500/20'
-                          : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
-                        }`}
-                    >
-                      <ArrowDownRight size={16} /> Saída
-                    </button>
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Movimento</h3>
+                    <p className="text-slate-500 text-sm font-medium">Audite entradas e saídas.</p>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                  <input
-                    required
-                    name="date"
-                    type="date"
-                    className={inputClass}
-                    value={formData.date}
-                    onChange={handleFormChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Insumo / Material</label>
-                  <select
-                    required
-                    name="itemId"
-                    className={inputClass}
-                    value={formData.itemId}
-                    onChange={handleFormChange}
+                  <button 
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
                   >
-                    <option value="">Selecione o material...</option>
-                    {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
-                  </select>
+                    <X size={24} />
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
-                    <input
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Operação</label>
+                    <div className="flex gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, type: MovementType.ENTRADA_COMPRA }))}
+                        className={`flex-1 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${
+                          formData.type === MovementType.ENTRADA_COMPRA 
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 ring-2 ring-emerald-500/20' 
+                            : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
+                        }`}
+                      >
+                        <ArrowUpRight size={16} /> Entrada
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, type: MovementType.SAIDA_OBRA }))}
+                        className={`flex-1 py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${
+                          formData.type === MovementType.SAIDA_OBRA 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200 ring-2 ring-blue-500/20' 
+                            : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
+                        }`}
+                      >
+                        <ArrowDownRight size={16} /> Saída
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                    <input 
                       required
-                      name="quantity"
-                      type="number"
-                      placeholder="0.00"
-                      className={inputClass}
-                      value={formData.quantity === 0 ? '' : formData.quantity}
-                      onFocus={(e) => e.target.select()}
+                      name="date"
+                      type="date" 
+                      className={inputClass} 
+                      value={formData.date}
                       onChange={handleFormChange}
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Unitário (R$)</label>
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Insumo / Material</label>
+                    <select 
+                      required
+                      name="itemId"
+                      className={inputClass}
+                      value={formData.itemId}
+                      onChange={handleFormChange}
+                    >
+                      <option value="">Selecione o material...</option>
+                      {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
+                      <input 
+                        required
+                        name="quantity"
+                        type="number" 
+                        placeholder="0.00" 
+                        className={inputClass} 
+                        value={formData.quantity === 0 ? '' : formData.quantity}
+                        onFocus={(e) => e.target.select()}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Unitário (R$)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                        <input 
+                          required
+                          name="unitPrice"
+                          type="number" 
+                          step="0.01"
+                          placeholder="0.00" 
+                          className={`${inputClass} pl-10`} 
+                          value={formData.unitPrice === 0 ? '' : formData.unitPrice}
+                          onFocus={(e) => e.target.select()}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total (Calculado)</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                      <input
+                      <input 
                         required
-                        name="unitPrice"
-                        type="number"
+                        name="totalPrice"
+                        type="number" 
                         step="0.01"
-                        placeholder="0.00"
-                        className={`${inputClass} pl-10`}
-                        value={formData.unitPrice === 0 ? '' : formData.unitPrice}
+                        placeholder="0.00" 
+                        className={`${inputClass} pl-10 bg-slate-100/50`} 
+                        value={formData.totalPrice === 0 ? '' : formData.totalPrice}
                         onFocus={(e) => e.target.select()}
                         onChange={handleFormChange}
                       />
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total (Calculado)</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                    <input
-                      required
-                      name="totalPrice"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      className={`${inputClass} pl-10 bg-slate-100/50`}
-                      value={formData.totalPrice === 0 ? '' : formData.totalPrice}
-                      onFocus={(e) => e.target.select()}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Destinação (Imóvel)</label>
+                    <select 
+                      name="propertyId"
+                      className={inputClass}
+                      value={formData.propertyId}
+                      onChange={handleFormChange}
+                    >
+                      <option value="">Estoque Central</option>
+                      {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição / Motivo</label>
+                    <textarea 
+                      name="description"
+                      className={`${inputClass} h-24 resize-none`}
+                      placeholder="Ex: Reposição de estoque ou saída para pintura..."
+                      value={formData.description}
                       onChange={handleFormChange}
                     />
                   </div>
-                </div>
+                </form>
 
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Destinação (Imóvel)</label>
-                  <select
-                    name="propertyId"
-                    className={inputClass}
-                    value={formData.propertyId}
-                    onChange={handleFormChange}
+                <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
                   >
-                    <option value="">Estoque Central</option>
-                    {properties.map(p => <option key={p.id} value={p.id}>{p.neighborhood} - {p.city}</option>)}
-                  </select>
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all flex items-center justify-center"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      "Registrar"
+                    )}
+                  </button>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição / Motivo</label>
-                  <textarea
-                    name="description"
-                    className={`${inputClass} h-24 resize-none`}
-                    placeholder="Ex: Reposição de estoque ou saída para pintura..."
-                    value={formData.description}
-                    onChange={handleFormChange}
-                  />
-                </div>
-              </form>
-
-              <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all flex items-center justify-center"
-                >
-                  {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    "Registrar"
-                  )}
-                </button>
-              </div>
-            </motion.div>
+              </motion.div>
           </div>
         )}
       </AnimatePresence>

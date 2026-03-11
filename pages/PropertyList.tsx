@@ -31,6 +31,8 @@ import CustomDatePicker from '../src/components/CustomDatePicker';
 import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import Papa from 'papaparse';
+import { reportService } from '../ReportService';
+import { FileDown } from 'lucide-react';
 
 // --- Card Individual Redesenhado ---
 const PropertyKanbanCard = React.memo(({ 
@@ -400,6 +402,19 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     document.body.removeChild(link);
   };
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const exportToPDF = async () => {
+    setIsExportingPdf(true);
+    try {
+      await reportService.generatePropertyReport(properties, expenses);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -478,6 +493,14 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
              ref={fileInputRef} 
              onChange={handleImportCSV} 
            />
+           <button 
+             onClick={exportToPDF}
+             disabled={isExportingPdf}
+             className="bg-white border border-slate-200 text-slate-600 p-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
+             title="Exportar Relatório PDF"
+           >
+             {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
+           </button>
            <button 
              onClick={downloadCSVTemplate}
              className="bg-white border border-slate-200 text-slate-600 p-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"

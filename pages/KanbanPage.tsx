@@ -13,8 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import CustomDatePicker from '../src/components/CustomDatePicker';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { reportService } from '../ReportService';
 
 interface KanbanPageProps {
   currentUser: UserAccount;
@@ -147,28 +146,9 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
   const pageRef = React.useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
-    if (!pageRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(pageRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#F8FAFC'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for Kanban
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgScaledWidth = imgWidth * ratio;
-      const imgScaledHeight = imgHeight * ratio;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
-      pdf.save(`quadro-tarefas-${new Date().toISOString().split('T')[0]}.pdf`);
+      await reportService.generateDashboardReport('kanban-board');
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
     } finally {
@@ -289,7 +269,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
   const inputClass = "w-full bg-slate-50 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 text-sm";
 
   return (
-    <div ref={pageRef} className="h-full flex flex-col bg-slate-50 p-6 overflow-hidden">
+    <div id="kanban-board" ref={pageRef} className="h-full flex flex-col bg-slate-50 p-6 overflow-hidden">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Tarefas Internas</h2>

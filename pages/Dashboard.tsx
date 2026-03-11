@@ -52,8 +52,7 @@ import {
   Alert
 } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { reportService } from '../ReportService';
 
 const COLORS = ['#3b82f6', '#f97316', '#10b981', '#ef4444', '#8b5cf6', '#64748b'];
 
@@ -89,28 +88,9 @@ const Dashboard = ({
   const pageRef = React.useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
-    if (!pageRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(pageRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#0A192F'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgScaledWidth = imgWidth * ratio;
-      const imgScaledHeight = imgHeight * ratio;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
-      pdf.save(`dashboard-executivo-${new Date().toISOString().split('T')[0]}.pdf`);
+      await reportService.generateDashboardReport('dashboard-content');
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
     } finally {
@@ -257,7 +237,7 @@ const Dashboard = ({
   }, [properties, expenses, tasks, inventory, auctions]);
 
   return (
-    <div ref={pageRef} className="min-h-screen bg-[#0A192F] -m-6 lg:-m-10 p-6 lg:p-10 space-y-8 animate-in fade-in duration-700 text-white overflow-x-hidden">
+    <div id="dashboard-content" ref={pageRef} className="min-h-screen bg-[#0A192F] -m-6 lg:-m-10 p-6 lg:p-10 space-y-8 animate-in fade-in duration-700 text-white overflow-x-hidden">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>

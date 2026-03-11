@@ -15,8 +15,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, formatDate } from '../utils';
 import CustomDatePicker from '../src/components/CustomDatePicker';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { reportService } from '../ReportService';
 
 interface AuctionPageProps {
   auctions: Auction[];
@@ -36,28 +35,9 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
   const pageRef = React.useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
-    if (!pageRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(pageRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#F8FAFC'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgScaledWidth = imgWidth * ratio;
-      const imgScaledHeight = imgHeight * ratio;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
-      pdf.save(`relatorio-leiloes-${new Date().toISOString().split('T')[0]}.pdf`);
+      await reportService.generateAuctionReport(auctions);
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
     } finally {

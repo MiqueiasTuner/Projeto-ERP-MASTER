@@ -7,8 +7,7 @@ import {
 import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon, Gavel, HardHat, Loader2 } from 'lucide-react';
 import { Property, Expense, InventoryItem, PropertyStatus, ExpenseCategory } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { reportService } from '../ReportService';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899'];
 
@@ -36,28 +35,9 @@ const ReportsPage = ({ properties, expenses, inventory }: { properties: Property
   const [isExporting, setIsExporting] = React.useState(false);
 
   const exportToPDF = async () => {
-    if (!reportRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#f8fafc'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgScaledWidth = imgWidth * ratio;
-      const imgScaledHeight = imgHeight * ratio;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
-      pdf.save(`relatorio-master-imoveis-${new Date().toISOString().split('T')[0]}.pdf`);
+      await reportService.generatePropertyReport(properties, expenses);
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
     } finally {

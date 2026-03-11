@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import { Warehouse as WarehouseIcon, Plus, MapPin, Trash2, Edit, X } from 'lucide-react';
 import { Warehouse } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTenant } from '../../src/context/TenantContext';
 
 interface AlmoxarifadosPageProps {
   warehouses: Warehouse[];
@@ -13,7 +12,6 @@ interface AlmoxarifadosPageProps {
 }
 
 const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: AlmoxarifadosPageProps) => {
-  const { organizationId } = useTenant();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
@@ -23,8 +21,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
     const newWarehouse: Warehouse = {
       id: editingWarehouse?.id || Math.random().toString(36).substr(2, 9),
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
-      location: (form.elements.namedItem('location') as HTMLInputElement).value,
-      organizationId: organizationId || ''
+      location: (form.elements.namedItem('location') as HTMLInputElement).value
     };
     onAddWarehouse(newWarehouse);
     setIsModalOpen(false);
@@ -45,7 +42,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">Almoxarifados</h2>
           <p className="text-slate-500 font-medium text-sm">Locais físicos de armazenamento central ou periférico.</p>
         </div>
-        <button
+        <button 
           onClick={() => { setEditingWarehouse(null); setIsModalOpen(true); }}
           className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
         >
@@ -82,14 +79,14 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
       <AnimatePresence>
         {isModalOpen && createPortal(
           <>
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => { setIsModalOpen(false); setEditingWarehouse(null); }}
               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
             />
-            <motion.div
+            <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -101,7 +98,7 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingWarehouse ? 'Editar Almoxarifado' : 'Novo Almoxarifado'}</h3>
                   <p className="text-slate-500 text-sm font-medium">{editingWarehouse ? 'Atualize os dados do local.' : 'Cadastre um novo local de armazenamento.'}</p>
                 </div>
-                <button
+                <button 
                   onClick={() => { setIsModalOpen(false); setEditingWarehouse(null); }}
                   className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
                 >
@@ -114,21 +111,21 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse }: Al
                   <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificação do Local</label>
                   <input required name="name" type="text" placeholder="Ex: Depósito Central - Zona Norte" className={inputClass} defaultValue={editingWarehouse?.name || ''} />
                 </div>
-
+                
                 <div className="space-y-2">
                   <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Endereço de Referência</label>
                   <input required name="location" type="text" placeholder="Ex: Av. das Indústrias, 500" className={inputClass} defaultValue={editingWarehouse?.location || ''} />
                 </div>
 
                 <div className="pt-6 flex gap-4">
-                  <button
+                  <button 
                     type="button"
                     onClick={() => { setIsModalOpen(false); setEditingWarehouse(null); }}
                     className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
                   >
                     Cancelar
                   </button>
-                  <button
+                  <button 
                     type="submit"
                     className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
                   >

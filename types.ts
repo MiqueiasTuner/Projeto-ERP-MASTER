@@ -54,7 +54,6 @@ export interface Quote {
   date: string;
   validUntil?: string;
   notes?: string;
-  organizationId?: string;
 }
 
 export interface PropertyLog {
@@ -111,14 +110,12 @@ export interface StockMovement {
   propertyId?: string;
   description: string;
   attachmentUrl?: string;
-  organizationId?: string;
 }
 
 export interface Warehouse {
   id: string;
   name: string;
   location: string;
-  organizationId?: string;
 }
 
 export enum UserRole {
@@ -159,7 +156,6 @@ export interface UserAccount {
   phone?: string;
   jobTitle?: string;
   bio?: string;
-  organizationId?: string;
 }
 
 export interface ChatMessage {
@@ -318,18 +314,18 @@ export interface Property {
   brokerName?: string;
   saleNotes?: string;
   images: string[];
-
+  
   // Legal & Registration
   legalEscritura?: number;
   legalItbi?: number;
   legalTaxasRegistro?: number;
   legalCertidoes?: number; // Despesas Registro/Certidoes
-
+  
   // Ongoing Expenses (Pre-sale)
   expenseCondo?: number; // Desp. Condom.
   expenseIptu?: number; // Desp. IPTU
   expensePostAcquisition?: number; // Despesas IPTU/COND. AGUA/ENERGIA POS/ARREMATAÇAO
-
+  
   // Others
   budgetReforma?: number;
   expenseMaterials?: number; // Despesas Reforma - Materiais (R$)
@@ -337,7 +333,7 @@ export interface Property {
   salesTax?: number;
   taxes?: number; // Impostos (R$)
   otherCosts?: number; // Outros Custos
-
+  
   itbiPaid?: boolean;
   registroPaid?: boolean;
 

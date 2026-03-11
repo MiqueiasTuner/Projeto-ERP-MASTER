@@ -241,6 +241,35 @@ const AppContent = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
+  // Frontend Protection
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Disable F12
+      if (e.key === 'F12') {
+        e.preventDefault();
+      }
+      // Disable Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+      if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+        e.preventDefault();
+      }
+      if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const [properties, setProperties] = useState<Property[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -581,7 +610,7 @@ const AppContent = () => {
         <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} />} />
         
         {/* Broker Routes */}
-        <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
+        <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} leads={leads} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
         <Route path="/corretor" element={<BrokerDashboard leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} />} />
         <Route path="/corretor/imoveis" element={<BrokerProperties properties={properties} />} />
         <Route path="/corretor/imovel/:id" element={<BrokerPropertyDetails properties={properties} onAddLead={addLead} currentUser={currentUser} />} />

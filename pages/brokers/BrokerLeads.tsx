@@ -143,7 +143,16 @@ const BrokerLeads = ({ leads, properties, onUpdateLead }: {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#F8FAFC'
+        backgroundColor: '#F8FAFC',
+        onclone: (clonedDoc) => {
+          const styleTags = clonedDoc.getElementsByTagName('style');
+          for (let i = 0; i < styleTags.length; i++) {
+            const style = styleTags[i];
+            if (style.innerHTML.includes('oklch')) {
+              style.innerHTML = style.innerHTML.replace(/oklch\([^)]+\)/g, '#000');
+            }
+          }
+        }
       });
       
       const imgData = canvas.toDataURL('image/png');
