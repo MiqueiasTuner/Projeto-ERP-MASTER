@@ -138,6 +138,13 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
             <ArrowLeft size={20} className="text-slate-600" />
           </button>
           <div className="min-w-0">
+            {property.address && (
+              <div className="mb-2">
+                <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm inline-block max-w-full truncate">
+                  {property.address}
+                </span>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-3 mb-1">
               <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight truncate">
                 {property.title || property.condoName || property.neighborhood}
@@ -186,10 +193,14 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none" />
             <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 pr-6">
+              {property.address && (
+                <span className="inline-block bg-blue-600/80 backdrop-blur-md text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 border border-white/20">
+                  {property.address}
+                </span>
+              )}
               <p className="text-white font-black text-xl md:text-3xl tracking-tight leading-tight">
                 {property.title || property.condoName || property.neighborhood}
               </p>
-              <p className="text-white/80 font-bold uppercase tracking-widest text-[10px] md:text-xs mt-1">{property.address}</p>
             </div>
           </div>
           <div className="flex lg:flex-col gap-4 overflow-x-auto lg:overflow-y-auto pb-4 lg:pb-0 pr-2 scrollbar-hide">

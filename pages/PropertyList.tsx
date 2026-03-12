@@ -108,9 +108,9 @@ const PropertyKanbanCard = React.memo(({
       <div className="p-5 flex-1 flex flex-col">
         <div className="mb-4">
           <div className="flex flex-wrap gap-2 mb-2">
-            {property.title && (
-              <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border border-blue-100">
-                {property.title}
+            {property.address && (
+              <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border border-blue-100 truncate max-w-full">
+                {property.address}
               </span>
             )}
             {property.status === PropertyStatus.VENDIDO && (
@@ -578,10 +578,10 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                       <div className="absolute top-5 left-5"><span className="text-[9px] font-black uppercase tracking-[0.2em] text-white bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10">{p.status}</span></div>
                    </div>
                    <div className="p-8">
-                      {p.title && (
+                      {p.address && (
                         <div className="mb-3">
                           <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">
-                            {p.title}
+                            {p.address}
                           </span>
                         </div>
                       )}
