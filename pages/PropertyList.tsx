@@ -120,7 +120,7 @@ const PropertyKanbanCard = React.memo(({
             )}
           </div>
           <h4 className="font-black text-slate-900 text-sm truncate mb-1 tracking-tight">
-            {property.condoName || property.neighborhood}
+            {property.title || property.condoName || property.neighborhood}
           </h4>
           <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
             <MapPin size={10} className="mr-1 text-blue-500" /> 
@@ -587,7 +587,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                       )}
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-black text-slate-900 truncate flex-1 tracking-tight text-xl">
-                          {p.condoName || p.neighborhood}
+                          {p.title || p.condoName || p.neighborhood}
                         </h3>
                         <div className="text-emerald-600 font-black text-base">{metrics.roi.toFixed(0)}%</div>
                       </div>

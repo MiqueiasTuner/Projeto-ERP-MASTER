@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Save, X, AlertCircle, Info, Landmark, ShieldCheck, HardHat, Image as ImageIcon, Plus, Trash2, Upload, Users, DollarSign } from 'lucide-react';
 import { Property, PropertyStatus, PropertyType } from '../types';
 import { formatBRLMask, parseBRLToFloat } from '../utils';
@@ -71,6 +72,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
   const navigate = useNavigate();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   
   const [formData, setFormData] = useState<Partial<Property>>({
     status: PropertyStatus.ARREMATADO,
@@ -144,7 +146,8 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
   const selectClass = "w-full bg-slate-50 text-slate-900 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none";
 
   return (
-    <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-500">
+    <>
+      <div className="max-w-5xl mx-auto pb-32 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-10">
         <div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2">{id ? 'Ficha do Ativo' : 'Novo Arremate'}</h2>
@@ -165,7 +168,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-12">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-8 sm:space-y-12">
         {/* GALERIA */}
         <section className="bg-white p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border border-slate-200 shadow-sm space-y-8">
           <div className="flex items-center space-x-3 text-blue-600 border-b border-slate-50 pb-4">
@@ -361,24 +364,37 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
           </div>
         </section>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6">
-          <button 
-            type="button" 
-            onClick={() => onCancel ? onCancel() : navigate(-1)}
-            className="order-2 sm:order-1 px-10 py-5 rounded-[24px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all"
-          >
-            Descartar
-          </button>
-          <button 
-            type="submit" 
-            className="order-1 sm:order-2 bg-blue-600 text-white px-12 py-5 rounded-[24px] font-black text-sm sm:text-base shadow-2xl shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center space-x-3 uppercase tracking-widest"
-          >
-            <Save size={20} strokeWidth={2.5} />
-            <span>Salvar Ativo</span>
-          </button>
-        </div>
       </form>
-    </div>
+
+      </div>
+
+      {/* Floating Action Bar - Moved outside to avoid transform issues */}
+      <motion.div 
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5, type: 'spring', damping: 20 }}
+        className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 z-[100] flex items-center gap-4"
+      >
+        <button 
+          type="button" 
+          onClick={() => onCancel ? onCancel() : navigate(-1)}
+          className="hidden sm:flex bg-white/90 backdrop-blur-xl border border-slate-200 px-8 py-4 rounded-[24px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-all shadow-2xl hover:bg-white items-center gap-2"
+        >
+          <X size={18} />
+          <span>Descartar</span>
+        </button>
+        <button 
+          type="button"
+          onClick={() => {
+            if (formRef.current) formRef.current.requestSubmit();
+          }}
+          className="bg-blue-600 text-white px-8 sm:px-12 py-5 rounded-[24px] font-black text-sm sm:text-base shadow-[0_20px_50px_rgba(37,99,235,0.4)] hover:bg-blue-700 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center space-x-3 uppercase tracking-widest border border-blue-500/20"
+        >
+          <Save size={22} strokeWidth={2.5} />
+          <span>Salvar Ativo</span>
+        </button>
+      </motion.div>
+    </>
   );
 };
 

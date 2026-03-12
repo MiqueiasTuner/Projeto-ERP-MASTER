@@ -142,16 +142,18 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
+        title: auctionToWon.title,
         type: auctionToWon.propertyType || PropertyType.CASA,
         city: auctionToWon.city,
         neighborhood: auctionToWon.neighborhood,
-        address: auctionToWon.title, // Use title as address placeholder
+        condoName: auctionToWon.title,
+        address: auctionToWon.title,
         sizeM2: 0,
         status: PropertyStatus.ARREMATADO,
         acquisitionDate: new Date().toISOString().split('T')[0],
         acquisitionPrice: auctionToWon.currentBid || auctionToWon.initialPrice,
         bankValuation: (auctionToWon.currentBid || auctionToWon.initialPrice) * 1.5,
-        auctioneerCommission: (auctionToWon.currentBid || auctionToWon.initialPrice) * 0.05,
+        auctioneerCommission: 0,
         images: [],
         itbiPaid: false,
         registroPaid: false

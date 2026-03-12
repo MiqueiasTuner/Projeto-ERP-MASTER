@@ -139,7 +139,9 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           </button>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3 mb-1">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight truncate">{property.neighborhood}</h2>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight truncate">
+                {property.title || property.condoName || property.neighborhood}
+              </h2>
               <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${
                 property.status === PropertyStatus.VENDIDO ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
               }`}>
@@ -184,7 +186,9 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none" />
             <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 pr-6">
-              <p className="text-white font-black text-xl md:text-3xl tracking-tight leading-tight">{property.neighborhood}</p>
+              <p className="text-white font-black text-xl md:text-3xl tracking-tight leading-tight">
+                {property.title || property.condoName || property.neighborhood}
+              </p>
               <p className="text-white/80 font-bold uppercase tracking-widest text-[10px] md:text-xs mt-1">{property.address}</p>
             </div>
           </div>
