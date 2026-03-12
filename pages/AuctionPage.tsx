@@ -13,7 +13,7 @@ import {
   DollarSign, Building2, Filter, MoreVertical, FileDown, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { formatCurrency, formatDate } from '../utils';
+import { formatCurrency, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import CustomDatePicker from '../src/components/CustomDatePicker';
 import { reportService } from '../ReportService';
 
@@ -81,8 +81,8 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       link: formData.get('link') as string,
       date: auctionDate,
       status: (formData.get('status') as AuctionStatus) || AuctionStatus.OPEN,
-      initialPrice: Number(formData.get('initialPrice')),
-      myMaxBid: Number(formData.get('myMaxBid')),
+      initialPrice: parseBRLToFloat(formData.get('initialPrice') as string) || 0,
+      myMaxBid: parseBRLToFloat(formData.get('myMaxBid') as string) || 0,
       propertyType: formData.get('propertyType') as PropertyType,
       city: formData.get('city') as string,
       neighborhood: formData.get('neighborhood') as string,
@@ -439,13 +439,16 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
                         <input 
                           name="initialPrice" 
-                          type="number" 
-                          step="0.01" 
-                          defaultValue={editingAuction?.initialPrice === 0 ? '' : editingAuction?.initialPrice} 
+                          type="text" 
+                          defaultValue={formatBRLMask(editingAuction?.initialPrice)} 
                           onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = parseBRLToFloat(e.target.value);
+                            e.target.value = formatBRLMask(val);
+                          }}
                           required 
                           className={`${inputClass} pl-10`}
-                          placeholder="0.00"
+                          placeholder="0,00"
                         />
                       </div>
                     </div>
@@ -456,12 +459,15 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
                         <input 
                           name="myMaxBid" 
-                          type="number" 
-                          step="0.01" 
-                          defaultValue={editingAuction?.myMaxBid === 0 ? '' : editingAuction?.myMaxBid} 
+                          type="text" 
+                          defaultValue={formatBRLMask(editingAuction?.myMaxBid)} 
                           onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = parseBRLToFloat(e.target.value);
+                            e.target.value = formatBRLMask(val);
+                          }}
                           className={`${inputClass} pl-10`}
-                          placeholder="0.00"
+                          placeholder="0,00"
                         />
                       </div>
                     </div>
@@ -612,14 +618,17 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                 <div className="space-y-6">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor do Lance (R$)</label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(Number(e.target.value))}
-                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none font-black text-2xl text-center text-blue-600"
-                      autoFocus
-                    />
+                    <div className="relative">
+                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-blue-400 font-black text-2xl z-10">R$</span>
+                      <input 
+                        type="text" 
+                        value={formatBRLMask(bidAmount)}
+                        onChange={(e) => setBidAmount(parseBRLToFloat(e.target.value) || 0)}
+                        className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none font-black text-2xl text-center text-blue-600"
+                        autoFocus
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
                     <p className="text-[10px] text-slate-400 font-bold mt-2 text-center uppercase tracking-widest">
                       Lance Atual: {formatCurrency(selectedAuction.currentBid || 0)}
                     </p>

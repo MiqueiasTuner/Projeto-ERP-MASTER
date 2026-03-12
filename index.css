@@ -4,6 +4,14 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+html {
+  font-size: 14px;
+}
+
+body {
+  @apply text-slate-900 antialiased;
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;

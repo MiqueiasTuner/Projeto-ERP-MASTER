@@ -358,8 +358,8 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
         </aside>
 
         {/* Main Content */}
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${location.pathname === '/' ? 'bg-[#0A192F]' : 'bg-slate-50'} relative ${location.pathname === '/calendario' ? '' : 'p-6 lg:p-10'}`}>
-          <div className={location.pathname === '/calendario' ? 'h-full' : 'max-w-7xl mx-auto pb-20 lg:pb-0'}>
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${location.pathname === '/' ? 'bg-[#0A192F]' : 'bg-slate-50'} relative ${location.pathname === '/calendario' ? '' : 'p-4 lg:p-8'}`}>
+          <div className={location.pathname === '/calendario' ? 'h-full' : 'max-w-[1440px] mx-auto pb-20 lg:pb-0'}>
             {children}
           </div>
           {location.pathname === '/' && (

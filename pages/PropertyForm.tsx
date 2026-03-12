@@ -312,6 +312,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
             <InputField label="Materiais Reforma" path="expenseMaterials" type="currency" prefix="R$" value={formData.expenseMaterials} onChange={handleChange} />
             <InputField label="Alvo de Venda" path="salePrice" type="currency" prefix="R$" value={formData.salePrice} onChange={handleChange} />
             <InputField label="Data da Venda" path="saleDate" type="date" value={formData.saleDate} onChange={handleChange} />
+            <InputField label="Imposto de Renda (IR)" path="expenseIR" type="currency" prefix="R$" value={formData.expenseIR} onChange={handleChange} />
             <InputField label="Corretagem" path="brokerage" type="currency" prefix="R$" value={formData.brokerage} onChange={handleChange} />
             <InputField label="Taxas Venda" path="salesTax" type="currency" prefix="R$" value={formData.salesTax} onChange={handleChange} />
             <InputField label="Outros Custos" path="otherCosts" type="currency" prefix="R$" value={formData.otherCosts} onChange={handleChange} />

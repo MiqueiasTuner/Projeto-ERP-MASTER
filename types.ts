@@ -332,6 +332,7 @@ export interface Property {
   brokerage?: number;
   salesTax?: number;
   taxes?: number; // Impostos (R$)
+  expenseIR?: number; // Imposto de Renda (IR)
   otherCosts?: number; // Outros Custos
   
   itbiPaid?: boolean;

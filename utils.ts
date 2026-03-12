@@ -29,14 +29,19 @@ export const formatBRLMask = (value: number | string | undefined | null): string
   if (value === undefined || value === null || value === '') return '';
   
   // Se for um número (do banco), multiplica por 100 para tratar como centavos na máscara
-  const numericValue = typeof value === 'number' 
+  let numericValue = typeof value === 'number' 
     ? Math.round(value * 100).toString() 
     : value.replace(/\D/g, '');
   
-  if (numericValue === '' || numericValue === '0') return '';
+  // Remove zeros à esquerda
+  numericValue = numericValue.replace(/^0+/, '');
   
-  const integerPart = numericValue.slice(0, -2) || '0';
-  const decimalPart = numericValue.slice(-2).padStart(2, '0');
+  if (numericValue === '') return '0,00';
+  if (numericValue.length === 1) return `0,0${numericValue}`;
+  if (numericValue.length === 2) return `0,${numericValue}`;
+  
+  const integerPart = numericValue.slice(0, -2);
+  const decimalPart = numericValue.slice(-2);
   
   const formattedInteger = parseInt(integerPart).toLocaleString('pt-BR');
   return `${formattedInteger},${decimalPart}`;
@@ -44,8 +49,11 @@ export const formatBRLMask = (value: number | string | undefined | null): string
 
 // Converte a string mascarada de volta para um número float ou null se vazio
 export const parseBRLToFloat = (value: string): number | null => {
+  // Se o usuário digitou apenas um ponto ou vírgula, não reseta o valor
+  if (value === '.' || value === ',') return null;
+  
   const cleanValue = value.replace(/\D/g, '');
-  if (!cleanValue) return null;
+  if (!cleanValue) return 0;
   return parseFloat(cleanValue) / 100;
 };
 
@@ -78,6 +86,7 @@ export const calculatePropertyMetrics = (p: Property, expenses: Expense[]): Prop
     (p.expensePostAcquisition ?? 0) +
     (p.expenseMaterials ?? 0) +
     (p.taxes ?? 0) +
+    (p.expenseIR ?? 0) +
     (p.brokerage ?? 0) +
     (p.salesTax ?? 0) +
     (p.otherCosts ?? 0);
