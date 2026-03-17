@@ -21,9 +21,10 @@ import {
   Edit3,
   FileUp,
   Loader2,
-  Download
+  Download,
+  ExternalLink
 } from 'lucide-react';
-import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType } from '../types';
+import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType, UserAccount } from '../types';
 import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
@@ -46,96 +47,111 @@ const PropertyKanbanCard = React.memo(({
 }: { 
   property: Property, 
   metrics: any, 
-  onEdit: () => void,
-  onView: () => void,
-  onDelete: (e: React.MouseEvent) => void,
-  onMoveLeft?: () => void,
-  onMoveRight?: () => void
+  onEdit: () => void, 
+  onView: () => void, 
+  onDelete: (e: React.MouseEvent) => void, 
+  onMoveLeft?: () => void, 
+  onMoveRight?: () => void 
 }) => {
   return (
     <div 
-      className="bg-white rounded-[24px] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col"
+      className="bg-[var(--bg-card)] rounded-[24px] border border-[var(--border)] shadow-sm hover:shadow-xl hover:shadow-yellow-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col"
     >
       {/* Image Section */}
-      <div className="h-32 overflow-hidden bg-slate-100 relative">
+      <div className="h-24 overflow-hidden bg-[var(--bg-card-alt)] relative">
         {property.images && property.images.length > 0 ? (
           <img src={property.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" referrerPolicy="no-referrer" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={24} /></div>
+          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><ImageIcon size={20} /></div>
         )}
         
         {/* Overlay Badges */}
-        <div className="absolute top-3 left-3">
-          <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-white/20 flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black text-slate-900 uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
+        <div className="absolute top-2 left-2">
+          <div className="bg-[var(--bg-card)]/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-sm border border-white/20 flex items-center gap-1">
+            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[8px] font-black text-[var(--text-main)] uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
           </div>
         </div>
 
-        <div className="absolute top-3 right-3 flex gap-1.5">
+        <div className="absolute top-2 right-2 flex gap-1">
           <button 
             onClick={onDelete}
-            className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
+            className="p-1.5 bg-[var(--bg-card)]/90 backdrop-blur-md rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
           >
-            <Trash2 size={14} />
+            <Trash2 size={12} />
           </button>
         </div>
 
         {/* Navigation Arrows */}
-        <div className="absolute inset-x-0 bottom-2 flex justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute inset-x-0 bottom-1.5 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onMoveLeft ? (
             <button 
               onClick={(e) => { e.stopPropagation(); onMoveLeft(); }}
-              className="p-1.5 bg-white/90 backdrop-blur-md rounded-lg text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+              className="p-1 bg-[var(--bg-card)]/90 backdrop-blur-md rounded-lg text-[var(--text-muted)] hover:bg-yellow-600 hover:text-black transition-all shadow-sm"
               title="Mover para esquerda"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={12} />
             </button>
           ) : <div />}
           {onMoveRight ? (
             <button 
               onClick={(e) => { e.stopPropagation(); onMoveRight(); }}
-              className="p-1.5 bg-white/90 backdrop-blur-md rounded-lg text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+              className="p-1 bg-[var(--bg-card)]/90 backdrop-blur-md rounded-lg text-[var(--text-muted)] hover:bg-yellow-600 hover:text-black transition-all shadow-sm"
               title="Mover para direita"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={12} />
             </button>
           ) : <div />}
         </div>
       </div>
 
       {/* Content Section */}
-      <div className="p-5 flex-1 flex flex-col">
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-2 mb-2">
+      <div className="p-3 cursor-pointer flex-1 flex flex-col" onClick={onView}>
+        <div className="mb-2">
+          <div className="flex flex-wrap gap-1 mb-1.5">
             {property.address && (
-              <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border border-blue-100 truncate max-w-full">
+              <span className="bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border border-[var(--accent)]/20 truncate max-w-full">
                 {property.address}
               </span>
             )}
+            {property.status === PropertyStatus.ARREMATADO && (
+              <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--status-arrematado)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
+                ARREMATADO
+              </span>
+            )}
+            {property.status === PropertyStatus.EM_REFORMA && (
+              <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--status-reforma)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
+                EM REFORMA
+              </span>
+            )}
+            {property.status === PropertyStatus.A_VENDA && (
+              <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--status-venda)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
+                À VENDA
+              </span>
+            )}
             {property.status === PropertyStatus.VENDIDO && (
-              <span className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/30 border border-emerald-400/20">
+              <span className="px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider shadow-lg border" style={{ backgroundColor: 'var(--status-vendido)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
                 VENDIDO
               </span>
             )}
           </div>
-          <h4 className="font-black text-slate-900 text-sm truncate mb-1 tracking-tight">
+          <h4 className="font-black text-[var(--text-main)] text-[11px] truncate mb-0.5 tracking-tight uppercase">
             {property.title || property.condoName || property.neighborhood}
           </h4>
-          <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            <MapPin size={10} className="mr-1 text-blue-500" /> 
+          <div className="flex items-center text-[8px] text-[var(--text-muted)] font-bold uppercase tracking-widest">
+            <MapPin size={8} className="mr-1 text-yellow-500" /> 
             <span className="truncate">{property.city}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Investido</p>
-            <p className="text-[11px] font-black text-slate-900 truncate">{formatCurrency(metrics.totalInvested)}</p>
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border)]">
+          <div>
+            <p className="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Investido</p>
+            <p className="text-[10px] font-black text-[var(--text-main)] truncate">{formatCurrency(metrics.totalInvested)}</p>
           </div>
-          <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Área</p>
-            <p className="text-[11px] font-black text-slate-900">{property.sizeM2}m²</p>
+          <div className="text-right">
+            <p className="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Área</p>
+            <p className="text-[10px] font-black text-[var(--text-main)]">{property.sizeM2}m²</p>
           </div>
         </div>
 
@@ -143,22 +159,32 @@ const PropertyKanbanCard = React.memo(({
         <div className="mt-auto flex gap-2 pointer-events-auto">
           <button 
             onClick={(e) => { e.stopPropagation(); onView(); }}
-            className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-[var(--bg-header)] text-[var(--text-header)] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-yellow-600 hover:text-black transition-all flex items-center justify-center gap-2"
           >
             <Maximize2 size={12} /> Detalhes
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-2.5 bg-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-xl transition-all"
             title="Editar Cadastro"
           >
             <Edit3 size={14} />
           </button>
+          <Link 
+            to={`/publico/imovel/${property.id}`}
+            target="_blank"
+            onClick={(e) => e.stopPropagation()}
+            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
+            title="Ver Página Pública"
+          >
+            <ExternalLink size={14} />
+          </Link>
         </div>
       </div>
     </div>
   );
 });
+;
 
 interface KanbanColumnProps {
   status: PropertyStatus;
@@ -188,22 +214,24 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   return (
     <div 
-      className="flex flex-col min-w-[300px] max-w-[340px] rounded-[32px] p-4 min-h-[600px] transition-all duration-300 bg-slate-100/50"
+      className="flex flex-col flex-1 min-w-[280px] rounded-[24px] p-3 min-h-[600px] transition-all duration-300 bg-[var(--bg-card-alt)]"
     >
       <div className="flex items-center justify-between mb-6 px-2">
         <div className="flex flex-col">
-          <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.15em] mb-1">
+          <h3 className="text-[11px] font-black text-[var(--text-main)] uppercase tracking-[0.15em] mb-1">
             {status}
           </h3>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+          <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
             {items.length} Ativos • {formatCurrency(totalValue)}
           </p>
         </div>
-        <div className={`w-2 h-2 rounded-full ${
-          status === PropertyStatus.ARREMATADO ? 'bg-blue-500' :
-          status === PropertyStatus.EM_REFORMA ? 'bg-amber-500' :
-          status === PropertyStatus.A_VENDA ? 'bg-emerald-500' : 'bg-slate-400'
-        }`} />
+        <div className="w-2 h-2 rounded-full" style={{ 
+          backgroundColor: 
+            status === PropertyStatus.ARREMATADO ? 'var(--status-arrematado)' :
+            status === PropertyStatus.EM_REFORMA ? 'var(--status-reforma)' :
+            status === PropertyStatus.A_VENDA ? 'var(--status-venda)' : 
+            status === PropertyStatus.VENDIDO ? 'var(--status-vendido)' : 'var(--text-muted)'
+        }} />
       </div>
       
       <div className="space-y-4 flex-1">
@@ -224,7 +252,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         ))}
         
         {items.length === 0 && (
-          <div className="h-40 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-[24px] bg-white/30">
+          <div className="h-40 flex flex-col items-center justify-center text-[var(--text-muted)] border-2 border-dashed border-[var(--border)] rounded-[24px] bg-[var(--bg-card)]/30">
             <Building size={24} className="mb-2 opacity-20" />
             <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Vazio</p>
           </div>
@@ -240,9 +268,10 @@ interface PropertyListProps {
   onUpdateStatus: (id: string, status: PropertyStatus) => void;
   onDeleteProperty: (id: string) => void;
   addLog?: (log: any) => Promise<void>;
+  currentUser: UserAccount;
 }
 
-const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, addLog }: PropertyListProps) => {
+const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, addLog, currentUser }: PropertyListProps) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('kanban');
   const [search, setSearch] = useState('');
@@ -429,6 +458,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
             const id = crypto.randomUUID();
             return {
               id,
+              organizationId: currentUser.organizationId || '',
               title: row.Titulo || row.title || '',
               type: (row.Tipo || row.type || PropertyType.APARTAMENTO) as PropertyType,
               acquisitionType: (row.TipoAquisicao || row.acquisitionType || AcquisitionType.LEILAO_JUDICIAL) as AcquisitionType,
@@ -484,8 +514,8 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Ativos Operacionais</h2>
-          <p className="text-slate-500 font-medium">Controle de portfólio e pipeline de obras.</p>
+          <h2 className="text-3xl lg:text-4xl font-black text-[var(--text-main)] tracking-tight">Ativos Operacionais</h2>
+          <p className="text-[var(--text-muted)] font-medium">Controle de portfólio e pipeline de obras.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
            <input 
@@ -498,14 +528,14 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
            <button 
              onClick={exportToPDF}
              disabled={isExportingPdf}
-             className="bg-white border border-slate-200 text-slate-600 p-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
+             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
              title="Exportar Relatório PDF"
            >
              {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
            </button>
            <button 
              onClick={downloadCSVTemplate}
-             className="bg-white border border-slate-200 text-slate-600 p-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
+             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
              title="Baixar Template CSV"
            >
              <Download size={20} />
@@ -513,32 +543,32 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
            <button 
              onClick={() => fileInputRef.current?.click()}
              disabled={isImporting}
-             className="bg-white border border-slate-200 text-slate-600 px-6 py-4 rounded-[28px] font-black hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
+             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
            >
              {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
              <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
            </button>
-           <div className="bg-white border border-slate-200 rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-3">
-              <button onClick={() => setViewMode('kanban')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-3">
+              <button onClick={() => setViewMode('kanban')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'kanban' ? 'bg-[var(--bg-header)] text-[var(--text-header)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                 <KanbanIcon size={18} /> <span>Kanban</span>
               </button>
-              <button onClick={() => setViewMode('grid')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'grid' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button onClick={() => setViewMode('grid')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'grid' ? 'bg-[var(--bg-header)] text-[var(--text-header)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                 <LayoutGrid size={18} /> <span>Grade</span>
               </button>
            </div>
-           <Link to="/novo" className="bg-blue-600 text-white px-8 py-4 rounded-[28px] font-black hover:bg-blue-700 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-blue-500/20 order-1 sm:order-2 active:scale-95">
+           <Link to="/novo" className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-[var(--accent)]/20 order-1 sm:order-2 active:scale-95">
             <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
            </Link>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-[28px] border border-slate-200 shadow-sm">
+      <div className="bg-[var(--bg-card)] p-4 rounded-[28px] border border-[var(--border)] shadow-sm">
         <div className="relative w-full">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={20} />
           <input 
             type="text" 
             placeholder="Buscar por condomínio, bairro ou cidade..." 
-            className="w-full pl-14 pr-6 py-4.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-[20px] focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-medium placeholder:text-slate-400 transition-all text-sm"
+            className="w-full pl-14 pr-6 py-4.5 bg-[var(--bg-card-alt)] text-[var(--text-main)] border border-[var(--border)] rounded-[20px] focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 outline-none font-medium placeholder:text-[var(--text-muted)] transition-all text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -565,49 +595,59 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
           {filteredProperties.map(p => {
              const metrics = calculatePropertyMetrics(p, expenses);
              return (
-              <div key={p.id} className="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative">
+      <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative">
                  <button 
                    onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
-                   className="absolute top-5 right-5 z-10 p-2.5 bg-white/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
+                   className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
                  >
                    <Trash2 size={16} />
                  </button>
                  <div onClick={() => handleViewDetails(p.id)} className="cursor-pointer">
-                   <div className="h-52 relative overflow-hidden bg-slate-100">
-                      {p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={40} /></div>}
-                      <div className="absolute top-5 left-5"><span className="text-[9px] font-black uppercase tracking-[0.2em] text-white bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10">{p.status}</span></div>
+                   <div className="h-52 relative overflow-hidden bg-[var(--bg-card-alt)]">
+                      {p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><ImageIcon size={40} /></div>}
+                      <div className="absolute top-5 left-5">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10" style={{ 
+                          backgroundColor: 
+                            p.status === PropertyStatus.ARREMATADO ? 'var(--status-arrematado)' :
+                            p.status === PropertyStatus.EM_REFORMA ? 'var(--status-reforma)' :
+                            p.status === PropertyStatus.A_VENDA ? 'var(--status-venda)' : 
+                            p.status === PropertyStatus.VENDIDO ? 'var(--status-vendido)' : 'var(--bg-header)'
+                        }}>
+                          {p.status}
+                        </span>
+                      </div>
                    </div>
                    <div className="p-8">
                       {p.address && (
                         <div className="mb-3">
-                          <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">
+                          <span className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-[var(--accent)]/20 shadow-sm">
                             {p.address}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-black text-slate-900 truncate flex-1 tracking-tight text-xl">
+                        <h3 className="font-black text-[var(--text-main)] truncate flex-1 tracking-tight text-xl">
                           {p.title || p.condoName || p.neighborhood}
                         </h3>
                         <div className="text-emerald-600 font-black text-base">{metrics.roi.toFixed(0)}%</div>
                       </div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
+                      <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-6">
                         {p.city} {p.neighborhood2 ? `• ${p.neighborhood2}` : ''}
                       </p>
-                      <div className="flex justify-between items-end border-t border-slate-50 pt-6">
+                      <div className="flex justify-between items-end border-t border-[var(--border)] pt-6">
                         <div className="min-w-0">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Capital Alocado</p>
-                          <p className="font-black text-slate-900 text-lg truncate">{formatCurrency(metrics.totalInvested)}</p>
+                          <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5">Capital Alocado</p>
+                          <p className="font-black text-[var(--text-main)] text-lg truncate">{formatCurrency(metrics.totalInvested)}</p>
                         </div>
                         <div className="flex gap-2">
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleEditProperty(p); }}
-                            className="p-3 bg-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
+                            className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-2xl transition-all"
                             title="Editar Cadastro"
                           >
                             <Edit3 size={20} />
                           </button>
-                          <div className="bg-slate-900 text-white p-3 rounded-2xl group-hover:bg-blue-600 transition-all">
+                          <div className="bg-[var(--bg-header)] text-[var(--text-header)] p-3 rounded-2xl group-hover:bg-yellow-500 group-hover:text-black transition-all">
                             <ArrowRight size={20} />
                           </div>
                         </div>
@@ -625,29 +665,29 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
       {/* Sold Modal */}
       <AnimatePresence>
         {isSoldModalOpen && targetProperty && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[var(--bg-header)]/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl"
+              className="bg-[var(--bg-card)] rounded-[40px] w-full max-w-lg p-10 shadow-2xl border border-[var(--border)]"
             >
               <div className="text-center mb-10">
-                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 bg-emerald-500/10 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <DollarSign size={40} />
                 </div>
-                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Confirmar Venda</h3>
-                <p className="text-slate-500 font-medium mt-2">Registre os detalhes da transação final.</p>
+                <h3 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Confirmar Venda</h3>
+                <p className="text-[var(--text-muted)] font-medium mt-2">Registre os detalhes da transação final.</p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor de Venda Real (R$)</label>
+                  <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Valor de Venda Real (R$)</label>
                   <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">R$</span>
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-black">R$</span>
                     <input 
                       type="text"
-                      className="w-full bg-slate-50 pl-12 pr-6 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-black text-xl text-emerald-600"
+                      className="w-full bg-[var(--bg-card-alt)] pl-12 pr-6 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-black text-xl text-emerald-600"
                       value={formatBRLMask(saleData.salePrice)}
                       onChange={(e) => setSaleData({...saleData, salePrice: parseBRLToFloat(e.target.value) || 0})}
                       onFocus={(e) => e.target.select()}
@@ -657,7 +697,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data da Venda</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Data da Venda</label>
                     <CustomDatePicker 
                       selected={saleData.saleDate ? new Date(saleData.saleDate + 'T00:00:00') : null}
                       onChange={(date) => setSaleData({...saleData, saleDate: date ? date.toISOString().split('T')[0] : ''})}
@@ -665,10 +705,10 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Corretor Responsável</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Corretor Responsável</label>
                     <input 
                       type="text"
-                      className="w-full bg-slate-50 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-sm"
+                      className="w-full bg-[var(--bg-card-alt)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium text-sm text-[var(--text-main)]"
                       placeholder="Nome do corretor"
                       value={saleData.brokerName}
                       onChange={(e) => setSaleData({...saleData, brokerName: e.target.value})}
@@ -677,9 +717,9 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Observações da Venda</label>
+                  <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Observações da Venda</label>
                   <textarea 
-                    className="w-full bg-slate-50 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-sm h-24 resize-none"
+                    className="w-full bg-[var(--bg-card-alt)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium text-sm h-24 resize-none text-[var(--text-main)]"
                     placeholder="Detalhes adicionais..."
                     value={saleData.saleNotes}
                     onChange={(e) => setSaleData({...saleData, saleNotes: e.target.value})}
@@ -689,7 +729,7 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 <div className="flex gap-4 pt-4">
                   <button 
                     onClick={() => setIsSoldModalOpen(false)} 
-                    className="flex-1 px-8 py-5 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
+                    className="flex-1 px-8 py-5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
@@ -709,29 +749,29 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
       {/* Asking Price Modal */}
       <AnimatePresence>
         {isAskingPriceModalOpen && targetProperty && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[var(--bg-header)]/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl"
+              className="bg-[var(--bg-card)] rounded-[40px] w-full max-w-lg p-10 shadow-2xl border border-[var(--border)]"
             >
               <div className="text-center mb-10">
-                <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 bg-yellow-500/10 text-yellow-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <TrendingUp size={40} />
                 </div>
-                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Colocar à Venda</h3>
-                <p className="text-slate-500 font-medium mt-2">Defina o valor de anúncio do imóvel.</p>
+                <h3 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Colocar à Venda</h3>
+                <p className="text-[var(--text-muted)] font-medium mt-2">Defina o valor de anúncio do imóvel.</p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor de Venda Pretendido (R$)</label>
+                  <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Valor de Venda Pretendido (R$)</label>
                   <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">R$</span>
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-black">R$</span>
                     <input 
                       type="text"
-                      className="w-full bg-slate-50 pl-12 pr-6 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-black text-xl text-blue-600"
+                      className="w-full bg-[var(--bg-card-alt)] pl-12 pr-6 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-black text-xl text-yellow-600"
                       value={formatBRLMask(saleData.salePrice)}
                       onChange={(e) => setSaleData({...saleData, salePrice: parseBRLToFloat(e.target.value) || 0})}
                       onFocus={(e) => e.target.select()}
@@ -742,13 +782,13 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 <div className="flex gap-4 pt-4">
                   <button 
                     onClick={() => setIsAskingPriceModalOpen(false)} 
-                    className="flex-1 px-8 py-5 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
+                    className="flex-1 px-8 py-5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
                   <button 
                     onClick={handleConfirmAskingPrice}
-                    className="flex-1 px-8 py-5 bg-blue-600 text-white rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20"
+                    className="flex-1 px-8 py-5 bg-yellow-500 text-black rounded-[24px] font-black text-xs uppercase tracking-widest hover:bg-yellow-600 transition-all shadow-xl shadow-yellow-500/20"
                   >
                     Confirmar Valor
                   </button>

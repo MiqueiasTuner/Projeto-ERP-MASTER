@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: auth.uid
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required)
+    //   - role: string (required, 'ADMIN' | 'OPERADOR')
+    //   - teamId: string (optional)
+    //   - organizationId: string (optional)
+    //   - active: boolean (required)
+    //   - permissions: map (required)
+    //
+    // Collection: teams
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (required)
+    //
+    // Collection: properties
+    // Document ID: auto-generated
+    // ... (other collections follow similar patterns)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
+          (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isAdmin() && 
+                    request.resource.data.role in ['Administrador', 'Operador', 'Corretor'] &&
+                    isValidEmail(request.resource.data.email);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) &&
+                    (isAdmin() || request.resource.data.role == resource.data.role);
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    match /teams/{teamId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /properties/{propertyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /inventory_items/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /inventory_movements/{movementId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /warehouses/{warehouseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /purchase_quotes/{quoteId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    match /leads/{leadId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

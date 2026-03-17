@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "An item in the inventory",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "minStock": { "type": "number" },
+        "currentStock": { "type": "number" },
+        "averageCost": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "usageStatus": { "type": "number" }
+      },
+      "required": ["name", "category", "unit"]
+    },
+    "InventoryMovement": {
+      "title": "Inventory Movement",
+      "description": "A stock movement (entry or exit)",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "type": { "type": "string", "enum": ["ENTRADA_COMPRA", "SAIDA_OBRA"] },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "destination": { "type": "string" },
+        "description": { "type": "string" },
+        "supplierId": { "type": "string" }
+      },
+      "required": ["itemId", "type", "quantity", "date"]
+    },
+    "Warehouse": {
+      "title": "Warehouse",
+      "description": "A warehouse location",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "location": { "type": "string" }
+      },
+      "required": ["name", "location"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A supplier of inventory items",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "category": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["name", "category"]
+    },
+    "PurchaseQuote": {
+      "title": "Purchase Quote",
+      "description": "A quote for purchasing inventory items",
+      "type": "object",
+      "properties": {
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["SOLICITADO", "COTACAO", "APROVADO", "RECEBIDO"] },
+        "date": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" }
+      },
+      "required": ["supplierId", "status", "date"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "A real estate property",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "location": { "type": "string" },
+        "price": { "type": "number" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "gallery": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["title", "location", "price"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A potential customer lead",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "brokerId": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "propertyId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "An application user",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "OPERADOR"] },
+        "teamId": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "active": { "type": "boolean" },
+        "permissions": { "type": "object" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "An organizational team or department",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/inventory_items": { "schema": "InventoryItem", "description": "Collection of inventory items" },
+    "/inventory_movements": { "schema": "InventoryMovement", "description": "Collection of stock movements" },
+    "/warehouses": { "schema": "Warehouse", "description": "Collection of warehouses" },
+    "/suppliers": { "schema": "Supplier", "description": "Collection of suppliers" },
+    "/purchase_quotes": { "schema": "PurchaseQuote", "description": "Collection of purchase quotes" },
+    "/properties": { "schema": "Property", "description": "Collection of properties" },
+    "/leads": { "schema": "Lead", "description": "Collection of leads" },
+    "/users": { "schema": "User", "description": "Collection of users" },
+    "/teams": { "schema": "Team", "description": "Collection of teams" }
+  }
+}

@@ -12,14 +12,14 @@ class ReportService {
     const pageWidth = pdf.internal.pageSize.getWidth();
     
     // Header background
-    pdf.setFillColor(10, 25, 47); // #0A192F
+    pdf.setFillColor(15, 23, 42); // slate-900
     pdf.rect(0, 0, pageWidth, 40, 'F');
     
     // Logo
     try {
       // We use a small trick to add the logo if it's available
       // For now, we'll just use text as a fallback or if image fails
-      pdf.setTextColor(255, 215, 0); // #FFD700
+      pdf.setTextColor(37, 99, 235); // blue-600
       pdf.setFontSize(22);
       pdf.setFont('helvetica', 'bold');
       pdf.text('SINTESE ERP', 20, 25);
@@ -188,7 +188,7 @@ class ReportService {
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
-      backgroundColor: '#0A192F',
+      backgroundColor: '#0F172A',
       onclone: (clonedDoc) => {
         const styleTags = clonedDoc.getElementsByTagName('style');
         for (let i = 0; i < styleTags.length; i++) {

@@ -25,11 +25,11 @@ const CustomDatePicker = ({ selected, onChange, placeholderText, className, minD
         dateFormat="dd/MM/yyyy"
         placeholderText={placeholderText}
         minDate={minDate}
-        className={`w-full bg-slate-50 text-slate-900 px-5 py-3.5 pl-12 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 text-sm ${className}`}
+        className={`w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-3.5 pl-12 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium placeholder:text-[var(--text-muted)] text-sm ${className}`}
       />
       <Calendar 
         size={18} 
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" 
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-yellow-500 transition-colors pointer-events-none" 
       />
     </div>
   );

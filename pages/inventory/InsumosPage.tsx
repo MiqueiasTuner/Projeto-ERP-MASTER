@@ -8,7 +8,7 @@ import {
   ArrowUpRight, History, MoreHorizontal, ChevronRight,
   ExternalLink, Building, XCircle, FileUp, FileDown, Loader2
 } from 'lucide-react';
-import { InventoryItem, StockMovement, MovementType } from '../../types';
+import { InventoryItem, StockMovement, MovementType, UserAccount } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { reportService } from '../../ReportService';
 
@@ -17,9 +17,10 @@ interface InsumosPageProps {
   movements?: StockMovement[];
   onDeleteItem: (id: string) => void;
   onAddItem: (item: Omit<InventoryItem, 'id'>) => void;
+  currentUser: UserAccount;
 }
 
-const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: InsumosPageProps) => {
+const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem, currentUser }: InsumosPageProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -51,6 +52,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
       skipEmptyLines: true,
       complete: (results) => {
         const importedItems = results.data.map((row: any) => ({
+          organizationId: currentUser.organizationId || '',
           name: row.nome || row.name || '',
           category: row.categoria || row.category || 'Outros',
           unit: (row.unidade || row.unit || 'un') as InventoryItem['unit'],
@@ -197,21 +199,21 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [selectedItem, movements]);
 
-  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+  const inputClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-3.5 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium placeholder:text-[var(--text-muted)]";
 
   return (
-    <div ref={pageRef} className="min-h-screen bg-[#F8FAFC] space-y-8 pb-20">
+    <div ref={pageRef} className="min-h-screen bg-[var(--bg-main)] space-y-6 pb-20">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Gestão de Insumos</h2>
-          <p className="text-slate-500 font-medium">Controle de estoque, cotações e eficiência operacional.</p>
+          <h2 className="text-3xl font-black text-[var(--text-header)] tracking-tight">Gestão de Insumos</h2>
+          <p className="text-[var(--text-muted)] font-medium">Controle de estoque, cotações e eficiência operacional.</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={exportToPDF}
             disabled={isExporting}
-            className="bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            className="bg-[var(--bg-card)] text-[var(--text-main)] px-6 py-3 rounded-xl font-bold border border-[var(--border)] flex items-center gap-2 hover:bg-[var(--bg-card-alt)] transition-all shadow-sm disabled:opacity-50"
           >
             {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
             <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
@@ -219,17 +221,17 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           <div className="relative">
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm ${isFilterOpen ? 'ring-2 ring-blue-500' : ''}`}
+              className={`bg-[var(--bg-card)] text-[var(--text-main)] px-6 py-3 rounded-xl font-bold border border-[var(--border)] flex items-center gap-2 hover:bg-[var(--bg-card-alt)] transition-all shadow-sm ${isFilterOpen ? 'ring-2 ring-[var(--accent)]' : ''}`}
             >
               <Filter size={18} /> <span>{filterCategory === 'All' ? 'Filtros' : filterCategory}</span>
             </button>
             {isFilterOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-[var(--border)] z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
                 {categories.map(cat => (
                   <button
                     key={cat}
                     onClick={() => { setFilterCategory(cat); setIsFilterOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${filterCategory === cat ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-colors ${filterCategory === cat ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)]'}`}
                   >
                     {cat}
                   </button>
@@ -246,13 +248,13 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="bg-white text-slate-700 px-6 py-3 rounded-xl font-bold border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
+            className="bg-[var(--bg-card)] text-[var(--text-main)] px-6 py-3 rounded-xl font-bold border border-[var(--border)] flex items-center gap-2 hover:bg-[var(--bg-card-alt)] transition-all shadow-sm"
           >
             <FileUp size={18} /> <span>Importar CSV</span>
           </button>
           <button 
             onClick={() => { resetForm(); setIsModalOpen(true); }}
-            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
+            className="bg-[var(--bg-header)] text-[var(--text-header)] px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[var(--accent)] hover:text-[var(--accent-text)] transition-all shadow-xl shadow-[var(--bg-header)]/10"
           >
             <Plus size={18} /> <span>Novo Insumo</span>
           </button>
@@ -264,78 +266,78 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+          className="bg-[var(--bg-card)] p-4 rounded-[20px] border border-[var(--border)] shadow-sm hover:shadow-md transition-shadow"
         >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-              <Wallet size={24} />
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl">
+              <Wallet size={20} />
             </div>
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">+4.2%</span>
+            <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg">+4.2%</span>
           </div>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Capital Imobilizado</p>
-          <h3 className="text-2xl font-black text-slate-900">
+          <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest mb-0.5">Capital Imobilizado</p>
+          <h3 className="text-xl font-black text-[var(--text-header)]">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.capitalImobilizado)}
           </h3>
-          <p className="text-[10px] text-slate-400 mt-2 font-medium">Valor total em estoque atual</p>
+          <p className="text-[9px] text-[var(--text-muted)] mt-1 font-medium">Valor total em estoque atual</p>
         </motion.div>
 
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+          className="bg-[var(--bg-card)] p-4 rounded-[20px] border border-[var(--border)] shadow-sm hover:shadow-md transition-shadow"
         >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-slate-100 text-slate-600 rounded-xl">
-              <TrendingDown size={24} />
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] rounded-xl">
+              <TrendingDown size={20} />
             </div>
-            <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">Últimos 30 dias</span>
+            <span className="text-[9px] font-black text-[var(--text-muted)] bg-[var(--bg-card-alt)] px-2 py-1 rounded-lg">Últimos 30 dias</span>
           </div>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Fluxo de Saída</p>
-          <h3 className="text-2xl font-black text-slate-900">
+          <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest mb-0.5">Fluxo de Saída</p>
+          <h3 className="text-xl font-black text-[var(--text-header)]">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.fluxoSaida)}
           </h3>
-          <p className="text-[10px] text-slate-400 mt-2 font-medium">Gastos em insumos recentemente</p>
+          <p className="text-[9px] text-[var(--text-muted)] mt-1 font-medium">Gastos em insumos recentemente</p>
         </motion.div>
 
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+          className="bg-[var(--bg-card)] p-4 rounded-[20px] border border-[var(--border)] shadow-sm hover:shadow-md transition-shadow"
         >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
-              <AlertTriangle size={24} />
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl">
+              <AlertTriangle size={20} />
             </div>
             {stats.alertasReposicao > 0 && (
               <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
             )}
           </div>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Alertas de Reposição</p>
-          <h3 className="text-2xl font-black text-rose-600">{stats.alertasReposicao || 0} Itens</h3>
-          <p className="text-[10px] text-slate-400 mt-2 font-medium">Abaixo do estoque mínimo</p>
+          <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest mb-0.5">Alertas de Reposição</p>
+          <h3 className="text-xl font-black text-rose-600">{stats.alertasReposicao || 0} Itens</h3>
+          <p className="text-[9px] text-[var(--text-muted)] mt-1 font-medium">Abaixo do estoque mínimo</p>
         </motion.div>
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+      <div className="bg-[var(--bg-card)] rounded-[24px] border border-[var(--border)] shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
             <input 
               type="text" 
-              placeholder="Buscar insumo ou categoria..." 
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm transition-all"
+              placeholder="Buscar insumo..." 
+              className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-card-alt)] border-none rounded-xl focus:ring-2 focus:ring-[var(--accent)]/20 outline-none font-medium text-xs transition-all text-[var(--text-main)]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Visualização:</span>
-            <div className="flex bg-slate-100 p-1 rounded-lg">
-              <button className="p-1.5 bg-white shadow-sm rounded-md text-slate-900"><Package size={16} /></button>
-              <button className="p-1.5 text-slate-400 hover:text-slate-600"><History size={16} /></button>
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">Visualização:</span>
+            <div className="flex bg-[var(--bg-card-alt)] p-1 rounded-lg">
+              <button className="p-1.5 bg-[var(--bg-card)] shadow-sm rounded-md text-[var(--text-header)]"><Package size={16} /></button>
+              <button className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-header)]"><History size={16} /></button>
             </div>
           </div>
         </div>
@@ -343,100 +345,100 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Insumo</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoria</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Imóvel Vinculado</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo Atual</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Custo Médio</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilização</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
+              <tr className="bg-[var(--bg-card-alt)]/50">
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Insumo</th>
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Categoria</th>
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Imóvel Vinculado</th>
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Saldo Atual</th>
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Custo Médio</th>
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Utilização</th>
+                <th className="px-4 py-3 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[var(--border)]">
               {filteredItems.map((item) => (
                 <tr 
                   key={item.id} 
                   onClick={() => handleOpenDrawer(item)}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  className="hover:bg-[var(--bg-card-alt)]/80 transition-colors cursor-pointer group"
                 >
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center shrink-0">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--bg-card-alt)] overflow-hidden border border-[var(--border)] flex items-center justify-center shrink-0">
                         {item.imageUrl ? (
                           <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          <Package size={20} className="text-slate-400" />
+                          <Package size={16} className="text-[var(--text-muted)]" />
                         )}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-sm">{item.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">ID: {item.id.substring(0, 8)}</p>
+                        <p className="font-bold text-[var(--text-header)] text-xs">{item.name}</p>
+                        <p className="text-[9px] text-[var(--text-muted)] font-medium">ID: {item.id.substring(0, 8)}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20">
                       {item.category}
                     </span>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-400">
-                        <Building size={12} />
+                      <div className="w-5 h-5 rounded-md bg-[var(--bg-card-alt)] flex items-center justify-center text-[var(--text-muted)]">
+                        <Building size={10} />
                       </div>
-                      <span className="text-xs font-bold text-slate-600">
+                      <span className="text-[10px] font-bold text-[var(--text-muted)]">
                         {item.linkedPropertyName || 'Estoque Central'}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <p className={`font-black text-sm ${item.currentStock < item.minStock ? 'text-rose-500' : 'text-slate-900'}`}>
-                      {item.currentStock} <span className="text-[10px] font-normal text-slate-400 uppercase">{item.unit}</span>
+                  <td className="px-4 py-3">
+                    <p className={`font-black text-xs ${item.currentStock < item.minStock ? 'text-rose-500' : 'text-[var(--text-header)]'}`}>
+                      {item.currentStock} <span className="text-[9px] font-normal text-[var(--text-muted)] uppercase">{item.unit}</span>
                     </p>
                   </td>
-                  <td className="px-6 py-5">
-                    <p className="text-sm font-bold text-slate-700">
+                  <td className="px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--text-main)]">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.averageCost || 0)}
                     </p>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="w-32">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Status</span>
-                        <span className="text-[10px] font-black text-slate-900">{item.usageStatus || 0}%</span>
+                  <td className="px-4 py-3">
+                    <div className="w-24">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-tighter">Status</span>
+                        <span className="text-[9px] font-black text-[var(--text-header)]">{item.usageStatus || 0}%</span>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-1 w-full bg-[var(--bg-card-alt)] rounded-full overflow-hidden">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${item.usageStatus || 0}%` }}
                           className={`h-full rounded-full ${
-                            (item.usageStatus || 0) > 80 ? 'bg-rose-500' : (item.usageStatus || 0) > 50 ? 'bg-amber-500' : 'bg-blue-500'
+                            (item.usageStatus || 0) > 80 ? 'bg-rose-500' : (item.usageStatus || 0) > 50 ? 'bg-amber-500' : 'bg-emerald-500'
                           }`}
                         />
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={(e) => handleWhatsAppSync(e, item)}
-                        className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                        className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                         title="WhatsApp Sync"
                       >
-                        <MessageCircle size={18} />
+                        <MessageCircle size={14} />
                       </button>
                       <button 
                         onClick={(e) => handleEditItem(e, item)}
-                        className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"
+                        className="p-2 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] rounded-lg transition-all"
                       >
-                        <Edit size={18} />
+                        <Edit size={14} />
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
-                        className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"
+                        className="p-2 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-rose-600 rounded-lg transition-all"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
@@ -457,23 +459,23 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsDrawerOpen(false)}
-                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+                className="fixed inset-0 bg-[var(--bg-header)]/40 backdrop-blur-sm z-[100]"
               />
               <motion.div 
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[110] flex flex-col"
+                className="fixed inset-y-0 right-0 w-full max-w-lg bg-[var(--bg-card)] shadow-2xl z-[110] flex flex-col border-l border-[var(--border)]"
               >
-                <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Histórico do Insumo</h3>
-                    <p className="text-slate-500 text-sm font-medium">{selectedItem.name}</p>
+                    <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">Histórico do Insumo</h3>
+                    <p className="text-[var(--text-muted)] text-sm font-medium">{selectedItem.name}</p>
                   </div>
                   <button 
                     onClick={() => setIsDrawerOpen(false)}
-                    className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-2xl transition-all"
+                    className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl transition-all"
                   >
                     <X size={24} />
                   </button>
@@ -482,13 +484,13 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                 <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                   {/* Item Summary in Drawer */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Saldo Atual</p>
-                      <p className="text-xl font-black text-slate-900">{selectedItem.currentStock} {selectedItem.unit}</p>
+                    <div className="p-5 bg-[var(--bg-card-alt)] rounded-2xl border border-[var(--border)]">
+                      <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Saldo Atual</p>
+                      <p className="text-xl font-black text-[var(--text-header)]">{selectedItem.currentStock} {selectedItem.unit}</p>
                     </div>
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Médio</p>
-                      <p className="text-xl font-black text-slate-900">
+                    <div className="p-5 bg-[var(--bg-card-alt)] rounded-2xl border border-[var(--border)]">
+                      <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Custo Médio</p>
+                      <p className="text-xl font-black text-[var(--text-header)]">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedItem.averageCost || 0)}
                       </p>
                     </div>
@@ -497,38 +499,38 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                   {/* Inflation Monitor Chart Placeholder */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Monitor de Inflação</h4>
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Estável</span>
+                      <h4 className="text-sm font-black text-[var(--text-header)] uppercase tracking-widest">Monitor de Inflação</h4>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-lg">Estável</span>
                     </div>
-                    <div className="h-32 w-full bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex items-center justify-center">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gráfico de Evolução de Preços</p>
+                    <div className="h-32 w-full bg-[var(--bg-card-alt)] rounded-2xl border border-dashed border-[var(--border)] flex items-center justify-center">
+                      <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">Gráfico de Evolução de Preços</p>
                     </div>
                   </div>
 
                   {/* Timeline */}
                   <div className="space-y-6">
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Movimentações Recentes</h4>
+                    <h4 className="text-sm font-black text-[var(--text-header)] uppercase tracking-widest">Movimentações Recentes</h4>
                     <div className="space-y-4">
                       {itemHistory.length > 0 ? (
                         itemHistory.map((mov) => (
                           <div key={mov.id} className="flex gap-4 group">
                             <div className="flex flex-col items-center">
                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                                mov.type === MovementType.ENTRADA_COMPRA ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--bg-card-alt)] text-[var(--text-muted)]'
                               }`}>
                                 {mov.type === MovementType.ENTRADA_COMPRA ? <ArrowUpRight size={18} /> : <TrendingDown size={18} />}
                               </div>
-                              <div className="w-px h-full bg-slate-100 group-last:hidden" />
+                              <div className="w-px h-full bg-[var(--border)] group-last:hidden" />
                             </div>
                             <div className="flex-1 pb-6">
                               <div className="flex justify-between items-start mb-1">
-                                <p className="font-bold text-slate-900 text-sm">{mov.type}</p>
-                                <p className="text-[10px] font-bold text-slate-400">{new Date(mov.date).toLocaleDateString('pt-BR')}</p>
+                                <p className="font-bold text-[var(--text-header)] text-sm">{mov.type}</p>
+                                <p className="text-[10px] font-bold text-[var(--text-muted)]">{new Date(mov.date).toLocaleDateString('pt-BR')}</p>
                               </div>
-                              <p className="text-xs text-slate-500 mb-2">{mov.description}</p>
+                              <p className="text-xs text-[var(--text-muted)] mb-2">{mov.description}</p>
                               <div className="flex items-center gap-4">
-                                <div className="text-[10px] font-black text-slate-400 uppercase">Qtd: <span className="text-slate-900">{mov.quantity}</span></div>
-                                <div className="text-[10px] font-black text-slate-400 uppercase">Total: <span className="text-slate-900">
+                                <div className="text-[10px] font-black text-[var(--text-muted)] uppercase">Qtd: <span className="text-[var(--text-header)]">{mov.quantity}</span></div>
+                                <div className="text-[10px] font-black text-[var(--text-muted)] uppercase">Total: <span className="text-[var(--text-header)]">
                                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mov.totalPrice)}
                                 </span></div>
                               </div>
@@ -537,16 +539,16 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                         ))
                       ) : (
                         <div className="text-center py-10">
-                          <Package size={32} className="text-slate-200 mx-auto mb-3" />
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma movimentação registrada</p>
+                          <Package size={32} className="text-[var(--border)] mx-auto mb-3" />
+                          <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">Nenhuma movimentação registrada</p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="p-8 border-t border-slate-100 bg-slate-50/50">
-                  <button className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
+                <div className="p-8 border-t border-[var(--border)] bg-[var(--bg-card-alt)]/50">
+                  <button className="w-full bg-[var(--bg-header)] text-[var(--text-header)] py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[var(--accent)] hover:text-[var(--accent-text)] transition-all flex items-center justify-center gap-2">
                     <ExternalLink size={16} />
                     <span>Ver Relatório Completo</span>
                   </button>
@@ -568,23 +570,23 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsModalOpen(false)}
-                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+                className="fixed inset-0 bg-[var(--bg-header)]/40 backdrop-blur-sm z-[100]"
               />
               <motion.div 
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+                className="fixed inset-y-0 right-0 w-full max-w-md bg-[var(--bg-card)] shadow-2xl z-[110] flex flex-col border-l border-[var(--border)]"
               >
-                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-card)]">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{formData.id ? 'Editar Insumo' : 'Novo Insumo'}</h3>
-                    <p className="text-slate-500 text-sm font-medium">{formData.id ? 'Atualize os dados do material.' : 'Adicione ao catálogo.'}</p>
+                    <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">{formData.id ? 'Editar Insumo' : 'Novo Insumo'}</h3>
+                    <p className="text-[var(--text-muted)] text-sm font-medium">{formData.id ? 'Atualize os dados do material.' : 'Adicione ao catálogo.'}</p>
                   </div>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                    className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] transition-colors rounded-full hover:bg-[var(--bg-card-alt)]"
                   >
                     <X size={24} />
                   </button>
@@ -592,7 +594,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
 
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Material</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Nome do Material</label>
                     <input 
                       required
                       name="name"
@@ -605,7 +607,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Categoria</label>
                     <select 
                       required
                       name="category"
@@ -624,7 +626,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidade</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Unidade</label>
                       <select 
                         name="unit"
                         className={inputClass}
@@ -639,7 +641,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Estoque Mín.</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Estoque Mín.</label>
                       <input 
                         name="minStock"
                         type="number" 
@@ -653,9 +655,9 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Custo Inicial (R$)</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Custo Médio (R$)</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold text-sm">R$</span>
                       <input 
                         name="averageCost"
                         type="number" 
@@ -669,7 +671,7 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">URL da Imagem</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">URL da Imagem</label>
                     <input 
                       name="imageUrl"
                       type="text" 
@@ -681,21 +683,21 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem }: Insumos
                   </div>
                 </form>
 
-                <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
+                <div className="p-8 border-t border-[var(--border)] bg-[var(--bg-card-alt)]/50 flex gap-4">
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                    className="flex-1 py-4 text-xs font-black text-[var(--text-muted)] uppercase tracking-widest hover:text-[var(--text-header)] transition-colors"
                   >
                     Cancelar
                   </button>
                   <button 
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-900 transition-all flex items-center justify-center"
+                    className="flex-1 py-4 bg-[var(--bg-header)] text-[var(--text-header)] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-[var(--bg-header)]/20 hover:bg-[var(--accent)] hover:text-[var(--accent-text)] transition-all flex items-center justify-center"
                   >
                     {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-[#FFD700]/20 border-t-[#FFD700] rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     ) : (
                       "Salvar"
                     )}

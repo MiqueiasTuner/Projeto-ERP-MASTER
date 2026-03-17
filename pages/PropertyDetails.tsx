@@ -18,7 +18,8 @@ import {
   TrendingUp,
   BarChart3,
   CheckCircle2,
-  FileDown
+  FileDown,
+  Edit
 } from 'lucide-react';
 import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task } from '../types';
 import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloat, formatDate } from '../utils';
@@ -41,6 +42,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>('financeiro');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -105,15 +107,16 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
     }
 
     onAddExpense({
-      id: Math.random().toString(36).substr(2, 9),
+      id: editingExpense ? editingExpense.id : Math.random().toString(36).substr(2, 9),
+      organizationId: property?.organizationId || '',
       propertyId: id!,
       category: newExpData.category,
       description: newExpData.description,
       amount: newExpData.amount,
       date: newExpData.date,
-      userId: 'u1',
-      userName: 'Diretoria Master',
-      attachments: []
+      userId: editingExpense ? editingExpense.userId : 'u1',
+      userName: editingExpense ? editingExpense.userName : 'Diretoria Master',
+      attachments: editingExpense ? editingExpense.attachments : []
     });
 
     setNewExpData({
@@ -122,10 +125,22 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
       description: '',
       amount: 0
     });
+    setEditingExpense(null);
     setIsExpenseModalOpen(false);
   };
 
-  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+  const handleEditExpense = (exp: Expense) => {
+    setEditingExpense(exp);
+    setNewExpData({
+      date: exp.date,
+      category: exp.category,
+      description: exp.description,
+      amount: exp.amount
+    });
+    setIsExpenseModalOpen(true);
+  };
+
+  const inputClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium placeholder:text-[var(--text-muted)]";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -133,29 +148,29 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/imoveis')} 
-            className="p-3.5 bg-white hover:bg-slate-50 rounded-2xl border border-slate-200 transition-all shadow-sm"
+            className="p-3.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card-alt)] rounded-2xl border border-[var(--border)] transition-all shadow-sm"
           >
-            <ArrowLeft size={20} className="text-slate-600" />
+            <ArrowLeft size={20} className="text-[var(--text-muted)]" />
           </button>
           <div className="min-w-0">
             {property.address && (
               <div className="mb-2">
-                <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm inline-block max-w-full truncate">
+                <span className="bg-yellow-500/10 text-yellow-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-yellow-500/20 shadow-sm inline-block max-w-full truncate">
                   {property.address}
                 </span>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3 mb-1">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight truncate">
+              <h2 className="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-tight truncate">
                 {property.title || property.condoName || property.neighborhood}
               </h2>
               <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${
-                property.status === PropertyStatus.VENDIDO ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                property.status === PropertyStatus.VENDIDO ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/20'
               }`}>
                 {property.status}
               </span>
             </div>
-            <div className="flex items-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+            <div className="flex items-center text-[var(--text-muted)] font-bold uppercase tracking-widest text-[10px]">
               <MapPin size={12} className="mr-1.5" /> {property.city} • {property.type}
             </div>
           </div>
@@ -163,20 +178,27 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
         <div className="flex items-center gap-3">
           <button 
             onClick={() => onDeleteProperty(property.id)}
-            className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-white px-6 py-3 rounded-2xl border border-slate-200 transition-all shadow-sm"
+            className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
           >
             Excluir <Trash2 size={14} />
           </button>
           <button 
             onClick={exportToPdf}
             disabled={isGeneratingPdf}
-            className="inline-flex items-center justify-center gap-2 text-blue-600 hover:text-white hover:bg-blue-600 font-black text-xs uppercase tracking-widest bg-white px-6 py-3 rounded-2xl border border-slate-200 transition-all shadow-sm disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 text-yellow-600 hover:text-white hover:bg-yellow-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
           >
             {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
           </button>
+          <Link 
+            to={`/publico/imovel/${property.id}`}
+            target="_blank"
+            className="inline-flex items-center justify-center gap-2 text-emerald-600 hover:text-white hover:bg-emerald-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+          >
+            Página Pública <ExternalLink size={14} />
+          </Link>
           <button 
             onClick={() => navigate(`/editar/${property.id}`)}
-            className="inline-flex items-center justify-center gap-2 text-slate-400 hover:text-blue-600 font-black text-xs uppercase tracking-widest bg-white px-6 py-3 rounded-2xl border border-slate-200 transition-all shadow-sm"
+            className="inline-flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-yellow-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
           >
             Editar Cadastro <ExternalLink size={14} />
           </button>
@@ -185,7 +207,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
       {property.images && property.images.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 relative h-64 md:h-[450px] rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl border border-slate-200 group">
+          <div className="lg:col-span-3 relative h-64 md:h-[450px] rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl border border-[var(--border)] group">
             <img 
               src={property.images[activeImage]} 
               className="w-full h-full object-cover transition-transform duration-1000" 
@@ -194,7 +216,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none" />
             <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 pr-6">
               {property.address && (
-                <span className="inline-block bg-blue-600/80 backdrop-blur-md text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 border border-white/20">
+                <span className="inline-block bg-yellow-600/80 backdrop-blur-md text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 border border-white/20">
                   {property.address}
                 </span>
               )}
@@ -208,15 +230,15 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
               <button 
                 key={idx} 
                 onClick={() => setActiveImage(idx)}
-                className={`relative w-24 h-24 lg:w-full lg:h-28 rounded-[24px] overflow-hidden border-4 transition-all shrink-0 ${activeImage === idx ? 'border-blue-600 scale-95 shadow-lg' : 'border-white opacity-60 hover:opacity-100'}`}
+                className={`relative w-24 h-24 lg:w-full lg:h-28 rounded-[24px] overflow-hidden border-4 transition-all shrink-0 ${activeImage === idx ? 'border-yellow-600 scale-95 shadow-lg' : 'border-[var(--bg-card)] opacity-60 hover:opacity-100'}`}
               >
-                <img src={img} className="w-full h-full object-cover" alt="Thumbnail" />
+                <img src={img} className="w-full h-full object-cover" alt="Thumbnail" referrerPolicy="no-referrer" />
               </button>
             ))}
           </div>
         </div>
       ) : (
-        <div className="h-64 bg-slate-100 rounded-[40px] flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200">
+        <div className="h-64 bg-[var(--bg-card-alt)] rounded-[40px] flex flex-col items-center justify-center text-[var(--text-muted)] border-2 border-dashed border-[var(--border)]">
           <ImageIcon size={48} strokeWidth={1} className="mb-4" />
           <p className="font-black uppercase tracking-[0.2em] text-[10px]">Sem fotos cadastradas</p>
         </div>
@@ -224,61 +246,61 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
       {/* Dados da Venda (Se Vendido) */}
       {property.status === PropertyStatus.VENDIDO && (
-        <div className="bg-emerald-50 p-8 rounded-[32px] border border-emerald-100 shadow-sm animate-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-3 mb-6 text-emerald-700">
-            <div className="p-2 bg-emerald-100 rounded-xl">
+        <div className="bg-emerald-500/5 p-8 rounded-[32px] border border-emerald-500/10 shadow-sm animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3 mb-6 text-emerald-600 dark:text-emerald-400">
+            <div className="p-2 bg-emerald-500/20 rounded-xl">
               <CheckCircle2 size={20} />
             </div>
             <h3 className="text-lg font-black uppercase tracking-widest">Dados da Venda</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Valor de Venda</p>
-              <p className="text-xl font-black text-emerald-900">{formatCurrency(property.salePrice || 0)}</p>
+              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Valor de Venda</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(property.salePrice || 0)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Data da Venda</p>
-              <p className="text-xl font-black text-emerald-900">{property.saleDate ? formatDate(property.saleDate) : '-'}</p>
+              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Data da Venda</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{property.saleDate ? formatDate(property.saleDate) : '-'}</p>
             </div>
             <div>
-              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Corretor / Imobiliária</p>
-              <p className="text-xl font-black text-emerald-900">{property.brokerName || '-'}</p>
+              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Corretor / Imobiliária</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{property.brokerName || '-'}</p>
             </div>
             <div>
-              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Lucro Estimado</p>
-              <p className="text-xl font-black text-emerald-900">{formatCurrency((property.salePrice || 0) - metrics.totalInvested)}</p>
+              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Lucro Estimado</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency((property.salePrice || 0) - metrics.totalInvested)}</p>
             </div>
           </div>
           {property.saleNotes && (
-            <div className="mt-6 pt-6 border-t border-emerald-100">
-              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-2">Observações da Venda</p>
-              <p className="text-sm font-medium text-emerald-800 leading-relaxed">{property.saleNotes}</p>
+            <div className="mt-6 pt-6 border-t border-emerald-500/10">
+              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-2">Observações da Venda</p>
+              <p className="text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80 leading-relaxed">{property.saleNotes}</p>
             </div>
           )}
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-200 shadow-sm">
+        <div className="bg-[var(--bg-card)] p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><DollarSign size={20} /></div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital Alocado</p>
+            <div className="p-2.5 bg-yellow-500/10 text-yellow-600 rounded-xl"><DollarSign size={20} /></div>
+            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Capital Alocado</p>
           </div>
-          <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{formatCurrency(metrics.totalInvested)}</p>
+          <p className="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-tight">{formatCurrency(metrics.totalInvested)}</p>
         </div>
-        <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-200 shadow-sm">
+        <div className="bg-[var(--bg-card)] p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl"><TrendingUp size={20} /></div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultado Real</p>
+            <div className="p-2.5 bg-emerald-500/10 text-emerald-600 rounded-xl"><TrendingUp size={20} /></div>
+            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Resultado Real</p>
           </div>
           <p className={`text-2xl md:text-3xl font-black tracking-tight ${metrics.realizedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
             {property.salePrice ? formatCurrency(metrics.realizedProfit) : 'Pendente de Venda'}
           </p>
         </div>
-        <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-200 shadow-sm sm:col-span-2 lg:col-span-1">
+        <div className="bg-[var(--bg-card)] p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm sm:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-slate-900 text-white rounded-xl"><BarChart3 size={20} /></div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ROI Operacional</p>
+            <div className="p-2.5 bg-[var(--text-main)] text-[var(--bg-main)] rounded-xl"><BarChart3 size={20} /></div>
+            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">ROI Operacional</p>
           </div>
           <p className={`text-2xl md:text-3xl font-black tracking-tight ${metrics.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
             {property.salePrice ? `${metrics.roi.toFixed(1)}%` : '---'}
@@ -286,14 +308,14 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
         </div>
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="flex overflow-x-auto bg-slate-50/50 border-b border-slate-100 no-scrollbar">
+      <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
+        <div className="flex overflow-x-auto bg-[var(--bg-card-alt)] border-b border-[var(--border)] no-scrollbar">
           {(['financeiro', 'despesas', 'timeline'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-8 md:px-12 py-6 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap flex-1 lg:flex-none ${
-                activeTab === tab ? 'text-blue-600 border-b-4 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600'
+                activeTab === tab ? 'text-yellow-600 border-b-4 border-yellow-600 bg-[var(--bg-card)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
               {tab}
@@ -306,17 +328,17 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
             <div className="animate-in slide-in-from-bottom-2 space-y-10">
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 xl:gap-20">
                 <div className="space-y-8">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Breakdown de Investimento</h4>
+                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Breakdown de Investimento</h4>
                   <div className="space-y-6">
                     {Object.entries(metrics.categoryBreakdown).map(([cat, val]) => (
                       <div key={cat}>
                         <div className="flex justify-between text-[10px] font-black mb-2 uppercase tracking-widest">
-                          <span className="text-slate-500">{cat}</span>
-                          <span className="text-slate-900">{formatCurrency(val as number)}</span>
+                          <span className="text-[var(--text-muted)]">{cat}</span>
+                          <span className="text-[var(--text-main)]">{formatCurrency(val as number)}</span>
                         </div>
-                        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                        <div className="w-full bg-[var(--bg-card-alt)] h-3 rounded-full overflow-hidden">
                           <div 
-                            className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-out" 
+                            className="bg-yellow-600 h-full rounded-full transition-all duration-1000 ease-out" 
                             style={{ width: `${metrics.totalInvested > 0 ? ((val as number) / metrics.totalInvested) * 100 : 0}%` }} 
                           />
                         </div>
@@ -324,8 +346,8 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                     ))}
                   </div>
                 </div>
-                <div className="bg-slate-900 p-8 md:p-10 rounded-[40px] text-white flex flex-col justify-center">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-8">Dados de Aquisição e Custos</h4>
+                <div className="bg-[var(--bg-header)] p-8 md:p-10 rounded-[40px] text-[var(--text-header)] flex flex-col justify-center">
+                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mb-8 opacity-50">Dados de Aquisição e Custos</h4>
                   <div className="space-y-5">
                     {[
                       { label: 'Valor de Lance', val: property.acquisitionPrice },
@@ -340,6 +362,12 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                       { label: 'Pós-Arremate', val: property.expensePostAcquisition },
                       { label: 'Materiais Reforma', val: property.expenseMaterials },
                       { label: 'Outros Custos', val: property.otherCosts },
+                      { label: 'CEP', val: property.cep, format: false },
+                      { label: 'Quartos', val: property.rooms, format: false },
+                      { label: 'Banheiros', val: property.bathrooms, format: false },
+                      { label: 'Vagas Garagem', val: property.garageSpaces, format: false },
+                      { label: 'Condomínio (Mensal)', val: property.monthlyCondo },
+                      { label: 'IPTU (Mensal)', val: property.monthlyIptu },
                       { label: 'Data Arremate', val: property.acquisitionDate ? formatDate(property.acquisitionDate) : null, format: false },
                       { label: 'Data Venda', val: property.saleDate ? formatDate(property.saleDate) : null, format: false },
                       { label: 'Área Privativa', val: property.sizeM2 ? `${property.sizeM2} m²` : null, format: false },
@@ -347,17 +375,39 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                       { label: 'Break-even (Venda)', val: metrics.breakEven }
                     ].map((item, i) => (
                       <div key={i} className="flex justify-between items-center text-sm">
-                        <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{item.label}:</span>
-                        <span className="font-black text-white">{item.format === false ? (item.val || '---') : formatCurrency(item.val as number)}</span>
+                        <span className="text-[var(--text-muted)] font-bold uppercase tracking-widest text-[10px] opacity-70">{item.label}:</span>
+                        <span className="font-black text-[var(--text-header)]">{item.format === false ? (item.val || '---') : formatCurrency(item.val as number)}</span>
                       </div>
                     ))}
                     <div className="pt-8 mt-4 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <span className="text-blue-400 font-black text-xs uppercase tracking-widest">Total Alocado (Geral):</span>
-                      <span className="text-3xl font-black text-blue-400">
+                      <span className="text-yellow-400 font-black text-xs uppercase tracking-widest">Total Alocado (Geral):</span>
+                      <span className="text-3xl font-black text-yellow-400">
                         {formatCurrency(metrics.totalInvested)}
                       </span>
                     </div>
                   </div>
+
+                  {(property.features?.length || 0) > 0 && (
+                    <div className="mt-8 pt-8 border-t border-white/10">
+                      <h4 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mb-4 opacity-50">Características do Imóvel</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {property.features?.map(f => (
+                          <span key={f} className="px-2 py-1 bg-white/5 rounded-lg text-[9px] font-bold text-white/70 border border-white/10">{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(property.complexFeatures?.length || 0) > 0 && (
+                    <div className="mt-6 pt-6 border-t border-white/10">
+                      <h4 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mb-4 opacity-50">Características do Condomínio</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {property.complexFeatures?.map(f => (
+                          <span key={f} className="px-2 py-1 bg-white/5 rounded-lg text-[9px] font-bold text-white/70 border border-white/10">{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -366,10 +416,10 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           {activeTab === 'despesas' && (
             <div className="animate-in slide-in-from-bottom-2 space-y-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Lançamentos Financeiros</h4>
+                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Lançamentos Financeiros</h4>
                 <button 
                   onClick={() => setIsExpenseModalOpen(true)}
-                  className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl"
+                  className="w-full sm:w-auto bg-[var(--bg-header)] text-[var(--text-header)] px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl"
                 >
                   <Plus size={16} strokeWidth={3} /> Novo Gasto
                 </button>
@@ -377,9 +427,9 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
               
               <div className="overflow-x-auto -mx-6 md:mx-0 px-6 md:px-0">
                 <div className="min-w-[700px] inline-block w-full align-middle">
-                  <div className="border border-slate-100 rounded-[24px] overflow-hidden">
+                  <div className="border border-[var(--border)] rounded-[24px] overflow-hidden">
                     <table className="w-full text-left">
-                      <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <thead className="bg-[var(--bg-card-alt)] text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest">
                         <tr>
                           <th className="py-6 px-8">Data</th>
                           <th className="py-6 px-8">Categoria</th>
@@ -388,17 +438,20 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                           <th className="py-6 px-8"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {propertyExpenses.map((exp) => (
-                          <tr key={exp.id} className="group hover:bg-slate-50 transition-colors">
-                            <td className="py-6 px-8 text-xs font-bold text-slate-500">{formatDate(exp.date)}</td>
+                          <tr key={exp.id} className="group hover:bg-[var(--bg-card-alt)] transition-colors">
+                            <td className="py-6 px-8 text-xs font-bold text-[var(--text-muted)]">{formatDate(exp.date)}</td>
                             <td className="py-6 px-8">
-                              <span className="text-[9px] font-black uppercase px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 tracking-widest">{exp.category}</span>
+                              <span className="text-[9px] font-black uppercase px-3 py-1.5 bg-[var(--bg-card-alt)] rounded-lg text-[var(--text-muted)] tracking-widest border border-[var(--border)]">{exp.category}</span>
                             </td>
-                            <td className="py-6 px-8 text-sm font-black text-slate-800 tracking-tight">{exp.description}</td>
-                            <td className="py-6 px-8 text-base font-black text-slate-900 text-right">{formatCurrency(exp.amount)}</td>
+                            <td className="py-6 px-8 text-sm font-black text-[var(--text-main)] tracking-tight">{exp.description}</td>
+                            <td className="py-6 px-8 text-base font-black text-[var(--text-main)] text-right">{formatCurrency(exp.amount)}</td>
                             <td className="py-6 px-8 text-right">
-                              <button onClick={() => onDeleteExpense(exp.id)} className="p-2.5 text-slate-300 hover:text-rose-600 transition-all bg-white rounded-xl shadow-sm"><Trash2 size={16} /></button>
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => handleEditExpense(exp)} className="p-2.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-all bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border)]"><Edit size={16} /></button>
+                                <button onClick={() => onDeleteExpense(exp.id)} className="p-2.5 text-[var(--text-muted)] hover:text-rose-600 transition-all bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border)]"><Trash2 size={16} /></button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -417,37 +470,37 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
           {activeTab === 'timeline' && (
             <div className="animate-in slide-in-from-bottom-2 max-w-2xl mx-auto py-4">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center mb-12">Logs de Governança</h4>
-              <div className="relative border-l-4 border-slate-100 ml-4 md:ml-8 pl-8 md:pl-12 space-y-12">
+              <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] text-center mb-12">Logs de Governança</h4>
+              <div className="relative border-l-4 border-[var(--border)] ml-4 md:ml-8 pl-8 md:pl-12 space-y-12">
                 {timelineItems.length > 0 ? (
                   timelineItems.map((item, idx) => (
                     <div key={idx} className="relative">
                       <div className={`absolute -left-[48px] md:-left-[60px] top-1 w-10 h-10 rounded-2xl border-4 flex items-center justify-center shadow-lg z-10 ${
-                        item.type === 'log' ? 'bg-white border-slate-100' : 'bg-blue-50 border-blue-100'
+                        item.type === 'log' ? 'bg-[var(--bg-card)] border-[var(--border)]' : 'bg-[var(--accent)]/10 border-[var(--accent)]/20'
                       }`}>
-                        {item.type === 'log' ? <Clock size={16} className="text-slate-900" /> : <CheckCircle2 size={16} className="text-blue-600" />}
+                        {item.type === 'log' ? <Clock size={16} className="text-[var(--text-main)]" /> : <CheckCircle2 size={16} className="text-[var(--accent)]" />}
                       </div>
                       <div className={`p-6 rounded-[28px] border relative ${
-                        item.type === 'log' ? 'bg-slate-50 border-slate-100' : 'bg-white border-blue-50 shadow-sm'
+                        item.type === 'log' ? 'bg-[var(--bg-card-alt)] border-[var(--border)]' : 'bg-[var(--bg-card)] border-yellow-500/20 shadow-sm'
                       }`}>
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                            <span className="text-sm font-black text-slate-900 tracking-tight leading-none">{item.title}</span>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{item.date.toLocaleString()}</span>
+                            <span className="text-sm font-black text-[var(--text-main)] tracking-tight leading-none">{item.title}</span>
+                            <span className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">{item.date.toLocaleString()}</span>
                          </div>
                          <div className="flex flex-wrap items-center gap-3">
                             {item.user && (
-                              <div className="flex items-center text-[9px] text-slate-500 font-black uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                                 <User size={12} className="mr-2 text-blue-600" /> {item.user}
+                              <div className="flex items-center text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
+                                 <User size={12} className="mr-2 text-yellow-600" /> {item.user}
                               </div>
                             )}
                             {item.type === 'log' && (item.data as PropertyLog).fromStatus && (
-                              <div className="flex items-center text-[9px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1.5 rounded-xl">
-                                 {(item.data as PropertyLog).fromStatus} <ArrowRight size={10} className="mx-2 text-slate-300" /> {(item.data as PropertyLog).toStatus}
+                              <div className="flex items-center text-[9px] font-black uppercase text-[var(--text-muted)] tracking-widest bg-[var(--bg-card-alt)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
+                                 {(item.data as PropertyLog).fromStatus} <ArrowRight size={10} className="mx-2 text-[var(--text-muted)] opacity-30" /> {(item.data as PropertyLog).toStatus}
                               </div>
                             )}
                          </div>
                          {item.description && (
-                            <div className="mt-3 text-xs text-slate-500 font-medium bg-white/50 p-3 rounded-xl border border-slate-100">
+                            <div className="mt-3 text-xs text-[var(--text-muted)] font-medium bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border)]">
                               {item.description}
                             </div>
                          )}
@@ -481,16 +534,16 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col"
+                className="absolute inset-y-0 right-0 w-full max-w-md bg-[var(--bg-card)] shadow-2xl flex flex-col"
               >
-                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-card)]">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Novo Gasto</h3>
-                    <p className="text-slate-500 text-sm font-medium">Registre despesas do imóvel.</p>
+                    <h3 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{editingExpense ? 'Editar Gasto' : 'Novo Gasto'}</h3>
+                    <p className="text-[var(--text-muted)] text-sm font-medium">{editingExpense ? 'Atualize os dados da despesa.' : 'Registre despesas do imóvel.'}</p>
                   </div>
                   <button 
                     onClick={() => setIsExpenseModalOpen(false)}
-                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                    className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors rounded-full hover:bg-[var(--bg-card-alt)]"
                   >
                     <X size={24} />
                   </button>
@@ -498,7 +551,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
                 <form onSubmit={handleAddExpenseSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Data</label>
                     <CustomDatePicker 
                       selected={newExpData.date ? new Date(newExpData.date + 'T00:00:00') : null}
                       onChange={(date) => setNewExpData({...newExpData, date: date ? date.toISOString().split('T')[0] : ''})}
@@ -507,21 +560,21 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Categoria</label>
                     <select className={inputClass} value={newExpData.category} onChange={(e) => setNewExpData({...newExpData, category: e.target.value as ExpenseCategory})}>
                       {Object.values(ExpenseCategory).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Descrição</label>
                     <input type="text" placeholder="Pintura, Taxas, etc..." className={inputClass} value={newExpData.description} onChange={(e) => setNewExpData({...newExpData, description: e.target.value})} />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Total</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Valor Total</label>
                     <div className="relative">
-                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">R$</span>
+                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-black text-sm">R$</span>
                       <input type="text" placeholder="0,00" className={inputClass + " pl-12"} value={formatBRLMask(newExpData.amount)}
                         onChange={(e) => {
                           const numeric = e.target.value.replace(/\D/g, '');
@@ -531,19 +584,19 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                     </div>
                   </div>
 
-                  <div className="pt-8 flex gap-4 sticky bottom-0 bg-white border-t border-slate-100 -mx-8 px-8 pb-4">
+                  <div className="pt-8 flex gap-4 sticky bottom-0 bg-[var(--bg-card)] border-t border-[var(--border)] -mx-8 px-8 pb-4">
                     <button 
                       type="button" 
                       onClick={() => setIsExpenseModalOpen(false)} 
-                      className="flex-1 px-8 py-4 bg-white text-slate-400 hover:text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 transition-all"
+                      className="flex-1 px-8 py-4 bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-2xl font-black text-xs uppercase tracking-widest border border-[var(--border)] transition-all"
                     >
                       Cancelar
                     </button>
                     <button 
                       type="submit" 
-                      className="flex-1 px-8 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
+                      className="flex-1 px-8 py-4 bg-[var(--text-main)] text-[var(--bg-main)] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[var(--accent)] transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
                     >
-                      <Plus size={16} strokeWidth={3} /> Lançar
+                      {editingExpense ? <Edit size={16} strokeWidth={3} /> : <Plus size={16} strokeWidth={3} />} {editingExpense ? 'Salvar' : 'Lançar'}
                     </button>
                   </div>
                 </form>

@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Papa from 'papaparse';
 import { Truck, Plus, Search, Trash2, Edit, Phone, FileText, X, XCircle, FileUp, FileDown, Loader2 } from 'lucide-react';
-import { Supplier } from '../../types';
+import { Supplier, UserAccount } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,9 +12,10 @@ interface FornecedoresPageProps {
   suppliers: Supplier[];
   onAddSupplier: (s: Supplier) => void;
   onDeleteSupplier: (id: string) => void;
+  currentUser: UserAccount;
 }
 
-const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: FornecedoresPageProps) => {
+const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier, currentUser }: FornecedoresPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -102,6 +103,7 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
     const form = e.target as HTMLFormElement;
     const newSupplier: Supplier = {
       id: editingSupplier?.id || Math.random().toString(36).substr(2, 9),
+      organizationId: currentUser.organizationId || '',
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       cnpj: (form.elements.namedItem('cnpj') as HTMLInputElement).value,
       category: (form.elements.namedItem('category') as HTMLInputElement).value,
@@ -117,20 +119,20 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
     setIsModalOpen(true);
   };
 
-  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+  const inputClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-3.5 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium placeholder:text-[var(--text-muted)]";
 
   return (
     <div ref={pageRef} className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Fornecedores</h2>
-          <p className="text-slate-500 font-medium text-sm">Gestão de parceiros e prestadores de serviço.</p>
+          <h2 className="text-4xl font-black text-[var(--text-header)] tracking-tight">Fornecedores</h2>
+          <p className="text-[var(--text-muted)] font-medium text-sm">Gestão de parceiros e prestadores de serviço.</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={exportToPDF}
             disabled={isExporting}
-            className="bg-white text-slate-700 px-6 py-3.5 rounded-[24px] font-black border border-slate-200 flex items-center gap-3 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            className="bg-[var(--bg-card)] text-[var(--text-main)] px-6 py-3.5 rounded-[24px] font-black border border-[var(--border)] flex items-center gap-3 hover:bg-[var(--bg-card-alt)] transition-all shadow-sm disabled:opacity-50"
           >
             {isExporting ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
             <span className="text-sm">{isExporting ? 'Exportando...' : 'PDF'}</span>
@@ -144,26 +146,26 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="bg-white text-slate-700 px-6 py-3.5 rounded-[24px] font-black border border-slate-200 flex items-center gap-3 hover:bg-slate-50 transition-all shadow-sm"
+            className="bg-[var(--bg-card)] text-[var(--text-main)] px-6 py-3.5 rounded-[24px] font-black border border-[var(--border)] flex items-center gap-3 hover:bg-[var(--bg-card-alt)] transition-all shadow-sm"
           >
             <FileUp size={20} strokeWidth={3} /> <span className="text-sm">Importar CSV</span>
           </button>
           <button 
             onClick={() => { setEditingSupplier(null); setIsModalOpen(true); }}
-            className="bg-blue-600 text-white px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
+            className="bg-[var(--bg-header)] text-[var(--text-header)] px-8 py-3.5 rounded-[24px] font-black flex items-center gap-3 hover:bg-[var(--accent)] hover:text-[var(--accent-text)] transition-all shadow-2xl shadow-[var(--bg-header)]/20"
           >
             <Plus size={20} strokeWidth={3} /> <span className="text-sm">Novo Fornecedor</span>
           </button>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
+      <div className="bg-[var(--bg-card)] p-6 rounded-[32px] border border-[var(--border)] shadow-sm">
         <div className="relative w-full">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={20} />
           <input 
             type="text" 
             placeholder="Buscar por nome, CNPJ ou categoria técnica..." 
-            className="w-full pl-14 pr-6 py-4.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-[20px] focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 font-medium"
+            className="w-full pl-14 pr-6 py-4.5 bg-[var(--bg-card-alt)] text-[var(--text-main)] border border-[var(--border)] rounded-[20px] focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-muted)] font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -172,32 +174,32 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {filteredSuppliers.map(s => (
-          <div key={s.id} className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-blue-500/5 hover:-translate-y-1.5 transition-all group flex items-start justify-between">
+          <div key={s.id} className="bg-[var(--bg-card)] p-8 rounded-[40px] border border-[var(--border)] shadow-sm hover:shadow-2xl hover:shadow-[var(--accent)]/5 hover:-translate-y-1.5 transition-all group flex items-start justify-between">
             <div className="flex gap-6">
-              <div className="p-5 bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 rounded-[24px] transition-colors shadow-inner">
+              <div className="p-5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] rounded-[24px] transition-colors shadow-inner">
                 <Truck size={32} />
               </div>
               <div>
-                <h3 className="font-black text-slate-900 text-xl leading-tight mb-1 tracking-tight">{s.name}</h3>
-                <p className="text-[10px] font-black text-blue-600 uppercase mb-4 tracking-[0.2em]">{s.category}</p>
+                <h3 className="font-black text-[var(--text-header)] text-xl leading-tight mb-1 tracking-tight">{s.name}</h3>
+                <p className="text-[10px] font-black text-[var(--accent)] uppercase mb-4 tracking-[0.2em]">{s.category}</p>
                 <div className="space-y-2">
-                  <div className="flex items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    <FileText size={14} className="mr-2 text-slate-300" /> {s.cnpj || 'Sem CNPJ'}
+                  <div className="flex items-center text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                    <FileText size={14} className="mr-2 text-[var(--text-muted)]/50" /> {s.cnpj || 'Sem CNPJ'}
                   </div>
-                  <div className="flex items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    <Phone size={14} className="mr-2 text-slate-300" /> {s.phone}
+                  <div className="flex items-center text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                    <Phone size={14} className="mr-2 text-[var(--text-muted)]/50" /> {s.phone}
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-              <button onClick={() => handleEdit(s)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit size={18} /></button>
-              <button onClick={() => onDeleteSupplier(s.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={18} /></button>
+              <button onClick={() => handleEdit(s)} className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-xl transition-all"><Edit size={18} /></button>
+              <button onClick={() => onDeleteSupplier(s.id)} className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={18} /></button>
             </div>
           </div>
         ))}
         {filteredSuppliers.length === 0 && (
-          <div className="lg:col-span-2 py-20 text-center text-slate-300 italic font-black uppercase tracking-widest text-xs bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+          <div className="lg:col-span-2 py-20 text-center text-[var(--text-muted)] italic font-black uppercase tracking-widest text-xs bg-[var(--bg-card-alt)] rounded-[40px] border-2 border-dashed border-[var(--border)]">
             Nenhum fornecedor encontrado.
           </div>
         )}
@@ -213,23 +215,23 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => { setIsModalOpen(false); setEditingSupplier(null); }}
-                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+                className="fixed inset-0 bg-[var(--bg-header)]/40 backdrop-blur-sm z-[100]"
               />
               <motion.div 
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[110] flex flex-col"
+                className="fixed inset-y-0 right-0 w-full max-w-md bg-[var(--bg-card)] shadow-2xl z-[110] flex flex-col border-l border-[var(--border)]"
               >
-                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-card)]">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}</h3>
-                    <p className="text-slate-500 text-sm font-medium">{editingSupplier ? 'Atualize os dados do parceiro.' : 'Cadastre parceiros estratégicos.'}</p>
+                    <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">{editingSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}</h3>
+                    <p className="text-[var(--text-muted)] text-sm font-medium">{editingSupplier ? 'Atualize os dados do parceiro.' : 'Cadastre parceiros estratégicos.'}</p>
                   </div>
                   <button 
                     onClick={() => { setIsModalOpen(false); setEditingSupplier(null); }}
-                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                    className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] transition-colors rounded-full hover:bg-[var(--bg-card-alt)]"
                   >
                     <X size={24} />
                   </button>
@@ -237,22 +239,22 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
 
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Razão Social / Nome Fantasia</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Razão Social / Nome Fantasia</label>
                     <input required name="name" type="text" placeholder="Ex: Silva Construções Ltda" className={inputClass} defaultValue={editingSupplier?.name || ''} />
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ ou CPF</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">CNPJ ou CPF</label>
                     <input name="cnpj" type="text" placeholder="00.000.000/0001-00" className={inputClass} defaultValue={editingSupplier?.cnpj || ''} />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria Técnica</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Categoria Técnica</label>
                     <input required name="category" type="text" placeholder="Ex: Hidráulica" className={inputClass} defaultValue={editingSupplier?.category || ''} />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Contato / Celular</label>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Contato / Celular</label>
                     <input required name="phone" type="text" placeholder="(11) 99999-9999" className={inputClass} defaultValue={editingSupplier?.phone || ''} />
                   </div>
 
@@ -260,13 +262,13 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier }: Fornec
                     <button 
                       type="button"
                       onClick={() => { setIsModalOpen(false); setEditingSupplier(null); }}
-                      className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                      className="flex-1 py-4 text-xs font-black text-[var(--text-muted)] uppercase tracking-widest hover:text-[var(--text-header)] transition-colors"
                     >
                       Cancelar
                     </button>
                     <button 
                       type="submit"
-                      className="flex-1 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
+                      className="flex-1 py-4 bg-[var(--bg-header)] text-[var(--text-header)] rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-[var(--bg-header)]/20 hover:bg-[var(--accent)] hover:text-[var(--accent-text)] transition-all"
                     >
                       {editingSupplier ? 'Salvar Alterações' : 'Salvar Fornecedor'}
                     </button>

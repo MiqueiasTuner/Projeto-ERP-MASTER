@@ -124,7 +124,7 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
     const parts = content.split(/(@\w+)/g);
     return parts.map((part, index) => {
       if (part.startsWith('@')) {
-        return <span key={index} className="text-blue-600 font-bold bg-blue-50 px-1 rounded">{part}</span>;
+        return <span key={index} className="text-yellow-600 font-bold bg-yellow-50 px-1 rounded">{part}</span>;
       }
       return part;
     });
@@ -143,7 +143,7 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
               placeholder="Buscar pessoas..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full bg-white pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-yellow-500/20"
             />
           </div>
         </div>
@@ -156,7 +156,7 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
               onClick={handleGeneralClick}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 activeChannel === 'general' 
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                  ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/30' 
                   : 'text-slate-600 hover:bg-slate-200/50'
               }`}
             >
@@ -210,7 +210,7 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
         <div className="h-20 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center gap-4">
             {activeChannel === 'general' ? (
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center">
                 <Hash size={20} />
               </div>
             ) : (
@@ -235,10 +235,10 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+            <button className="p-2 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-xl transition-colors">
               <Phone size={20} />
             </button>
-            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+            <button className="p-2 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-xl transition-colors">
               <Video size={20} />
             </button>
             <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors">
@@ -251,7 +251,7 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
         <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/30">
           {loading ? (
             <div className="flex justify-center items-center h-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
             </div>
           ) : (
             <>
@@ -281,14 +281,14 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
                       </div>
                       <div className={`p-4 rounded-2xl shadow-sm ${
                         isMe 
-                          ? 'bg-blue-600 text-white rounded-br-none' 
+                          ? 'bg-yellow-600 text-white rounded-br-none' 
                           : 'bg-white text-slate-800 border border-slate-100 rounded-bl-none'
                       }`}>
                         {!isMe && <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{msg.senderName}</p>}
                         <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
                           {renderMessageContent(msg.content)}
                         </p>
-                        <p className={`text-[9px] font-bold uppercase tracking-widest mt-2 ${isMe ? 'text-blue-200' : 'text-slate-300'}`}>
+                        <p className={`text-[9px] font-bold uppercase tracking-widest mt-2 ${isMe ? 'text-yellow-200' : 'text-slate-300'}`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -303,8 +303,8 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
 
         {/* Input */}
         <form onSubmit={handleSendMessage} className="p-6 bg-white border-t border-slate-100">
-          <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-            <button type="button" className="p-3 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm">
+          <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200 focus-within:ring-2 focus-within:ring-yellow-500/20 focus-within:border-yellow-500 transition-all">
+            <button type="button" className="p-3 text-slate-400 hover:text-yellow-600 hover:bg-white rounded-xl transition-all shadow-sm">
               <Paperclip size={20} />
             </button>
             <input 
@@ -317,13 +317,13 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
             <button 
               type="submit" 
               disabled={!newMessage.trim()}
-              className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
+              className="p-3 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-yellow-500/20"
             >
               <Send size={20} />
             </button>
           </div>
           <p className="text-[10px] text-slate-400 font-medium mt-3 text-center">
-            Pressione Enter para enviar. Use <span className="font-bold text-blue-500">@nome</span> para mencionar.
+            Pressione Enter para enviar. Use <span className="font-bold text-yellow-500">@nome</span> para mencionar.
           </p>
         </form>
       </div>

@@ -1,4 +1,11 @@
 
+// Types for Sintese ERP
+export enum CommercialStatus {
+  DISPONIVEL = 'Disponível',
+  RESERVADO = 'Reservado',
+  VENDIDO = 'Vendido'
+}
+
 export enum PropertyStatus {
   ARREMATADO = 'Arrematado',
   EM_REFORMA = 'Em Reforma',
@@ -46,6 +53,7 @@ export interface QuoteItem {
 
 export interface Quote {
   id: string;
+  organizationId: string;
   supplierId: string;
   supplierName: string;
   items: QuoteItem[];
@@ -58,6 +66,7 @@ export interface Quote {
 
 export interface PropertyLog {
   id: string;
+  organizationId: string;
   propertyId: string;
   userId: string;
   userName: string;
@@ -76,6 +85,7 @@ export enum MovementType {
 
 export interface Supplier {
   id: string;
+  organizationId: string;
   name: string;
   cnpj?: string;
   category: string;
@@ -84,6 +94,7 @@ export interface Supplier {
 
 export interface InventoryItem {
   id: string;
+  organizationId: string;
   name: string;
   unit: 'un' | 'm2' | 'm' | 'kg' | 'cx' | 'l';
   category: string;
@@ -100,6 +111,7 @@ export interface InventoryItem {
 
 export interface StockMovement {
   id: string;
+  organizationId: string;
   itemId: string;
   type: MovementType;
   quantity: number;
@@ -114,6 +126,7 @@ export interface StockMovement {
 
 export interface Warehouse {
   id: string;
+  organizationId: string;
   name: string;
   location: string;
 }
@@ -138,6 +151,7 @@ export interface UserPermissions {
 
 export interface Team {
   id: string;
+  organizationId: string;
   name: string;
   description: string;
   managerId?: string;
@@ -149,6 +163,7 @@ export interface UserAccount {
   email: string;
   role: UserRole;
   teamId?: string;
+  organizationId?: string;
   active: boolean;
   permissions: UserPermissions;
   photoUrl?: string;
@@ -160,6 +175,7 @@ export interface UserAccount {
 
 export interface ChatMessage {
   id: string;
+  organizationId: string;
   senderId: string;
   senderName: string;
   senderPhoto?: string;
@@ -194,6 +210,7 @@ export interface TaskComment {
 
 export interface Task {
   id: string;
+  organizationId: string;
   protocol?: string;
   title: string;
   description?: string;
@@ -215,6 +232,7 @@ export interface Task {
 
 export interface CalendarEvent {
   id: string;
+  organizationId: string;
   title: string;
   start: string;
   end: string;
@@ -236,6 +254,7 @@ export interface Attachment {
 
 export interface Expense {
   id: string;
+  organizationId: string;
   propertyId: string;
   category: ExpenseCategory;
   description: string;
@@ -266,6 +285,7 @@ export interface Bid {
 
 export interface Auction {
   id: string;
+  organizationId: string;
   title: string;
   description?: string;
   link?: string;
@@ -284,6 +304,7 @@ export interface Auction {
 
 export interface Alert {
   id: string;
+  organizationId: string;
   type: 'info' | 'warning' | 'error' | 'success';
   title: string;
   message: string;
@@ -292,8 +313,41 @@ export interface Alert {
   link?: string;
 }
 
+export enum OLXStatus {
+  NONE = 'Não Publicado',
+  PENDING = 'Pendente',
+  ACTIVE = 'Ativo',
+  REJECTED = 'Rejeitado',
+  SYNCING = 'Sincronizando'
+}
+
+export interface OLXData {
+  status: OLXStatus;
+  adId?: string;
+  publishedAt?: string;
+  lastSync?: string;
+  errorMessage?: string;
+  externalUrl?: string;
+}
+
+export interface Wallet {
+  balance: number;
+  slots: {
+    total: number;
+    used: number;
+  };
+  transactions: {
+    id: string;
+    type: 'credit' | 'debit';
+    amount: number;
+    description: string;
+    date: string;
+  }[];
+}
+
 export interface Property {
   id: string;
+  organizationId: string;
   title?: string; // New field for custom property name/label
   type: PropertyType;
   acquisitionType?: AcquisitionType;
@@ -338,19 +392,47 @@ export interface Property {
   itbiPaid?: boolean;
   registroPaid?: boolean;
 
+  // Portal Integration Fields
+  cep?: string;
+  rooms?: number;
+  bathrooms?: number;
+  garageSpaces?: number;
+  features?: string[];
+  complexFeatures?: string[];
+  monthlyCondo?: number;
+  monthlyIptu?: number;
+
   // Broker Module Fields
   availableForBrokers?: boolean;
+  commercialStatus?: CommercialStatus;
+  responsibleBrokerId?: string;
   description?: string;
   improvements?: string;
   locationApprox?: string;
+
+  // OLX Integration
+  olx?: OLXData;
+}
+
+export interface CommercialProperty {
+  id: string;
+  title: string;
+  address: string;
+  neighborhood: string;
+  city: string;
+  salePrice: number;
+  description: string;
+  improvements: string;
+  images: string[];
+  commercialStatus: CommercialStatus;
 }
 
 export enum LeadStatus {
-  RECEIVED = 'Lead recebido',
-  FIRST_CONTACT = 'Primeiro contato',
+  OPPORTUNITY = 'Oportunidade',
+  SERVICE = 'Atendimento',
   VISIT_SCHEDULED = 'Visita agendada',
-  PROPOSAL_SENT = 'Proposta enviada',
-  NEGOTIATION = 'Negociação',
+  VISIT_DONE = 'Visita Realizada',
+  PROPOSAL = 'Proposta',
   SOLD = 'Venda concluída',
   LOST = 'Negociação perdida'
 }
@@ -363,6 +445,7 @@ export enum BrokerStatus {
 
 export interface Broker {
   id: string;
+  organizationId: string;
   name: string;
   cpfCnpj: string;
   phone: string;
@@ -372,10 +455,12 @@ export interface Broker {
   active: boolean;
   status: BrokerStatus;
   userId?: string;
+  password?: string;
 }
 
 export interface Lead {
   id: string;
+  organizationId: string;
   name: string;
   phone: string;
   email: string;
@@ -392,6 +477,7 @@ export interface Lead {
 
 export interface Proposal {
   id: string;
+  organizationId: string;
   leadId: string;
   propertyId: string;
   brokerId: string;
@@ -404,6 +490,7 @@ export interface Proposal {
 
 export interface Reservation {
   id: string;
+  organizationId: string;
   propertyId: string;
   brokerId: string;
   startDate: string;

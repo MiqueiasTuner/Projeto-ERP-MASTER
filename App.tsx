@@ -4,16 +4,18 @@ import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } f
 import { 
   LayoutDashboard, Building2, Home, Users, Box, ChevronDown, 
   ChevronUp, BarChart3, Settings, LogOut, PlusCircle, Menu, X as CloseIcon,
-  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell, Search, Clock
+  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell, Search, Clock, Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, isConfigured } from './lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, db, isConfigured, firebaseConfig } from './lib/firebase';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
 import { 
   collection, onSnapshot, doc, setDoc, 
   deleteDoc, addDoc, query, where, getDocs,
   writeBatch
 } from 'firebase/firestore';
+import { ThemeProvider, useTheme } from './src/components/ThemeProvider';
 import Dashboard from './pages/Dashboard';
 import PropertyList from './pages/PropertyList';
 import PropertyForm from './pages/PropertyForm';
@@ -26,6 +28,7 @@ import ComprasPage from './pages/inventory/ComprasPage';
 import SettingsPage from './pages/SettingsPage';
 import ReportsPage from './pages/ReportsPage';
 import TeamsPage from './pages/TeamsPage';
+import IntegrationsPage from './pages/IntegrationsPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import ChatPage from './pages/ChatPage';
@@ -37,12 +40,13 @@ import BrokerDashboard from './pages/brokers/BrokerDashboard';
 import BrokerProperties from './pages/brokers/BrokerProperties';
 import BrokerPropertyDetails from './pages/brokers/BrokerPropertyDetails';
 import BrokerLeads from './pages/brokers/BrokerLeads';
+import PublicPropertyView from './pages/PublicPropertyView';
 import { 
   Property, Expense, InventoryItem, StockMovement, Supplier, 
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
   MovementType, ExpenseCategory, Quote, QuoteStatus, Task, TaskStatus,
-  Auction, Alert, Broker, Lead, Proposal, Reservation
+  Auction, Alert, Broker, Lead, Proposal, Reservation, CommercialStatus
 } from './types';
 
 const INITIAL_PERMISSIONS: UserPermissions = {
@@ -58,7 +62,7 @@ const SidebarItem = ({ to, icon: Icon, label, active, visible = true, onClick, c
   if (!visible) return null;
   const content = (
     <div className={`flex items-center space-x-3 p-3 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-      active ? 'bg-[#FFD700] text-[#0A192F] shadow-lg shadow-yellow-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+      active ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-yellow-500/20' : 'text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-header)]'
     }`} onClick={onClick} title={collapsed ? label : undefined}>
       <Icon size={18} className="flex-shrink-0" />
       <span className={`font-medium text-sm flex-1 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>{label}</span>
@@ -76,7 +80,7 @@ const SidebarGroup = ({ label, icon: Icon, children, active, visible = true, col
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center space-x-3 p-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap ${
-          active && !isOpen ? 'bg-[#FFD700]/10 text-[#FFD700]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          active && !isOpen ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-header)]'
         }`}
         title={collapsed ? label : undefined}
       >
@@ -134,11 +138,13 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
       { to: '/estoque/orcamentos', icon: Box, label: 'Orçamentos', visible: !isBroker && hasPermission('inventory', 'view') },
       { to: '/relatorios', icon: BarChart3, label: 'Relatórios', visible: !isBroker && hasPermission('reports', 'view') },
       { to: '/gestao-corretores', icon: Users, label: 'Corretores', visible: !isBroker && hasPermission('brokers', 'view') },
+      { to: '/corretor', icon: LayoutDashboard, label: 'Portal Corretor', visible: !isBroker && hasPermission('brokers', 'view') },
       { to: '/corretor/leads', icon: Users, label: 'Meus Leads', visible: isBroker },
       {to: '/chat', icon: MessageSquare, label: 'Chat', visible: true},
       {to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: !isBroker},
       {to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: true},
       {to: '/equipe', icon: User, label: 'Equipe', visible: !isBroker && hasPermission('teams', 'view')},
+      {to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: !isBroker && hasPermission('properties', 'view')},
       {to: '/configuracoes', icon: Settings, label: 'Ajustes', visible: true},
     ];
     return items.filter(item => item.visible && item.label.toLowerCase().includes(navSearchTerm.toLowerCase()));
@@ -149,36 +155,41 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[var(--bg-main)] overflow-hidden">
       {/* Top Header - YouTube Style */}
-      <header className="bg-[#0A192F] border-b border-slate-800 h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-50 shadow-md">
+      <header className="bg-[var(--bg-header)] border-b border-[var(--border)] h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-50 shadow-md">
         <div className="flex items-center gap-4">
           <button 
             onClick={toggleSidebar}
-            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors hidden lg:block"
+            className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] hover:bg-white/10 rounded-full transition-colors hidden lg:block"
           >
             <Menu size={24} />
           </button>
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors lg:hidden"
+            className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] hover:bg-white/10 rounded-full transition-colors lg:hidden"
           >
             <Menu size={24} />
           </button>
           
           <div className="flex items-center gap-3">
-            <div className="relative flex-shrink-0">
-              <div className="absolute -inset-1 bg-[#FFD700] rounded-xl blur-[2px] opacity-20"></div>
-              <div className="relative bg-[#0A192F] p-1 rounded-xl border border-[#FFD700]/20 overflow-hidden w-9 h-9 flex items-center justify-center">
-                <img src={currentUser.companyLogo || "https://i.postimg.cc/jsxKRsym/sale-(1).png"} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+            <div className="relative flex-shrink-0 group">
+              <div className="absolute -inset-1.5 bg-gradient-to-tr from-[var(--accent)] to-yellow-200 rounded-2xl blur-[4px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+              <div className="relative bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-[var(--accent)]/10 overflow-hidden w-11 h-11 flex items-center justify-center shadow-sm">
+                <img 
+                  src={currentUser.companyLogo || "https://i.postimg.cc/jsxKRsym/sale-(1).png"} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain rounded-lg" 
+                  referrerPolicy="no-referrer" 
+                />
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-white tracking-tight leading-none text-lg">
+              <span className="font-black text-[var(--text-header)] tracking-tighter leading-none text-xl">
                 {currentUser.companyLogo ? (
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-0.5">Sintese ERP</span>
+                  <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.2em] block mb-1">Sintese ERP</span>
                 ) : null}
-                Sintese <span className="text-[#FFD700]">ERP</span>
+                Sintese<span className="text-[var(--accent)]">ERP</span>
               </span>
             </div>
           </div>
@@ -186,13 +197,13 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
 
         <div className="flex items-center gap-4 flex-1 max-w-2xl mx-4 lg:mx-12">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
             <input 
               type="text" 
               placeholder="Buscar no menu..." 
               value={navSearchTerm}
               onChange={(e) => setNavSearchTerm(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700/50 rounded-full py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
+              className="w-full bg-[var(--bg-header)]/50 border border-[var(--border)] rounded-full py-2 pl-10 pr-4 text-sm text-[var(--text-header)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all"
             />
           </div>
         </div>
@@ -202,11 +213,11 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
            <div className="relative">
              <button 
                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-               className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors relative"
+               className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] hover:bg-white/10 rounded-full transition-colors relative"
              >
                <Bell size={22} />
                {unreadNotificationsCount > 0 && (
-                 <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-[#0A192F]">
+                 <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-[var(--bg-header)]">
                    {unreadNotificationsCount}
                  </span>
                )}
@@ -220,9 +231,9 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
                      animate={{ opacity: 1, y: 0, scale: 1 }}
                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                     className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden"
+                     className="absolute right-0 mt-2 w-80 bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-[var(--border)] z-50 overflow-hidden"
                    >
-                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                     <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-card-alt)]">
                        <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Notificações</h3>
                        <span className="text-[10px] font-bold text-slate-400 uppercase">{notifications.length} Pendentes</span>
                      </div>
@@ -239,7 +250,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
                                  new Date(task.dueDate!) < new Date() ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'
                                }`} />
                                <div>
-                                 <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">{task.title}</p>
+                                 <p className="text-sm font-bold text-slate-900 group-hover:text-yellow-600 transition-colors line-clamp-2">{task.title}</p>
                                  <div className="flex items-center gap-2 mt-1">
                                    <Clock size={12} className="text-slate-400" />
                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
@@ -264,7 +275,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
                      {notifications.length > 0 && (
                        <button 
                          onClick={() => { navigate('/tarefas'); setIsNotificationsOpen(false); }}
-                         className="w-full p-3 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] hover:bg-blue-50 transition-colors border-t border-slate-100"
+                         className="w-full p-3 text-[10px] font-black text-yellow-600 uppercase tracking-[0.2em] hover:bg-yellow-50 transition-colors border-t border-slate-100"
                        >
                          Ver todas as tarefas
                        </button>
@@ -275,15 +286,15 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
              </AnimatePresence>
            </div>
 
-           <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50 hover:bg-slate-800 transition-colors cursor-pointer" onClick={() => navigate('/configuracoes')}>
-              <div className="w-8 h-8 rounded-full bg-[#FFD700] flex items-center justify-center text-xs font-black text-[#0A192F] overflow-hidden border-2 border-slate-700">
+           <div className="flex items-center gap-3 px-3 py-1.5 bg-[var(--bg-header)]/50 rounded-full border border-[var(--border)] hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate('/configuracoes')}>
+              <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-xs font-black text-[var(--accent-text)] overflow-hidden border-2 border-[var(--border)]">
                 {currentUser.photoUrl ? (
                   <img src={currentUser.photoUrl} alt={currentUser.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   currentUser.name.substring(0, 2).toUpperCase()
                 )}
               </div>
-              <span className="hidden sm:block text-xs font-bold text-slate-300 pr-2">{currentUser.name}</span>
+              <span className="hidden sm:block text-xs font-bold text-[var(--text-header)] pr-2">{currentUser.name}</span>
            </div>
         </div>
       </header>
@@ -291,12 +302,12 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside 
-          className={`fixed inset-y-0 left-0 top-16 bg-[#0A192F] text-white flex flex-col z-40 transition-all duration-300 lg:static lg:h-full ${
+          className={`fixed inset-y-0 left-0 top-16 bg-[var(--bg-sidebar)] text-[var(--text-header)] flex flex-col z-40 transition-all duration-300 lg:static lg:h-full ${
             isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'
           } ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
         >
           <div className="lg:hidden flex justify-end p-4">
-             <button onClick={closeSidebar} className="text-slate-400"><CloseIcon /></button>
+             <button onClick={closeSidebar} className="text-[var(--text-muted)]"><CloseIcon /></button>
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto py-4 px-2 custom-scrollbar overflow-x-hidden">
@@ -312,27 +323,27 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
               <>
                 <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={isVisible('Dashboard')} collapsed={isSidebarCollapsed} />
                 
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
-                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
+                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
                 
                 <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={isVisible('Imóveis')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={isVisible('Leilões')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 
                 <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={isVisible('Insumos') || isVisible('Movimentos') || isVisible('Fornecedores') || isVisible('Orçamentos')} collapsed={isSidebarCollapsed}>
-                  {isVisible('Insumos') && <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Insumos</Link>}
-                  {isVisible('Movimentos') && <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Movimentos</Link>}
-                  {isVisible('Fornecedores') && <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Fornecedores</Link>}
-                  {isVisible('Orçamentos') && <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}>• Orçamentos</Link>}
+                  {isVisible('Insumos') && <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Insumos</Link>}
+                  {isVisible('Movimentos') && <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Movimentos</Link>}
+                  {isVisible('Fornecedores') && <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Fornecedores</Link>}
+                  {isVisible('Orçamentos') && <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Orçamentos</Link>}
                 </SidebarGroup>
 
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
-                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
+                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
                 <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={isVisible('Relatórios')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 <SidebarItem to="/gestao-corretores" icon={Users} label="Corretores" active={location.pathname === '/gestao-corretores'} visible={isVisible('Corretores')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
-                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
+                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
                 <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Chat')} />
                 <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Tarefas')} />
@@ -342,10 +353,11 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
                   <SidebarItem icon={FileText} label="Ligações" active={false} visible={isVisible('Ligações')} collapsed={isSidebarCollapsed} onClick={() => {}} />
                 </div>
 
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
-                <div className={`my-2 border-t border-slate-800 mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
+                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
                 <SidebarItem to="/equipe" icon={User} label="Equipe" active={location.pathname === '/equipe'} visible={isVisible('Equipe')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+                <SidebarItem to="/integracoes" icon={Globe} label="Hub OLX" active={location.pathname === '/integracoes'} visible={isVisible('Hub OLX')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
                 <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Ajustes')} />
               </>
             )}
@@ -358,13 +370,13 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
         </aside>
 
         {/* Main Content */}
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${location.pathname === '/' ? 'bg-[#0A192F]' : 'bg-slate-50'} relative ${location.pathname === '/calendario' ? '' : 'p-4 lg:p-8'}`}>
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${location.pathname === '/' ? 'bg-[var(--bg-header)]' : 'bg-[var(--bg-main)]'} relative ${location.pathname === '/calendario' ? '' : 'p-4 lg:p-8'}`}>
           <div className={location.pathname === '/calendario' ? 'h-full' : 'max-w-[1440px] mx-auto pb-20 lg:pb-0'}>
             {children}
           </div>
           {location.pathname === '/' && (
-            <footer className="mt-20 pb-10 text-center border-t border-slate-200/50 pt-10">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <footer className="mt-20 pb-10 text-center border-t border-[var(--border)] pt-10">
+              <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
                 © 2026 Sintese ERP. Todos os direitos reservados Sintese Web
               </p>
             </footer>
@@ -426,6 +438,7 @@ const AppContent = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [currentUserData, setCurrentUserData] = useState<UserAccount | null>(null);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
@@ -434,15 +447,32 @@ const AppContent = () => {
     }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setSession(user);
-      setLoading(false);
+      if (!user) {
+        setLoading(false);
+        setCurrentUserData(null);
+      }
     });
     return () => unsubscribe();
   }, []);
 
+  // Fetch current user data first
   useEffect(() => {
     if (!session || !db) return;
+    
+    const unsub = onSnapshot(doc(db, 'users', session.uid), (snapshot) => {
+      if (snapshot.exists()) {
+        setCurrentUserData({ ...snapshot.data(), id: snapshot.id } as UserAccount);
+      }
+      setLoading(false);
+    });
+    
+    return () => unsub();
+  }, [session]);
 
-    const collections: any[] = [
+  useEffect(() => {
+    if (!session || !db || !currentUserData?.organizationId) return;
+
+    const collectionsToFetch: any[] = [
       { name: 'properties', setter: setProperties },
       { name: 'expenses', setter: setExpenses },
       { name: 'inventory', setter: setInventory },
@@ -462,27 +492,31 @@ const AppContent = () => {
       { name: 'reservations', setter: setReservations },
     ];
 
-    const unsubscribes = collections.map(({ name, setter }) => {
-      return onSnapshot(collection(db, name), (snapshot) => {
+    const unsubscribes = collectionsToFetch.map(({ name, setter }) => {
+      // Filter by organizationId for SaaS multi-tenancy
+      const q = query(collection(db, name), where('organizationId', '==', currentUserData.organizationId));
+      return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as any[];
         setter(data);
+      }, (err) => {
+        console.error(`Error fetching ${name}:`, err);
       });
     });
 
     return () => unsubscribes.forEach(unsub => unsub());
-  }, [session]);
+  }, [session, currentUserData?.organizationId]);
 
-  const foundUser = users.find(u => u.email === session?.email);
   const foundBroker = brokers.find(b => b.email === session?.email);
 
-  const currentUser: UserAccount = foundUser ? {
-    ...foundUser,
-    permissions: foundUser.permissions || INITIAL_PERMISSIONS
+  const currentUser: UserAccount = currentUserData ? {
+    ...currentUserData,
+    permissions: currentUserData.permissions || INITIAL_PERMISSIONS
   } : foundBroker ? {
     id: foundBroker.id,
     name: foundBroker.name,
     email: foundBroker.email,
     role: UserRole.BROKER,
+    organizationId: foundBroker.organizationId,
     active: foundBroker.active,
     permissions: { ...INITIAL_PERMISSIONS, brokers: [] }
   } : {
@@ -491,6 +525,7 @@ const AppContent = () => {
     email: session?.email || '',
     role: UserRole.ADMIN, 
     active: true,
+    organizationId: 'default',
     permissions: INITIAL_PERMISSIONS
   };
 
@@ -499,22 +534,24 @@ const AppContent = () => {
     navigate('/login');
   };
 
-  const addLog = async (log: Omit<PropertyLog, 'id' | 'timestamp' | 'userId' | 'userName'>) => {
+  const addLog = async (log: Omit<PropertyLog, 'id' | 'timestamp' | 'userId' | 'userName' | 'organizationId'>) => {
     await addDoc(collection(db, 'logs'), {
       ...log,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
-      userName: currentUser.name
+      userName: currentUser.name,
+      organizationId: currentUser.organizationId
     });
   };
 
   const saveProperty = async (p: Property) => {
     const { id, ...data } = p;
+    const organizationId = currentUser.organizationId || 'default';
     if (id) {
-      await setDoc(doc(db, 'properties', id), data as any, { merge: true });
+      await setDoc(doc(db, 'properties', id), { ...data, organizationId } as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'properties'));
-      await setDoc(docRef, { ...data, id: docRef.id } as any);
+      await setDoc(docRef, { ...data, id: docRef.id, organizationId } as any);
     }
   };
 
@@ -530,13 +567,14 @@ const AppContent = () => {
     navigate('/imoveis');
   };
 
-  const addInventoryItem = async (item: Omit<InventoryItem, 'id'> & { id?: string }) => {
+  const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'organizationId'> & { id?: string }) => {
+    const organizationId = currentUser.organizationId || 'default';
     if (item.id) {
       const { id, ...data } = item;
-      await setDoc(doc(db, 'inventory', id), data as any, { merge: true });
+      await setDoc(doc(db, 'inventory', id), { ...data, organizationId } as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'inventory'));
-      await setDoc(docRef, { ...item, id: docRef.id } as any);
+      await setDoc(docRef, { ...item, id: docRef.id, organizationId } as any);
     }
   };
 
@@ -550,13 +588,14 @@ const AppContent = () => {
   };
 
   const addSupplier = async (s: Supplier) => {
+    const organizationId = currentUser.organizationId || 'default';
     if (s.id) {
       const { id, ...data } = s;
-      await setDoc(doc(db, 'suppliers', id), data as any, { merge: true });
+      await setDoc(doc(db, 'suppliers', id), { ...data, organizationId } as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'suppliers'));
       const { id, ...data } = s;
-      await setDoc(docRef, { ...data, id: docRef.id } as any);
+      await setDoc(docRef, { ...data, id: docRef.id, organizationId } as any);
     }
   };
 
@@ -571,7 +610,8 @@ const AppContent = () => {
 
   const addWarehouse = async (w: Warehouse) => {
     const { id, ...data } = w;
-    await addDoc(collection(db, 'warehouses'), data as any);
+    const organizationId = currentUser.organizationId || 'default';
+    await addDoc(collection(db, 'warehouses'), { ...data, organizationId } as any);
   };
 
   const deleteWarehouse = async (id: string) => {
@@ -585,7 +625,8 @@ const AppContent = () => {
 
   const handleAddMovement = async (mov: StockMovement) => {
     const { id, ...data } = mov;
-    await addDoc(collection(db, 'movements'), data as any);
+    const organizationId = currentUser.organizationId || 'default';
+    await addDoc(collection(db, 'movements'), { ...data, organizationId } as any);
     
     const item = inventory.find(i => i.id === mov.itemId);
     if (item) {
@@ -597,12 +638,24 @@ const AppContent = () => {
 
   const addExpense = async (e: Expense) => {
     const { id, ...data } = e;
-    await addDoc(collection(db, 'expenses'), data as any);
+    const organizationId = currentUser.organizationId || 'default';
+    if (id) {
+      await setDoc(doc(db, 'expenses', id), { ...data, organizationId } as any, { merge: true });
+    } else {
+      const docRef = doc(collection(db, 'expenses'));
+      await setDoc(docRef, { ...data, id: docRef.id, organizationId } as any);
+    }
+  };
+
+  const updateUser = async (u: UserAccount) => {
+    const { id, ...data } = u;
+    await setDoc(doc(db, 'users', id), data, { merge: true });
   };
 
   const addQuote = async (q: Quote) => {
     const { id, ...data } = q;
-    await addDoc(collection(db, 'quotes'), data as any);
+    const organizationId = currentUser.organizationId || 'default';
+    await addDoc(collection(db, 'quotes'), { ...data, organizationId } as any);
   };
 
   const updateQuoteStatus = async (id: string, status: QuoteStatus) => {
@@ -629,6 +682,7 @@ const AppContent = () => {
     // 2. Add stock movements and update inventory
     for (const item of quote.items) {
       const movement: Omit<StockMovement, 'id'> = {
+        organizationId: currentUserData?.organizationId || '',
         itemId: item.itemId,
         type: MovementType.ENTRADA_COMPRA,
         quantity: item.quantity,
@@ -655,14 +709,90 @@ const AppContent = () => {
 
   // Broker Module Handlers
   const addBroker = async (b: Broker) => {
-    const { id, ...data } = b;
-    const docRef = doc(collection(db, 'brokers'));
-    await setDoc(docRef, { ...data, id: docRef.id });
+    try {
+      const { id, password, ...data } = b;
+      
+      // 0. Check if user already exists in Firestore
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where("email", "==", b.email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        alert("Erro: Este e-mail já está cadastrado no sistema. Utilize um e-mail diferente.");
+        return;
+      }
+
+      // 1. Create Auth User using secondary app
+      let secondaryApp;
+      try {
+        secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+      } catch (e) {
+        // If app already exists, use it
+        secondaryApp = (await import('firebase/app')).getApp('Secondary');
+      }
+      
+      const secondaryAuth = getAuth(secondaryApp);
+      
+      let authUid = '';
+      try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, b.email, b.password!);
+        authUid = userCredential.user.uid;
+        await signOut(secondaryAuth);
+      } catch (authError: any) {
+        console.error("Error creating auth user:", authError);
+        if (authError.code === 'auth/email-already-in-use') {
+          alert("Erro: Este e-mail já está em uso por outra conta no Firebase. Por favor, use outro e-mail.");
+        } else {
+          alert(`Erro ao criar conta de acesso: ${authError.message}`);
+        }
+        try { await deleteApp(secondaryApp); } catch (e) {}
+        return;
+      }
+      try { await deleteApp(secondaryApp); } catch (e) {}
+
+      // 2. Save to brokers collection using the Auth UID as document ID
+      await setDoc(doc(db, 'brokers', authUid), { 
+        ...data, 
+        id: authUid, 
+        userId: authUid,
+        organizationId: currentUser.organizationId || 'default'
+      });
+
+      // 3. Create user document
+      await setDoc(doc(db, 'users', authUid), {
+        id: authUid,
+        name: b.name,
+        email: b.email,
+        role: UserRole.BROKER,
+        organizationId: currentUser.organizationId || 'default',
+        active: b.active,
+        permissions: {
+          properties: ['view'],
+          inventory: [],
+          finances: [],
+          teams: [],
+          reports: [],
+          brokers: []
+        }
+      });
+      
+      alert("Corretor cadastrado com sucesso! Ele já pode logar com as credenciais definidas.");
+    } catch (error: any) {
+      console.error("Error adding broker:", error);
+      alert(`Erro ao cadastrar corretor: ${error.message}`);
+    }
   };
 
   const updateBroker = async (b: Broker) => {
     const { id, ...data } = b;
     await setDoc(doc(db, 'brokers', id), data, { merge: true });
+    
+    // Update corresponding user document if it exists
+    await setDoc(doc(db, 'users', id), {
+      name: b.name,
+      email: b.email,
+      active: b.active
+    }, { merge: true });
   };
 
   const deleteBroker = async (id: string) => {
@@ -676,13 +806,50 @@ const AppContent = () => {
 
   const addLead = async (l: Lead) => {
     const { id, ...data } = l;
+    const organizationId = currentUser.organizationId || 'default';
     const docRef = doc(collection(db, 'leads'));
-    await setDoc(docRef, { ...data, id: docRef.id });
+    await setDoc(docRef, { ...data, id: docRef.id, organizationId });
   };
 
   const updateLead = async (l: Lead) => {
     const { id, ...data } = l;
     await setDoc(doc(db, 'leads', id), data, { merge: true });
+  };
+
+  const markPropertyAsSold = async (propertyId: string, brokerId: string, salePrice: number, saleDate: string) => {
+    const property = properties.find(p => p.id === propertyId);
+    if (!property) return;
+
+    const batch = writeBatch(db);
+    
+    // 1. Update property status and commercial fields
+    batch.update(doc(db, 'properties', propertyId), {
+      status: PropertyStatus.VENDIDO,
+      commercialStatus: CommercialStatus.VENDIDO,
+      responsibleBrokerId: brokerId,
+      salePrice: salePrice,
+      saleDate: saleDate,
+      availableForBrokers: false
+    });
+
+    // 2. Add log for executive dashboard
+    const logRef = doc(collection(db, 'logs'));
+    const organizationId = currentUser.organizationId || 'default';
+    const log: Omit<PropertyLog, 'id'> = {
+      propertyId,
+      organizationId,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      action: 'BAIXA_VENDA',
+      fromStatus: property.status,
+      toStatus: PropertyStatus.VENDIDO,
+      timestamp: new Date().toISOString(),
+      details: `Venda registrada pelo corretor ID: ${brokerId}. Valor: ${salePrice}`
+    };
+    batch.set(logRef, log);
+
+    await batch.commit();
+    alert('Venda registrada com sucesso! O imóvel foi removido da vitrine.');
   };
 
   if (!isConfigured) {
@@ -705,8 +872,8 @@ const AppContent = () => {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-      <div className="w-12 h-12 border-4 border-[#0A192F] border-t-[#FFD700] rounded-full animate-spin mb-4" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0B1120]">
+      <div className="w-12 h-12 border-4 border-slate-800 border-t-yellow-500 rounded-full animate-spin mb-4" />
       <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Carregando Sintese ERP...</p>
     </div>
   );
@@ -716,6 +883,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={() => {}} />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     );
@@ -726,7 +894,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
         <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
-        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} />} />
+        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} currentUser={currentUser} />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {
             alert("Apenas o Administrador Master pode excluir registros.");
@@ -736,24 +904,26 @@ const AppContent = () => {
         }} onDeleteProperty={deleteProperty} />} />
         <Route path="/novo" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
         <Route path="/editar/:id" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
-        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} />} />
-        <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} />} />
-        <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} />} />
-        <Route path="/estoque/almoxarifados" element={<AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} />} />
-        <Route path="/estoque/orcamentos" element={<ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} />} />
-        <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} />} />
+        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} currentUser={currentUser} />} />
+        <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} currentUser={currentUser} />} />
+        <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} currentUser={currentUser} />} />
+        <Route path="/estoque/almoxarifados" element={<AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} currentUser={currentUser} />} />
+        <Route path="/estoque/orcamentos" element={<ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} currentUser={currentUser} />} />
+        <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} tasks={tasks} auctions={auctions} brokers={brokers} leads={leads} />} />
         <Route path="/equipe" element={<TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
+        <Route path="/integracoes" element={<IntegrationsPage />} />
         <Route path="/chat" element={<ChatPage currentUser={currentUser} />} />
         <Route path="/tarefas" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
-        <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} />} />
+        <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} properties={properties} />} />
+        <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         
         {/* Broker Routes */}
         <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} leads={leads} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
         <Route path="/corretor" element={<BrokerDashboard leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} />} />
         <Route path="/corretor/imoveis" element={<BrokerProperties properties={properties} />} />
         <Route path="/corretor/imovel/:id" element={<BrokerPropertyDetails properties={properties} onAddLead={addLead} currentUser={currentUser} />} />
-        <Route path="/corretor/leads" element={<BrokerLeads leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} onUpdateLead={updateLead} />} />
+        <Route path="/corretor/leads" element={<BrokerLeads leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} onUpdateLead={updateLead} onMarkAsSold={markPropertyAsSold} />} />
         
         <Route path="*" element={<Navigate to={currentUser.role === UserRole.BROKER ? "/corretor" : "/"} />} />
       </Routes>
@@ -762,9 +932,11 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <HashRouter>
-    <AppContent />
-  </HashRouter>
+  <ThemeProvider>
+    <HashRouter>
+      <AppContent />
+    </HashRouter>
+  </ThemeProvider>
 );
 
 export default App;

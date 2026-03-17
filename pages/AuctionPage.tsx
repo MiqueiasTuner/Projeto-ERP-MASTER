@@ -142,6 +142,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
+        organizationId: currentUser.organizationId || '',
         title: auctionToWon.title,
         type: auctionToWon.propertyType || PropertyType.CASA,
         city: auctionToWon.city,
@@ -192,7 +193,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
   const getStatusColor = (status: AuctionStatus) => {
     switch (status) {
-      case AuctionStatus.OPEN: return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+      case AuctionStatus.OPEN: return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
       case AuctionStatus.WON: return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
       case AuctionStatus.LOST: return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       case AuctionStatus.FINISHED: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
@@ -200,27 +201,27 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
     }
   };
 
-  const inputClass = "w-full bg-slate-50 text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400";
+  const inputClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-3.5 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium placeholder:text-[var(--text-muted)]";
 
   return (
     <div ref={pageRef} className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Módulo de Arrematação</h2>
-          <p className="text-slate-500 font-medium">Busca, lances e gestão de leilões imobiliários.</p>
+          <h2 className="text-4xl font-black text-[var(--text-header)] tracking-tight">Módulo de Arrematação</h2>
+          <p className="text-[var(--text-muted)] font-medium">Busca, lances e gestão de leilões imobiliários.</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={exportToPDF}
             disabled={isExporting}
-            className="bg-white text-slate-700 px-6 py-4 rounded-2xl font-black text-sm border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            className="bg-[var(--bg-card)] text-[var(--text-header)] px-6 py-4 rounded-2xl font-black text-sm border border-[var(--border)] flex items-center gap-2 hover:bg-[var(--bg-card-alt)] transition-all shadow-sm disabled:opacity-50"
           >
             {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
             <span>{isExporting ? 'Exportando...' : 'PDF'}</span>
           </button>
           <button 
             onClick={() => { setEditingAuction(null); setIsModalOpen(true); }}
-            className="bg-slate-900 text-white p-4 px-8 rounded-2xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest"
+            className="bg-[var(--text-header)] text-[var(--bg-main)] p-4 px-8 rounded-2xl shadow-lg shadow-slate-900/20 hover:opacity-90 transition-all flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest"
           >
             <Plus size={20} />
             <span>Novo Leilão</span>
@@ -231,20 +232,20 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-8 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={20} />
           <input 
             type="text"
             placeholder="Buscar por título, cidade ou bairro..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-medium text-slate-600 shadow-sm"
+            className="w-full pl-12 pr-4 py-4 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-medium text-[var(--text-main)] shadow-sm"
           />
         </div>
         <div className="md:col-span-4">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-slate-600 shadow-sm appearance-none"
+            className="w-full px-4 py-4 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-slate-900/5 outline-none font-bold text-[var(--text-main)] shadow-sm appearance-none"
           >
             <option value="all">Todos os Status</option>
             {Object.values(AuctionStatus).map(s => (
@@ -260,7 +261,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
           <motion.div 
             layout
             key={auction.id}
-            className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
+            className="bg-[var(--bg-card)] rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
           >
             <div className="p-6 flex-1 space-y-4">
               <div className="flex items-start justify-between">
@@ -268,12 +269,12 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(auction.status)} cursor-pointer`}>
                     {auction.status}
                   </span>
-                  <div className="absolute top-full left-0 mt-1 hidden group-hover/status:block z-10 bg-white border border-slate-200 rounded-xl shadow-xl p-1 min-w-[140px]">
+                  <div className="absolute top-full left-0 mt-1 hidden group-hover/status:block z-10 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl p-1 min-w-[140px]">
                     {Object.values(AuctionStatus).map(s => (
                       <button
                         key={s}
                         onClick={() => handleUpdateStatus(auction.id, s)}
-                        className={`w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors ${auction.status === s ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                        className={`w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors ${auction.status === s ? 'bg-[var(--bg-card-alt)] text-[var(--text-header)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)] hover:text-[var(--text-header)]'}`}
                       >
                         Mudar para {s}
                       </button>
@@ -283,7 +284,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => { setEditingAuction(auction); setIsModalOpen(true); }}
-                    className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-colors"
+                    className="p-2 text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 rounded-xl transition-colors"
                   >
                     <Edit3 size={16} />
                   </button>
@@ -297,23 +298,23 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
               </div>
 
               <div>
-                <h3 className="text-lg font-black text-slate-900 leading-tight mb-1 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-black text-[var(--text-header)] leading-tight mb-1 group-hover:text-yellow-600 transition-colors">
                   {auction.title}
                 </h3>
-                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold">
+                <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs font-bold">
                   <MapPin size={14} />
                   <span>{auction.neighborhood}, {auction.city}</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
+              <div className="grid grid-cols-2 gap-4 py-4 border-y border-[var(--border)]">
                 <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Preço Inicial</span>
-                  <span className="text-sm font-black text-slate-900">{formatCurrency(auction.initialPrice)}</span>
+                  <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Preço Inicial</span>
+                  <span className="text-sm font-black text-[var(--text-header)]">{formatCurrency(auction.initialPrice)}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Lance Atual</span>
-                  <span className="text-sm font-black text-blue-600">{formatCurrency(auction.currentBid || 0)}</span>
+                  <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Lance Atual</span>
+                  <span className="text-sm font-black text-yellow-600">{formatCurrency(auction.currentBid || 0)}</span>
                 </div>
               </div>
 
@@ -334,7 +335,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     href={auction.link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-xs font-black text-blue-500 hover:text-blue-600 uppercase tracking-widest pt-2"
+                    className="flex items-center gap-2 text-xs font-black text-yellow-500 hover:text-yellow-600 uppercase tracking-widest pt-2"
                   >
                     <ExternalLink size={14} />
                     Ver no Site do Leiloeiro
@@ -343,11 +344,11 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
+            <div className="p-4 bg-[var(--bg-card-alt)] border-t border-[var(--border)] flex gap-2">
               <button 
                 onClick={() => { setSelectedAuction(auction); setIsBidModalOpen(true); }}
                 disabled={auction.status !== AuctionStatus.OPEN}
-                className="flex-1 bg-white border border-slate-200 text-slate-900 p-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-header)] p-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[var(--text-header)] hover:text-[var(--bg-main)] hover:border-[var(--text-header)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Gavel size={14} />
                 Dar Lance
@@ -378,18 +379,18 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
               <motion.div 
                 initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="absolute inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl flex flex-col"
+                className="absolute inset-y-0 right-0 w-full max-w-2xl bg-[var(--bg-card)] shadow-2xl flex flex-col"
               >
-                <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white">
+                <div className="p-8 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card)]">
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                    <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">
                       {editingAuction ? 'Editar Leilão' : 'Novo Leilão'}
                     </h3>
-                    <p className="text-slate-500 text-sm font-medium">Preencha os dados do edital.</p>
+                    <p className="text-[var(--text-muted)] text-sm font-medium">Preencha os dados do edital.</p>
                   </div>
                   <button 
                     onClick={() => { setIsModalOpen(false); setEditingAuction(null); }} 
-                    className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-full hover:bg-slate-100"
+                    className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] transition-colors rounded-full hover:bg-[var(--bg-card-alt)]"
                   >
                     <XCircle size={24} />
                   </button>
@@ -398,22 +399,22 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                 <form onSubmit={handleSaveAuction} className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2 space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Título / Endereço</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Título / Endereço</label>
                       <input name="title" defaultValue={editingAuction?.title} required className={inputClass} placeholder="Ex: Apartamento em Moema - 2 Quartos" />
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Cidade</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Cidade</label>
                       <input name="city" defaultValue={editingAuction?.city} required className={inputClass} placeholder="Ex: São Paulo" />
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Bairro</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Bairro</label>
                       <input name="neighborhood" defaultValue={editingAuction?.neighborhood} required className={inputClass} placeholder="Ex: Moema" />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Leilão</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Data do Leilão</label>
                       <CustomDatePicker 
                         selected={auctionDate ? new Date(auctionDate + 'T00:00:00') : null}
                         onChange={(date) => setAuctionDate(date ? date.toISOString().split('T')[0] : '')}
@@ -422,23 +423,23 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Imóvel</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Tipo de Imóvel</label>
                       <select name="propertyType" defaultValue={editingAuction?.propertyType} className={inputClass}>
                         {Object.values(PropertyType).map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Status do Leilão</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Status do Leilão</label>
                       <select name="status" defaultValue={editingAuction?.status || AuctionStatus.OPEN} className={inputClass}>
                         {Object.values(AuctionStatus).map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Preço Inicial (R$)</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Preço Inicial (R$)</label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold text-sm">R$</span>
                         <input 
                           name="initialPrice" 
                           type="text" 
@@ -456,9 +457,9 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Meu Lance Máximo (R$)</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Meu Lance Máximo (R$)</label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold text-sm">R$</span>
                         <input 
                           name="myMaxBid" 
                           type="text" 
@@ -475,27 +476,27 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Link do Edital / Leiloeiro</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Link do Edital / Leiloeiro</label>
                       <input name="link" type="url" defaultValue={editingAuction?.link} className={inputClass} placeholder="https://..." />
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Leiloeiro / Empresa</label>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Leiloeiro / Empresa</label>
                       <input name="auctioneer" defaultValue={editingAuction?.auctioneer} className={inputClass} placeholder="Ex: Zukerman Leilões" />
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-8 sticky bottom-0 bg-white border-t border-slate-100 -mx-8 px-8 pb-4">
+                  <div className="flex gap-4 pt-8 sticky bottom-0 bg-[var(--bg-card)] border-t border-[var(--border)] -mx-8 px-8 pb-4">
                     <button 
                       type="button" 
                       onClick={() => { setIsModalOpen(false); setEditingAuction(null); }} 
-                      className="flex-1 px-8 py-4 bg-white text-slate-400 hover:text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 transition-all"
+                      className="flex-1 px-8 py-4 bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl font-black text-xs uppercase tracking-widest border border-[var(--border)] transition-all"
                     >
                       Cancelar
                     </button>
                     <button 
                       type="submit" 
-                      className="flex-1 px-8 py-4 bg-[#0A192F] text-[#FFD700] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg shadow-slate-900/20"
+                      className="flex-1 px-8 py-4 bg-[var(--bg-header)] text-[var(--bg-main)] rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-slate-900/20"
                     >
                       Salvar Leilão
                     </button>
@@ -527,19 +528,19 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       {createPortal(
         <AnimatePresence>
           {isConfirmModalOpen && auctionToWon && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[var(--bg-header)]/60 backdrop-blur-sm">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
+                className="bg-[var(--bg-card)] rounded-[40px] w-full max-w-md p-8 shadow-2xl border border-[var(--border)]"
               >
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-emerald-500/10 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <CheckCircle2 size={32} />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Confirmar Arrematação</h3>
-                  <p className="text-slate-500 text-sm font-medium">
+                  <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">Confirmar Arrematação</h3>
+                  <p className="text-[var(--text-muted)] text-sm font-medium">
                     Deseja marcar "{auctionToWon.title}" como arrematado? Isso criará um novo imóvel no sistema.
                   </p>
                 </div>
@@ -548,7 +549,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
                   <button 
                     onClick={() => { setIsConfirmModalOpen(false); setAuctionToWon(null); }} 
                     disabled={isProcessingWon}
-                    className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50"
+                    className="flex-1 px-6 py-4 bg-[var(--bg-card-alt)] text-[var(--text-muted)] rounded-2xl font-black text-xs uppercase tracking-widest hover:text-[var(--text-header)] transition-all disabled:opacity-50"
                   >
                     Cancelar
                   </button>
@@ -572,23 +573,23 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       {createPortal(
         <AnimatePresence>
           {isDeleteModalOpen && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[var(--bg-header)]/60 backdrop-blur-sm">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
+                className="bg-[var(--bg-card)] rounded-[40px] w-full max-w-md p-8 shadow-2xl border border-[var(--border)]"
               >
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-rose-500/10 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Trash2 size={32} />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Excluir Leilão</h3>
-                  <p className="text-slate-500 text-sm font-medium">Tem certeza que deseja excluir este leilão? Esta ação não pode ser desfeita.</p>
+                  <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">Excluir Leilão</h3>
+                  <p className="text-[var(--text-muted)] text-sm font-medium">Tem certeza que deseja excluir este leilão? Esta ação não pode ser desfeita.</p>
                 </div>
 
                 <div className="flex gap-4">
-                  <button onClick={() => { setIsDeleteModalOpen(false); setAuctionToDelete(null); }} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                  <button onClick={() => { setIsDeleteModalOpen(false); setAuctionToDelete(null); }} className="flex-1 px-6 py-4 bg-[var(--bg-card-alt)] text-[var(--text-muted)] rounded-2xl font-black text-xs uppercase tracking-widest hover:text-[var(--text-header)] transition-all">Cancelar</button>
                   <button onClick={handleDeleteAuction} className="flex-1 px-6 py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/20">Excluir</button>
                 </div>
               </motion.div>
@@ -602,43 +603,43 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
       {createPortal(
         <AnimatePresence>
           {isBidModalOpen && selectedAuction && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[var(--bg-header)]/60 backdrop-blur-sm">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-[40px] w-full max-w-md p-8 shadow-2xl"
+                className="bg-[var(--bg-card)] rounded-[40px] w-full max-w-md p-8 shadow-2xl border border-[var(--border)]"
               >
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-yellow-500/10 text-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Gavel size={32} />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Registrar Lance</h3>
-                  <p className="text-slate-500 text-sm font-medium">{selectedAuction.title}</p>
+                  <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">Registrar Lance</h3>
+                  <p className="text-[var(--text-muted)] text-sm font-medium">{selectedAuction.title}</p>
                 </div>
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Valor do Lance (R$)</label>
+                    <label className="block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-2">Valor do Lance (R$)</label>
                     <div className="relative">
-                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-blue-400 font-black text-2xl z-10">R$</span>
+                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-yellow-400 font-black text-2xl z-10">R$</span>
                       <input 
                         type="text" 
                         value={formatBRLMask(bidAmount)}
                         onChange={(e) => setBidAmount(parseBRLToFloat(e.target.value) || 0)}
-                        className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/10 outline-none font-black text-2xl text-center text-blue-600"
+                        className="w-full pl-16 pr-6 py-4 bg-[var(--bg-card-alt)] border border-[var(--border)] rounded-2xl focus:ring-2 focus:ring-yellow-500/10 outline-none font-black text-2xl text-center text-yellow-600"
                         autoFocus
                         onFocus={(e) => e.target.select()}
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400 font-bold mt-2 text-center uppercase tracking-widest">
+                    <p className="text-[10px] text-[var(--text-muted)] font-bold mt-2 text-center uppercase tracking-widest">
                       Lance Atual: {formatCurrency(selectedAuction.currentBid || 0)}
                     </p>
                   </div>
 
                   <div className="flex gap-4">
-                    <button onClick={() => setIsBidModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
-                    <button onClick={handlePlaceBid} className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">Confirmar</button>
+                    <button onClick={() => setIsBidModalOpen(false)} className="flex-1 px-6 py-4 bg-[var(--bg-card-alt)] text-[var(--text-muted)] rounded-2xl font-black text-xs uppercase tracking-widest hover:text-[var(--text-header)] transition-all">Cancelar</button>
+                    <button onClick={handlePlaceBid} className="flex-1 px-6 py-4 bg-yellow-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-yellow-700 transition-all shadow-lg shadow-yellow-600/20">Confirmar</button>
                   </div>
                 </div>
               </motion.div>

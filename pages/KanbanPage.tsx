@@ -30,7 +30,7 @@ const TaskCard = ({ task, onClick }: {
     switch (priority) {
       case TaskPriority.URGENT: return 'bg-rose-50 text-rose-600 border-rose-100';
       case TaskPriority.HIGH: return 'bg-orange-50 text-orange-600 border-orange-100';
-      case TaskPriority.MEDIUM: return 'bg-blue-50 text-blue-600 border-blue-100';
+      case TaskPriority.MEDIUM: return 'bg-yellow-50 text-yellow-600 border-yellow-100';
       case TaskPriority.LOW: return 'bg-emerald-50 text-emerald-600 border-emerald-100';
       default: return 'bg-slate-50 text-slate-600 border-slate-100';
     }
@@ -39,7 +39,7 @@ const TaskCard = ({ task, onClick }: {
   return (
     <div
       onClick={onClick}
-      className="bg-white p-5 rounded-[20px] border shadow-sm border-slate-100 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 transition-all group cursor-pointer relative"
+      className="bg-white p-5 rounded-[20px] border shadow-sm border-slate-100 hover:shadow-xl hover:shadow-yellow-500/5 hover:-translate-y-1 transition-all group cursor-pointer relative"
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex flex-col gap-1">
@@ -78,7 +78,7 @@ const TaskCard = ({ task, onClick }: {
         
         <div className="flex items-center gap-3">
           {task.commentsList && task.commentsList.length > 0 && (
-            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 group-hover:text-blue-500 transition-colors">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 group-hover:text-yellow-500 transition-colors">
               <MessageSquare size={14} /> 
               <span>{task.commentsList.length}</span>
             </div>
@@ -101,7 +101,7 @@ const KanbanColumn: React.FC<{ status: TaskStatus, tasks: Task[], onTaskClick: (
   const getColumnColor = (s: TaskStatus) => {
     switch (s) {
       case TaskStatus.TODO: return 'border-t-slate-400';
-      case TaskStatus.IN_PROGRESS: return 'border-t-blue-500';
+      case TaskStatus.IN_PROGRESS: return 'border-t-yellow-500';
       case TaskStatus.REVIEW: return 'border-t-amber-500';
       case TaskStatus.DONE: return 'border-t-emerald-500';
       default: return 'border-t-slate-200';
@@ -266,7 +266,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
     }
   };
 
-  const inputClass = "w-full bg-slate-50 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 text-sm";
+  const inputClass = "w-full bg-slate-50 px-5 py-3.5 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium placeholder:text-slate-400 text-sm";
 
   return (
     <div id="kanban-board" ref={pageRef} className="h-full flex flex-col bg-slate-50 p-6 overflow-hidden">
@@ -286,7 +286,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
           </button>
           <button 
             onClick={() => setIsNewTaskOpen(true)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30"
+            className="bg-yellow-500 text-black px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-yellow-600 transition-all shadow-lg shadow-yellow-500/30"
           >
             <Plus size={16} strokeWidth={3} /> Nova Tarefa
           </button>
@@ -393,7 +393,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
 
                 <div className="pt-6 flex gap-4">
                   <button type="button" onClick={() => setIsNewTaskOpen(false)} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Cancelar</button>
-                  <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all">Criar Tarefa</button>
+                  <button type="submit" className="flex-1 py-4 bg-yellow-500 text-black rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-yellow-600 shadow-xl shadow-yellow-500/20 transition-all">Criar Tarefa</button>
                 </div>
               </form>
             </motion.div>
@@ -432,7 +432,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                       <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border w-fit ${
                         editingTask.priority === TaskPriority.URGENT ? 'bg-rose-100 text-rose-600 border-rose-200' :
                         editingTask.priority === TaskPriority.HIGH ? 'bg-orange-100 text-orange-600 border-orange-200' :
-                        editingTask.priority === TaskPriority.MEDIUM ? 'bg-blue-100 text-blue-600 border-blue-200' :
+                        editingTask.priority === TaskPriority.MEDIUM ? 'bg-yellow-100 text-yellow-600 border-yellow-200' :
                         'bg-emerald-100 text-emerald-600 border-emerald-200'
                       }`}>
                         {editingTask.priority}
@@ -446,7 +446,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                     <div className="flex items-center gap-2">
                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status:</label>
                        <select 
-                         className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-500/10"
+                         className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-yellow-500/10"
                          value={editingTask.status}
                          onChange={(e) => handleUpdateTaskStatus(editingTask.id, e.target.value as TaskStatus)}
                        >
@@ -466,7 +466,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                         {editingTask.assigneeIds?.map(uid => {
                           const user = users.find(u => u.id === uid);
                           return (
-                            <div key={uid} title={user?.name} className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-600">
+                            <div key={uid} title={user?.name} className="w-8 h-8 rounded-full bg-yellow-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-yellow-600">
                               {user?.name?.substring(0, 2).toUpperCase() || uid.substring(0, 2)}
                             </div>
                           );
@@ -476,7 +476,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                       
                       <select 
                         multiple 
-                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500/10 h-24"
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-yellow-500/10 h-24"
                         value={editingTask.assigneeIds || []}
                         onChange={(e) => {
                           const selected = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
@@ -501,7 +501,7 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Imóvel Vinculado</label>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                      <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600">
                         <Building2 size={20} />
                       </div>
                       <div>
@@ -546,12 +546,12 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Escreva um comentário..." 
-                      className="flex-1 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-sm"
+                      className="flex-1 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-yellow-500/10 focus:border-yellow-500 text-sm"
                       onKeyDown={(e) => e.key === 'Enter' && handleAddComment(editingTask.id)}
                     />
                     <button 
                       onClick={() => handleAddComment(editingTask.id)}
-                      className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+                      className="p-3 bg-yellow-500 text-black rounded-xl hover:bg-yellow-600 transition-colors shadow-lg shadow-yellow-500/20"
                     >
                       <Send size={18} />
                     </button>
