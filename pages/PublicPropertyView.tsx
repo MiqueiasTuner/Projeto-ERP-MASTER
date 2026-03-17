@@ -24,7 +24,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
         <Home size={48} className="text-slate-300 mb-4" />
         <h1 className="text-2xl font-bold text-slate-800 mb-2">Imóvel não encontrado</h1>
         <p className="text-slate-500 mb-6">O link pode estar quebrado ou o imóvel não está mais disponível.</p>
-        <Link to="/" className="px-6 py-2 bg-yellow-500 text-white rounded-full font-bold hover:bg-yellow-600 transition-colors">
+        <Link to="/" className="px-6 py-2 bg-[var(--accent)] text-white rounded-full font-bold hover:bg-[var(--accent-secondary)] transition-colors">
           Voltar ao Início
         </Link>
       </div>
@@ -43,7 +43,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
   const prevImage = () => setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-yellow-200">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[var(--erp-yellow)]/30">
       {/* Hero Section with Image Gallery */}
       <section className="relative h-[70vh] lg:h-[85vh] bg-slate-900 overflow-hidden">
         <AnimatePresence mode="wait">
@@ -88,7 +88,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
             transition={{ delay: 0.3 }}
           >
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-3 py-1 bg-yellow-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+              <span className="px-3 py-1 bg-[var(--erp-yellow)] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                 {property.type || 'Imóvel'}
               </span>
               <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-full">
@@ -99,7 +99,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
               {property.title}
             </h1>
             <div className="flex items-center text-white/80 gap-2 mb-8">
-              <MapPin size={18} className="text-yellow-500" />
+              <MapPin size={18} className="text-[var(--erp-yellow)]" />
               <span className="text-sm lg:text-lg font-medium">
                 {property.neighborhood}, {property.city}
               </span>
@@ -112,10 +112,15 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
       <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12 lg:py-20 grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-20">
         
         {/* Left Column: Details */}
-        <div className="lg:col-span-2 space-y-12">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="lg:col-span-2 space-y-12"
+        >
           
           {/* Key Features Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-8 bg-slate-50 rounded-3xl border border-slate-100">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-8 bg-slate-50 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex flex-col items-center text-center gap-2">
               <BedDouble className="text-yellow-600" size={24} />
               <span className="text-xl font-black">{property.rooms || 0}</span>
@@ -141,7 +146,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
           {/* Description */}
           <section>
             <h2 className="text-2xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
-              <Info className="text-yellow-500" size={24} />
+              <Info className="text-[var(--erp-yellow)]" size={24} />
               Sobre o Imóvel
             </h2>
             <div className="text-slate-600 leading-relaxed text-lg whitespace-pre-wrap">
@@ -178,21 +183,26 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
           {/* Complex Features */}
           {property.complexFeatures && property.complexFeatures.length > 0 && (
             <section className="p-8 bg-slate-900 rounded-3xl text-white">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-yellow-500 mb-6">Infraestrutura do Condomínio</h3>
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--erp-yellow)] mb-6">Infraestrutura do Condomínio</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {property.complexFeatures.map((feat, idx) => (
                   <div key={idx} className="flex items-center gap-3 text-white/80">
-                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--erp-yellow)]" />
                     {feat}
                   </div>
                 ))}
               </div>
             </section>
           )}
-        </div>
+        </motion.div>
 
         {/* Right Column: Sticky Sidebar */}
-        <div className="space-y-8">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="space-y-8"
+        >
           <div className="sticky top-24 space-y-6">
             
             {/* Price Card */}
@@ -245,16 +255,15 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
               <p className="text-slate-700 font-bold mb-2">{property.address}</p>
               <p className="text-slate-500 text-sm">{property.neighborhood}, {property.city}</p>
               {property.locationApprox && (
-                <div className="mt-4 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
+                <div className="mt-4 p-4 bg-[var(--erp-yellow)]/10 rounded-xl border border-[var(--erp-yellow)]/20">
                   <p className="text-xs text-yellow-700 font-medium">
                     {property.locationApprox}
                   </p>
                 </div>
               )}
             </div>
-
           </div>
-        </div>
+        </motion.div>
       </main>
 
       {/* Footer */}
@@ -265,7 +274,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
               <Home className="text-slate-900" size={24} />
             </div>
             <span className="text-2xl font-black text-white tracking-tighter">
-              Sintese<span className="text-yellow-500">ERP</span>
+              Sintese<span className="text-[var(--erp-yellow)]">ERP</span>
             </span>
           </div>
           <p className="text-slate-400 max-w-md mb-12">

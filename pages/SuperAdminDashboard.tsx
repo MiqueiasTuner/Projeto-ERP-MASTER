@@ -167,7 +167,7 @@ const SuperAdminDashboard = ({ onViewOrg }: { onViewOrg: (orgId: string) => void
           <button 
             onClick={() => setActiveTab('organizations')}
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              activeTab === 'organizations' ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-yellow-500/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              activeTab === 'organizations' ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
           >
             Organizações
@@ -175,7 +175,7 @@ const SuperAdminDashboard = ({ onViewOrg }: { onViewOrg: (orgId: string) => void
           <button 
             onClick={() => setActiveTab('users')}
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              activeTab === 'users' ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-yellow-500/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              activeTab === 'users' ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
           >
             Usuários
@@ -184,7 +184,7 @@ const SuperAdminDashboard = ({ onViewOrg }: { onViewOrg: (orgId: string) => void
 
         <button 
           onClick={() => activeTab === 'organizations' ? setIsOrgModalOpen(true) : setIsUserModalOpen(true)}
-          className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-yellow-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
+          className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
         >
           <Plus size={20} />
           {activeTab === 'organizations' ? 'Nova Empresa' : 'Novo Usuário'}

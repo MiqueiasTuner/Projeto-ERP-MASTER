@@ -43,11 +43,13 @@ export const CommercialService = {
    * Generates a WhatsApp link for the sales kit.
    */
   getWhatsAppSalesKitLink: (property: CommercialProperty): string => {
+    const publicLink = `${window.location.origin}/#/publico/imovel/${property.id}`;
     const message = encodeURIComponent(
-      `Olá! Tenho interesse no imóvel: ${property.title}\n` +
-      `Localização: ${property.neighborhood}, ${property.city}\n` +
-      `Valor: R$ ${property.salePrice.toLocaleString('pt-BR')}\n` +
-      `Veja as fotos aqui: ${property.images[0] || 'Link da Galeria'}`
+      `🏠 *KIT DE VENDA: ${property.title.toUpperCase()}*\n\n` +
+      `📍 *Localização:* ${property.neighborhood}, ${property.city}\n` +
+      `💰 *Valor:* R$ ${property.salePrice.toLocaleString('pt-BR')}\n\n` +
+      `✨ *Destaques:* ${property.description.substring(0, 100)}...\n\n` +
+      `🔗 *Veja o Kit Completo (Fotos e Detalhes):*\n${publicLink}`
     );
     return `https://wa.me/?text=${message}`;
   }

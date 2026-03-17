@@ -48,7 +48,7 @@ const InputField = ({ label, path, type = 'text', prefix, placeholder, value, on
         <input 
           type={type === 'currency' ? 'text' : type} 
           placeholder={placeholder || (type === 'currency' ? 'R$ 0,00' : '')}
-          className={`w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] ${prefix && displayValue !== '' ? 'pl-8' : 'px-3'} py-2 rounded-xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium placeholder:text-[var(--text-muted)] text-[11px]`}
+          className={`w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] ${prefix && displayValue !== '' ? 'pl-8' : 'px-3'} py-2 rounded-xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium placeholder:text-[var(--text-muted)] text-[11px]`}
           value={displayValue}
           onFocus={(e) => e.target.select()}
           onChange={(e) => {
@@ -201,7 +201,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
     }
   };
 
-  const selectClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-3 py-2 rounded-xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium appearance-none text-[11px]";
+  const selectClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-3 py-2 rounded-xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium appearance-none text-[11px]";
 
   return (
     <>
@@ -231,7 +231,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         <section className="bg-[var(--bg-card)] p-3 sm:p-4 rounded-[24px] border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
             <div className="flex items-center space-x-2 text-yellow-600">
-              <div className="p-1.5 bg-yellow-500/10 rounded-lg"><ImageIcon size={14} /></div>
+              <div className="p-1.5 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg"><ImageIcon size={14} /></div>
               <h3 className="font-black uppercase tracking-widest text-[9px]">Galeria de Fotos</h3>
             </div>
           </div>
@@ -241,10 +241,10 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
               onDragLeave={() => setIsDragging(false)}
               onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e.dataTransfer.files); }}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-4 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${isDragging ? 'border-yellow-500 bg-yellow-500/10' : 'border-[var(--border)] bg-[var(--bg-card-alt)] hover:border-yellow-400'}`}
+              className={`border-2 border-dashed rounded-2xl p-4 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${isDragging ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] bg-[var(--bg-card-alt)] hover:border-[var(--accent)]/60'}`}
             >
               <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleFileUpload(e.target.files)} />
-              <div className="w-8 h-8 bg-yellow-500/10 text-yellow-600 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform"><Upload size={16} /></div>
+              <div className="w-8 h-8 bg-[var(--accent)]/10 text-[var(--accent-secondary)] rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform"><Upload size={16} /></div>
               <h4 className="text-xs font-black text-[var(--text-main)]">Upload</h4>
               <p className="text-[9px] text-[var(--text-muted)] font-medium">Fotos do canteiro ou laudo</p>
             </div>
@@ -324,7 +324,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         {/* INFO - OTIMIZADO */}
         <section className="bg-[var(--bg-card)] p-3 sm:p-4 rounded-[24px] border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center space-x-2 text-yellow-600 border-b border-[var(--border)] pb-2">
-            <div className="p-1 bg-yellow-500/10 rounded-lg"><Info size={12} /></div>
+            <div className="p-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg"><Info size={12} /></div>
             <h3 className="font-black uppercase tracking-widest text-[8px]">Informações Primárias</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
@@ -342,7 +342,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         {/* FINANCEIRO */}
         <section className="bg-[var(--bg-card)] p-3 sm:p-4 rounded-[24px] border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center space-x-2 text-yellow-600 border-b border-[var(--border)] pb-2">
-            <div className="p-1 bg-yellow-500/10 rounded-lg"><Landmark size={14} strokeWidth={2.5} /></div>
+            <div className="p-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg"><Landmark size={14} strokeWidth={2.5} /></div>
             <h3 className="font-black uppercase tracking-widest text-[8px]">Valores de Entrada</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -355,7 +355,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         {/* JURÍDICO */}
         <section className="bg-[var(--bg-card)] p-3 sm:p-4 rounded-[24px] border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center space-x-2 text-yellow-600 border-b border-[var(--border)] pb-2">
-            <div className="p-1 bg-yellow-500/10 rounded-lg"><ShieldCheck size={14} strokeWidth={2.5} /></div>
+            <div className="p-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg"><ShieldCheck size={14} strokeWidth={2.5} /></div>
             <h3 className="font-black uppercase tracking-widest text-[8px]">Jurídico e Legal</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -370,7 +370,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         {/* DESPESAS RECORRENTES */}
         <section className="bg-[var(--bg-card)] p-3 sm:p-4 rounded-[24px] border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center space-x-2 text-yellow-600 border-b border-[var(--border)] pb-2">
-            <div className="p-1 bg-yellow-500/10 rounded-lg"><Landmark size={14} strokeWidth={2.5} /></div>
+            <div className="p-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg"><Landmark size={14} strokeWidth={2.5} /></div>
             <h3 className="font-black uppercase tracking-widest text-[8px]">Despesas Recorrentes (Pré-Venda)</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -383,7 +383,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
         {/* PROJEÇÃO */}
         <section className="bg-[var(--bg-card)] p-3 sm:p-4 rounded-[24px] border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center space-x-2 text-yellow-600 border-b border-[var(--border)] pb-2">
-            <div className="p-1 bg-yellow-500/10 rounded-lg"><HardHat size={14} strokeWidth={2.5} /></div>
+            <div className="p-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg"><HardHat size={14} strokeWidth={2.5} /></div>
             <h3 className="font-black uppercase tracking-widest text-[8px]">Obra e Projeção</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -480,7 +480,7 @@ const PropertyForm = ({ properties, onSave, onCancel }: { properties?: Property[
           onClick={() => {
             if (formRef.current) formRef.current.requestSubmit();
           }}
-          className="bg-yellow-500 text-black px-8 sm:px-12 py-5 rounded-[24px] font-black text-sm sm:text-base shadow-[0_20px_50px_rgba(234,179,8,0.4)] hover:bg-yellow-600 hover:-translate-y-1 active:translate-y-0 transition-all flex flex-col items-center justify-center space-y-1 uppercase tracking-widest border border-yellow-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="bg-[var(--accent)] text-[var(--accent-text)] px-8 sm:px-12 py-5 rounded-[24px] font-black text-sm sm:text-base shadow-[0_20px_50px_rgba(59,130,246,0.4)] hover:bg-[var(--accent-secondary)] hover:-translate-y-1 active:translate-y-0 transition-all flex flex-col items-center justify-center space-y-1 uppercase tracking-widest border border-[var(--accent)]/20 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           <div className="flex items-center space-x-3">
             {isSaving ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} strokeWidth={2.5} />}

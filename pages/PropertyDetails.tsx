@@ -21,7 +21,7 @@ import {
   FileDown,
   Edit
 } from 'lucide-react';
-import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task } from '../types';
+import { Property, Expense, ExpenseCategory, PropertyStatus, PropertyLog, Task, UserAccount, UserRole } from '../types';
 import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloat, formatDate } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import CustomDatePicker from '../src/components/CustomDatePicker';
@@ -39,12 +39,13 @@ interface PropertyDetailsProps {
   onAddExpense: (e: Expense) => void;
   onDeleteExpense: (id: string) => void;
   onDeleteProperty: (id: string) => void;
+  currentUser: UserAccount;
 }
 
-const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense, onDeleteExpense, onDeleteProperty }: PropertyDetailsProps) => {
+const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense, onDeleteExpense, onDeleteProperty, currentUser }: PropertyDetailsProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>('financeiro');
+  const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>(currentUser.role === UserRole.BROKER ? 'timeline' : 'financeiro');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -157,10 +158,10 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
     if (!commercialProperty) {
       // Fallback if not marked as available for brokers
       const message = encodeURIComponent(
-        `Olá! Tenho interesse no imóvel: ${property.title || property.neighborhood}\n` +
-        `Localização: ${property.neighborhood}, ${property.city}\n` +
-        `Valor: R$ ${(property.salePrice || 0).toLocaleString('pt-BR')}\n` +
-        `Veja as fotos aqui: ${window.location.origin}/#/publico/imovel/${property.id}`
+        `🏠 *KIT DE VENDA: ${(property.title || property.neighborhood || 'Imóvel').toUpperCase()}*\n\n` +
+        `📍 *Localização:* ${property.neighborhood}, ${property.city}\n` +
+        `💰 *Valor:* R$ ${(property.salePrice || 0).toLocaleString('pt-BR')}\n\n` +
+        `🔗 *Veja o Kit Completo (Fotos e Detalhes):*\n${window.location.origin}/#/publico/imovel/${property.id}`
       );
       return `https://wa.me/?text=${message}`;
     }
@@ -246,53 +247,66 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => onDeleteProperty(property.id)}
-            className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
-          >
-            Excluir <Trash2 size={14} />
-          </button>
-          <button 
-            onClick={exportToPdf}
-            disabled={isGeneratingPdf}
-            className="inline-flex items-center justify-center gap-2 text-yellow-600 hover:text-white hover:bg-yellow-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
-          >
-            {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
-          </button>
-          <Link 
-            to={`/publico/imovel/${property.id}`}
-            target="_blank"
-            className="inline-flex items-center justify-center gap-2 text-emerald-600 hover:text-white hover:bg-emerald-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
-          >
-            Página Pública <ExternalLink size={14} />
-          </Link>
-          <a 
-            href={getWhatsAppKitLink()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 text-emerald-500 hover:text-white hover:bg-emerald-500 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
-          >
-            Kit WhatsApp <MessageSquare size={14} />
-          </a>
-          <button 
-            onClick={handleDownloadImages}
-            disabled={isDownloadingImages}
-            className="inline-flex items-center justify-center gap-2 text-blue-500 hover:text-white hover:bg-blue-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
-          >
-            {isDownloadingImages ? 'Baixando...' : 'Baixar Fotos'} <Download size={14} />
-          </button>
-          <button 
-            onClick={handleShare}
-            className="inline-flex items-center justify-center gap-2 text-purple-500 hover:text-white hover:bg-purple-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
-          >
-            Compartilhar <Share2 size={14} />
-          </button>
+          {currentUser.role !== UserRole.BROKER && (
+            <>
+              <button 
+                onClick={() => onDeleteProperty(property.id)}
+                className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+              >
+                Excluir <Trash2 size={14} />
+              </button>
+              <button 
+                onClick={exportToPdf}
+                disabled={isGeneratingPdf}
+                className="inline-flex items-center justify-center gap-2 text-[var(--accent)] hover:text-white hover:bg-[var(--accent)] font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
+              >
+                {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
+              </button>
+            </>
+          )}
+          
           <button 
             onClick={() => navigate(`/editar/${property.id}`)}
-            className="inline-flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-yellow-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+            className="inline-flex items-center justify-center gap-2 bg-[var(--accent)] text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-2xl transition-all shadow-lg shadow-[var(--accent)]/20"
           >
-            Editar Cadastro <ExternalLink size={14} />
+            Editar Cadastro <Edit size={14} />
           </button>
+
+          <div className="relative group/actions">
+            <button className="p-3 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl transition-all shadow-sm">
+              <Plus size={20} />
+            </button>
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] overflow-hidden">
+              <button 
+                onClick={handleShare}
+                className="w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)] hover:text-[var(--accent)] flex items-center gap-3 border-b border-[var(--border)]"
+              >
+                <Share2 size={14} /> Compartilhar Link
+              </button>
+              <button 
+                onClick={handleDownloadImages}
+                disabled={isDownloadingImages}
+                className="w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)] hover:text-blue-500 flex items-center gap-3 border-b border-[var(--border)]"
+              >
+                <Download size={14} /> Baixar Fotos (ZIP)
+              </button>
+              <Link 
+                to={`/publico/imovel/${property.id}`}
+                target="_blank"
+                className="w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)] hover:text-emerald-600 flex items-center gap-3 border-b border-[var(--border)]"
+              >
+                <ExternalLink size={14} /> Ver Kit Online
+              </Link>
+              <a 
+                href={getWhatsAppKitLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)] hover:text-emerald-500 flex items-center gap-3"
+              >
+                <MessageSquare size={14} /> Kit WhatsApp
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -401,10 +415,10 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
       <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
         <div className="flex overflow-x-auto bg-[var(--bg-card-alt)] border-b border-[var(--border)] no-scrollbar">
-          {(['financeiro', 'despesas', 'timeline'] as const).map((tab) => (
+          {(currentUser.role === UserRole.BROKER ? ['timeline'] : ['financeiro', 'despesas', 'timeline'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab as any)}
               className={`px-8 md:px-12 py-6 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap flex-1 lg:flex-none ${
                 activeTab === tab ? 'text-yellow-600 border-b-4 border-yellow-600 bg-[var(--bg-card)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}

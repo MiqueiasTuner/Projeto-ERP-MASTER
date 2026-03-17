@@ -53,13 +53,19 @@ import {
 } from '../types';
 import { calculatePropertyMetrics, formatCurrency } from '../utils';
 import { reportService } from '../ReportService';
+import { motion } from 'motion/react';
 
-const COLORS = ['#2563EB', '#1D4ED8', '#E0E0E0', '#64748b', '#475569', '#1A1A1A'];
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#6366F1', '#EC4899'];
 
-const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-[var(--bg-card)] rounded-[var(--radius)] border border-[var(--border)] shadow-sm p-4 lg:p-6 ${className}`}>
+const Card = ({ children, className = "", delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    className={`bg-[var(--bg-card)] rounded-[var(--radius)] border border-[var(--border)] shadow-sm p-4 lg:p-6 ${className}`}
+  >
     {children}
-  </div>
+  </motion.div>
 );
 
 const Dashboard = ({ 
@@ -99,17 +105,19 @@ const Dashboard = ({
   };
 
   const stats = useMemo(() => {
-    const sold = properties.filter(p => p.status === PropertyStatus.VENDIDO);
-    const metrics = properties.map(p => calculatePropertyMetrics(p, expenses));
+    const props = properties || [];
+    const exps = expenses || [];
+    const sold = props.filter(p => p.status === PropertyStatus.VENDIDO);
+    const metrics = props.map(p => calculatePropertyMetrics(p, exps));
     
     const totalInvested = metrics.reduce((acc, m) => acc + m.totalInvested, 0);
     const totalProfit = metrics.reduce((acc, m) => acc + m.realizedProfit, 0);
-    const totalSaleValue = properties.filter(p => p.status === PropertyStatus.VENDIDO).reduce((acc, p) => acc + (p.salePrice || 0), 0);
-    const totalAcquisition = properties.reduce((acc, p) => acc + (p.acquisitionPrice || 0), 0);
-    const totalRenovation = expenses.reduce((acc, e) => acc + e.amount, 0);
+    const totalSaleValue = props.filter(p => p.status === PropertyStatus.VENDIDO).reduce((acc, p) => acc + (p.salePrice || 0), 0);
+    const totalAcquisition = props.reduce((acc, p) => acc + (p.acquisitionPrice || 0), 0);
+    const totalRenovation = exps.reduce((acc, e) => acc + e.amount, 0);
     
     const avgROI = sold.length > 0 
-      ? metrics.filter((_, i) => properties[i].status === PropertyStatus.VENDIDO)
+      ? metrics.filter((_, i) => props[i].status === PropertyStatus.VENDIDO)
           .reduce((acc, m) => acc + m.roi, 0) / sold.length 
       : 0;
 
@@ -121,12 +129,12 @@ const Dashboard = ({
       const monthIndex = d.getMonth();
       const year = d.getFullYear();
 
-      const monthExpenses = expenses.filter(e => {
+      const monthExpenses = exps.filter(e => {
         const eDate = new Date(e.date);
         return eDate.getMonth() === monthIndex && eDate.getFullYear() === year;
       }).reduce((sum, e) => sum + e.amount, 0);
 
-      const monthIncome = properties.filter(p => {
+      const monthIncome = props.filter(p => {
         if (!p.saleDate || p.status !== PropertyStatus.VENDIDO) return false;
         const sDate = new Date(p.saleDate);
         return sDate.getMonth() === monthIndex && sDate.getFullYear() === year;
@@ -140,7 +148,7 @@ const Dashboard = ({
     }).reverse();
 
     // 2. Expense Sources (Donut Chart)
-    const expenseByCategory = expenses.reduce((acc, e) => {
+    const expenseByCategory = exps.reduce((acc, e) => {
       acc[e.category] = (acc[e.category] || 0) + e.amount;
       return acc;
     }, {} as Record<string, number>);
@@ -151,19 +159,19 @@ const Dashboard = ({
     })).sort((a, b) => b.value - a.value);
 
     // 3. Inventory Limits
-    const lowStockItems = inventory.filter(i => i.currentStock <= i.minStock);
+    const lowStockItems = (inventory || []).filter(i => i.currentStock <= i.minStock);
     
     // 4. Task Statistics
     const taskStats = {
-      total: tasks.length,
-      done: tasks.filter(t => t.status === TaskStatus.DONE).length,
-      todo: tasks.filter(t => t.status === TaskStatus.TODO).length,
-      inProgress: tasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length,
+      total: (tasks || []).length,
+      done: (tasks || []).filter(t => t.status === TaskStatus.DONE).length,
+      todo: (tasks || []).filter(t => t.status === TaskStatus.TODO).length,
+      inProgress: (tasks || []).filter(t => t.status === TaskStatus.IN_PROGRESS).length,
     };
 
     // 5. Markup de Reforma Data
-    const markupData = properties.slice(0, 6).map(p => {
-      const m = calculatePropertyMetrics(p, expenses);
+    const markupData = props.slice(0, 6).map(p => {
+      const m = calculatePropertyMetrics(p, exps);
       const renovationCost = (m.categoryBreakdown[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0);
       return {
         name: p.condoName || p.neighborhood || 'Imóvel',
@@ -176,10 +184,10 @@ const Dashboard = ({
 
     // 6. Pipeline Status
     const statusData = [
-      { name: 'Arrematado', value: properties.filter(p => p.status === PropertyStatus.ARREMATADO).length, color: '#2563EB' },
-      { name: 'Em Reforma', value: properties.filter(p => p.status === PropertyStatus.EM_REFORMA).length, color: '#1D4ED8' },
-      { name: 'À Venda', value: properties.filter(p => p.status === PropertyStatus.A_VENDA).length, color: '#E0E0E0' },
-      { name: 'Vendido', value: properties.filter(p => p.status === PropertyStatus.VENDIDO).length, color: '#64748b' },
+      { name: 'Arrematado', value: props.filter(p => p.status === PropertyStatus.ARREMATADO).length, color: '#8B5CF6' },
+      { name: 'Em Reforma', value: props.filter(p => p.status === PropertyStatus.EM_REFORMA).length, color: '#F59E0B' },
+      { name: 'À Venda', value: props.filter(p => p.status === PropertyStatus.A_VENDA).length, color: '#3B82F6' },
+      { name: 'Vendido', value: props.filter(p => p.status === PropertyStatus.VENDIDO).length, color: '#10B981' },
     ];
 
     // 7. Dynamic Alerts
@@ -193,7 +201,7 @@ const Dashboard = ({
         icon: Package
       });
     }
-    const overdueTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== TaskStatus.DONE);
+    const overdueTasks = (tasks || []).filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== TaskStatus.DONE);
     if (overdueTasks.length > 0) {
       activeAlerts.push({
         id: 'overdue-tasks',
@@ -203,7 +211,7 @@ const Dashboard = ({
         icon: Clock
       });
     }
-    const upcomingAuctions = auctions.filter(a => {
+    const upcomingAuctions = (auctions || []).filter(a => {
       const auctionDate = new Date(a.date);
       const diff = auctionDate.getTime() - new Date().getTime();
       return diff > 0 && diff < (3 * 24 * 60 * 60 * 1000); // 3 days
@@ -232,12 +240,18 @@ const Dashboard = ({
       statusData,
       markupData,
       activeAlerts,
-      totalProperties: properties.length
+      totalProperties: props.length
     };
   }, [properties, expenses, tasks, inventory, auctions]);
 
   return (
-    <div id="dashboard-content" ref={pageRef} className="min-h-screen bg-[var(--bg-header)] -m-6 lg:-m-10 p-4 lg:p-6 space-y-6 animate-in fade-in duration-700 text-[var(--text-header)] overflow-x-hidden">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      id="dashboard-content" 
+      ref={pageRef} 
+      className="min-h-screen bg-[var(--bg-header)] -m-6 lg:-m-10 p-4 lg:p-6 space-y-6 text-[var(--text-header)] overflow-x-hidden"
+    >
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -586,7 +600,7 @@ const Dashboard = ({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

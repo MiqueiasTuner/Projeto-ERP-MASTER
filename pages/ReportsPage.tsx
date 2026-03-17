@@ -4,7 +4,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, Cell, PieChart, Pie, AreaChart, Area
 } from 'recharts';
-import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon, Gavel, HardHat, Loader2, Search, ArrowRight, Info, CheckCircle2, AlertCircle, Clock, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileDown, TrendingUp, DollarSign, Package, MapPin, Calendar, Building2, PieChart as PieChartIcon, Gavel, HardHat, Loader2, Search, ArrowRight, Info, CheckCircle2, AlertCircle, Clock, X, Building } from 'lucide-react';
 import { 
   Property, Expense, InventoryItem, PropertyStatus, ExpenseCategory, 
   Task, TaskStatus, Auction, AuctionStatus, Broker, Lead, LeadStatus 
@@ -13,7 +14,14 @@ import { calculatePropertyMetrics, formatCurrency, formatDate } from '../utils';
 import { reportService } from '../ReportService';
 import { motion, AnimatePresence } from 'motion/react';
 
-const COLORS = ['#eab308', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899'];
+const STATUS_COLORS: Record<string, string> = {
+  [PropertyStatus.ARREMATADO]: '#8B5CF6',
+  [PropertyStatus.EM_REFORMA]: '#F59E0B',
+  [PropertyStatus.A_VENDA]: '#3B82F6',
+  [PropertyStatus.VENDIDO]: '#10B981',
+};
+
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#6366F1', '#EC4899'];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -54,6 +62,7 @@ const ReportsPage = ({
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Filters
@@ -61,6 +70,7 @@ const ReportsPage = ({
   const [propertyTypeFilter, setPropertyTypeFilter] = useState<string>('all');
 
   const filteredData = useMemo(() => {
+    if (!properties || !Array.isArray(properties)) return [];
     let props = [...properties];
     if (propertyTypeFilter !== 'all') {
       props = props.filter(p => p.type === propertyTypeFilter);
@@ -71,11 +81,11 @@ const ReportsPage = ({
   }, [properties, propertyTypeFilter]);
 
   const selectedProperty = useMemo(() => 
-    properties.find(p => p.id === selectedPropertyId),
+    (properties || []).find(p => p.id === selectedPropertyId),
   [properties, selectedPropertyId]);
 
   const propertyExpenses = useMemo(() => 
-    expenses.filter(e => e.propertyId === selectedPropertyId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    (expenses || []).filter(e => e.propertyId === selectedPropertyId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
   [expenses, selectedPropertyId]);
 
   const propertyMetrics = useMemo(() => 
@@ -83,10 +93,10 @@ const ReportsPage = ({
   [selectedProperty, expenses]);
 
   const filteredProperties = useMemo(() => 
-    properties.filter(p => 
-      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.condoName?.toLowerCase().includes(searchTerm.toLowerCase())
+    (properties || []).filter(p => 
+      (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.neighborhood || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.condoName || '').toLowerCase().includes(searchTerm.toLowerCase())
     ),
   [properties, searchTerm]);
 
@@ -102,116 +112,180 @@ const ReportsPage = ({
   };
 
   const metrics = useMemo(() => {
-    const propertyData = filteredData.map(p => ({
-      ...p,
-      metrics: calculatePropertyMetrics(p, expenses)
-    }));
-
-    const totalInvested = propertyData.reduce((acc, p) => acc + p.metrics.totalInvested, 0);
-    const totalProfit = propertyData.reduce((acc, p) => acc + p.metrics.realizedProfit, 0);
-    const soldProperties = propertyData.filter(p => p.status === PropertyStatus.VENDIDO);
-    const avgROI = soldProperties.length > 0 
-      ? soldProperties.reduce((acc, p) => acc + p.metrics.roi, 0) / soldProperties.length 
-      : 0;
-
-    const soldWithDates = soldProperties.filter(p => p.acquisitionDate && p.saleDate);
-    const leadTimeDays = soldWithDates.map(p => {
-      const start = new Date(p.acquisitionDate).getTime();
-      const end = new Date(p.saleDate!).getTime();
-      return Math.max(0, (end - start) / (1000 * 60 * 60 * 24));
-    });
-    const avgLeadTime = leadTimeDays.length > 0 
-      ? Math.round(leadTimeDays.reduce((acc, d) => acc + d, 0) / leadTimeDays.length)
-      : 0;
-
-    const statusDist = Object.values(PropertyStatus).map(status => ({
-      name: status,
-      value: filteredData.filter(p => p.status === status).length
-    }));
-
-    const cityGroups = filteredData.reduce((acc: any, p) => {
-      if (!acc[p.city]) acc[p.city] = { name: p.city, roi: 0, count: 0 };
-      const m = calculatePropertyMetrics(p, expenses);
-      if (p.status === PropertyStatus.VENDIDO) {
-        acc[p.city].roi += m.roi;
-        acc[p.city].count += 1;
+    try {
+      if (!properties || !Array.isArray(properties)) {
+        return null;
       }
-      return acc;
-    }, {});
 
-    const roiByCity = Object.values(cityGroups).map((g: any) => ({
-      name: g.name,
-      roi: g.count > 0 ? g.roi / g.count : 0
-    })).sort((a, b) => b.roi - a.roi);
+      const propertyData = filteredData.map(p => ({
+        ...p,
+        metrics: calculatePropertyMetrics(p, expenses)
+      }));
 
-    // Renovation Analysis
-    const renovationCosts = propertyData.map(p => ({
-      name: p.condoName || p.neighborhood || 'Imóvel',
-      cost: (p.metrics.categoryBreakdown[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0),
-      total: p.metrics.totalInvested
-    })).sort((a, b) => b.cost - a.cost).slice(0, 6);
+      const totalInvested = propertyData.reduce((acc, p) => acc + (p.metrics?.totalInvested || 0), 0);
+      const totalProfit = propertyData.reduce((acc, p) => acc + (p.metrics?.realizedProfit || 0), 0);
+      const soldProperties = propertyData.filter(p => p.status === PropertyStatus.VENDIDO);
+      const avgROI = soldProperties.length > 0 
+        ? soldProperties.reduce((acc, p) => acc + (p.metrics?.roi || 0), 0) / soldProperties.length 
+        : 0;
 
-    // Inventory Value
-    const inventoryByCategory = inventory.reduce((acc: any, item) => {
-      acc[item.category] = (acc[item.category] || 0) + (item.currentStock * (item.averageCost || 0));
-      return acc;
-    }, {});
+      const soldWithDates = soldProperties.filter(p => p.acquisitionDate && p.saleDate);
+      const leadTimeDays = soldWithDates.map(p => {
+        try {
+          const start = new Date(p.acquisitionDate).getTime();
+          const end = new Date(p.saleDate!).getTime();
+          if (isNaN(start) || isNaN(end)) return 0;
+          return Math.max(0, (end - start) / (1000 * 60 * 60 * 24));
+        } catch (e) {
+          return 0;
+        }
+      });
+      const avgLeadTime = leadTimeDays.length > 0 
+        ? Math.round(leadTimeDays.reduce((acc, d) => acc + d, 0) / leadTimeDays.length)
+        : 0;
 
-    const inventoryValueData = Object.entries(inventoryByCategory).map(([name, value]) => ({
-      name,
-      value: value as number
-    })).sort((a, b) => b.value - a.value);
+      const statusDist = Object.values(PropertyStatus).map(status => ({
+        name: status,
+        value: filteredData.filter(p => p.status === status).length
+      }));
 
-    // Profitability Analysis
-    const profitabilityData = propertyData.filter(p => p.status === PropertyStatus.VENDIDO).map(p => {
-      const renovation = (p.metrics.categoryBreakdown[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0);
-      const otherCosts = p.metrics.totalInvested - p.acquisitionPrice - renovation;
-      return {
-        name: p.condoName || p.neighborhood || 'Imóvel',
-        arremate: p.acquisitionPrice,
-        reforma: renovation,
-        outros: otherCosts,
-        venda: p.salePrice || 0,
-        lucro: p.metrics.realizedProfit
+      const cityGroups = filteredData.reduce((acc: any, p) => {
+        if (!p.city) return acc;
+        if (!acc[p.city]) acc[p.city] = { name: p.city, roi: 0, count: 0 };
+        const m = calculatePropertyMetrics(p, expenses);
+        if (p.status === PropertyStatus.VENDIDO) {
+          acc[p.city].roi += (m?.roi || 0);
+          acc[p.city].count += 1;
+        }
+        return acc;
+      }, {});
+
+      const roiByCity = Object.values(cityGroups).map((g: any) => ({
+        name: g.name,
+        roi: g.count > 0 ? g.roi / g.count : 0
+      })).sort((a, b) => b.roi - a.roi);
+
+      // Renovation Analysis
+      const renovationCosts = propertyData.map(p => ({
+        name: p.condoName || p.neighborhood || p.title || 'Imóvel',
+        cost: (p.metrics?.categoryBreakdown?.[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0),
+        total: p.metrics?.totalInvested || 0
+      })).sort((a, b) => b.cost - a.cost).slice(0, 6);
+
+      // Inventory Value
+      const inventoryValueData = Array.isArray(inventory) ? Object.entries(
+        inventory.reduce((acc: any, item) => {
+          acc[item.category] = (acc[item.category] || 0) + (item.currentStock * (item.averageCost || 0));
+          return acc;
+        }, {})
+      ).map(([name, value]) => ({
+        name,
+        value: value as number
+      })).sort((a, b) => b.value - a.value) : [];
+
+      // Profitability Analysis
+      const profitabilityData = propertyData.filter(p => p.status === PropertyStatus.VENDIDO).map(p => {
+        const renovation = (p.metrics?.categoryBreakdown?.[ExpenseCategory.REFORMA] || 0) + (p.expenseMaterials || 0);
+        const otherCosts = (p.metrics?.totalInvested || 0) - (p.acquisitionPrice || 0) - renovation;
+        return {
+          name: p.condoName || p.neighborhood || p.title || 'Imóvel',
+          arremate: p.acquisitionPrice || 0,
+          reforma: renovation,
+          outros: otherCosts,
+          venda: p.salePrice || 0,
+          lucro: p.metrics?.realizedProfit || 0
+        };
+      }).slice(0, 10);
+
+      // Task Stats
+      const taskStats = Object.values(TaskStatus).map(status => ({
+        name: status,
+        value: (tasks || []).filter(t => t.status === status).length
+      }));
+
+      // Auction Stats
+      const auctionStats = Object.values(AuctionStatus).map(status => ({
+        name: status,
+        value: (auctions || []).filter(a => a.status === status).length
+      }));
+
+      // Broker Performance
+      const brokerLeads = (brokers || []).map(b => ({
+        name: b.name,
+        leads: (leads || []).filter(l => l.brokerId === b.id).length,
+        vendas: (leads || []).filter(l => l.brokerId === b.id && l.status === LeadStatus.SOLD).length
+      })).sort((a, b) => b.leads - a.leads).slice(0, 8);
+
+      return { 
+        totalInvested, 
+        roiByCity, 
+        statusDist, 
+        avgROI, 
+        avgLeadTime, 
+        renovationCosts, 
+        inventoryValueData, 
+        profitabilityData,
+        taskStats,
+        auctionStats,
+        brokerLeads
       };
-    }).slice(0, 10);
+    } catch (error) {
+      console.error("Error calculating report metrics:", error);
+      return null;
+    }
+  }, [filteredData, expenses, inventory, tasks, auctions, brokers, leads, properties]);
 
-    // Task Stats
-    const taskStats = Object.values(TaskStatus).map(status => ({
-      name: status,
-      value: tasks.filter(t => t.status === status).length
-    }));
+  if (properties && properties.length === 0) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-[var(--text-muted)] animate-in fade-in duration-500">
+        <div className="p-10 bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-xl flex flex-col items-center text-center max-w-md">
+          <div className="w-20 h-20 bg-[var(--accent)]/10 text-[var(--accent)] rounded-3xl flex items-center justify-center mb-6">
+            <Building size={40} />
+          </div>
+          <h3 className="text-xl font-black text-[var(--text-header)] uppercase tracking-tight mb-2">Sem Dados Disponíveis</h3>
+          <p className="text-sm font-medium leading-relaxed mb-8">
+            Não há imóveis cadastrados para gerar relatórios. Comece cadastrando seu primeiro ativo no sistema.
+          </p>
+          <button 
+            onClick={() => navigate('/novo')}
+            className="w-full bg-[var(--accent)] text-[var(--accent-text)] py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all"
+          >
+            Cadastrar Imóvel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-    // Auction Stats
-    const auctionStats = Object.values(AuctionStatus).map(status => ({
-      name: status,
-      value: auctions.filter(a => a.status === status).length
-    }));
-
-    // Broker Performance
-    const brokerLeads = brokers.map(b => ({
-      name: b.name,
-      leads: leads.filter(l => l.brokerId === b.id).length,
-      vendas: leads.filter(l => l.brokerId === b.id && l.status === LeadStatus.SOLD).length
-    })).sort((a, b) => b.leads - a.leads).slice(0, 8);
-
-    return { 
-      totalInvested, 
-      roiByCity, 
-      statusDist, 
-      avgROI, 
-      avgLeadTime, 
-      renovationCosts, 
-      inventoryValueData, 
-      profitabilityData,
-      taskStats,
-      auctionStats,
-      brokerLeads
-    };
-  }, [filteredData, expenses, inventory, tasks, auctions, brokers, leads]);
+  if (!metrics) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-[var(--text-muted)] animate-in fade-in duration-500">
+        <div className="p-6 bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-xl flex flex-col items-center text-center max-w-md">
+          <div className="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center mb-6">
+            <AlertCircle size={40} />
+          </div>
+          <h3 className="text-xl font-black text-[var(--text-header)] uppercase tracking-tight mb-2">Erro ao Processar Dados</h3>
+          <p className="text-sm font-medium leading-relaxed mb-8">
+            Ocorreu um erro inesperado ao calcular as métricas dos relatórios. Isso pode ser causado por dados inconsistentes no banco de dados.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full bg-[var(--text-header)] text-[var(--bg-header)] py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-[var(--accent-text)] transition-all"
+          >
+            Recarregar Página
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div ref={reportRef} className="space-y-8 animate-in fade-in duration-700 pb-20 text-[var(--text-main)]">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      ref={reportRef} 
+      className="space-y-8 pb-20 text-[var(--text-main)]"
+    >
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -606,41 +680,45 @@ const ReportsPage = ({
             <h3 className="text-sm font-black text-[var(--text-header)] uppercase tracking-widest">Pipeline de Ativos</h3>
             <PieChartIcon size={20} className="text-[var(--text-muted)]" />
           </div>
-          <div className="flex-1 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={metrics.statusDist}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={110}
-                  paddingAngle={8}
-                  dataKey="value"
-                >
-                  {metrics.statusDist.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
-                  ))}
-                </Pie>
-                <RechartsTooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Total</span>
-              <span className="text-3xl font-black text-[var(--text-header)]">{filteredData.length}</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            {metrics.statusDist.map((item, index) => (
-              <div key={item.name} className="flex flex-col">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                  <span className="text-[10px] font-black text-[var(--text-muted)] uppercase truncate">{item.name}</span>
-                </div>
-                <span className="text-sm font-black text-[var(--text-header)]">{item.value}</span>
-              </div>
-            ))}
-          </div>
+                  <div className="flex-1 relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={metrics.statusDist}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={80}
+                          outerRadius={110}
+                          paddingAngle={8}
+                          dataKey="value"
+                        >
+                          {metrics.statusDist.map((item, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={STATUS_COLORS[item.name as string] || COLORS[index % COLORS.length]} 
+                              stroke="none" 
+                            />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Total</span>
+                      <span className="text-3xl font-black text-[var(--text-header)]">{filteredData.length}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-8">
+                    {metrics.statusDist.map((item, index) => (
+                      <div key={item.name} className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[item.name as string] || COLORS[index % COLORS.length] }} />
+                          <span className="text-[10px] font-black text-[var(--text-muted)] uppercase truncate">{item.name}</span>
+                        </div>
+                        <span className="text-sm font-black text-[var(--text-header)]">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
         </div>
 
         {/* Task Performance */}
@@ -719,7 +797,7 @@ const ReportsPage = ({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

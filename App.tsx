@@ -64,7 +64,7 @@ const SidebarItem = ({ to, icon: Icon, label, active, visible = true, onClick, c
   if (!visible) return null;
   const content = (
     <div className={`flex items-center space-x-3 p-3 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-      active ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-yellow-500/20' : 'text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-header)]'
+      active ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-header)]'
     }`} onClick={onClick} title={collapsed ? label : undefined}>
       <Icon size={18} className="flex-shrink-0" />
       <span className={`font-medium text-sm flex-1 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>{label}</span>
@@ -143,7 +143,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
       { to: '/corretor', icon: LayoutDashboard, label: 'Portal Corretor', visible: !isBroker && hasPermission('brokers', 'view') },
       { to: '/corretor/leads', icon: Users, label: 'Meus Leads', visible: isBroker },
       {to: '/chat', icon: MessageSquare, label: 'Chat', visible: true},
-      {to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: !isBroker},
+      {to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: true},
       {to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: true},
       {to: '/equipe', icon: User, label: 'Equipe', visible: !isBroker && hasPermission('teams', 'view')},
       {to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: !isBroker && hasPermission('properties', 'view')},
@@ -190,9 +190,9 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
             <div className="flex flex-col">
               <span className="font-black text-[var(--text-header)] tracking-tighter leading-none text-xl">
                 {currentUser.companyLogo ? (
-                  <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.2em] block mb-1">Sintese ERP</span>
+                  <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-[0.2em] block mb-1">Sintese <span className="text-[var(--erp-yellow)]">ERP</span></span>
                 ) : null}
-                Sintese<span className="text-[var(--accent)]">ERP</span>
+                Sintese<span className="text-[var(--erp-yellow)]">ERP</span>
               </span>
             </div>
           </div>
@@ -380,7 +380,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
           {location.pathname === '/' && (
             <footer className="mt-20 pb-10 text-center border-t border-[var(--border)] pt-10">
               <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
-                © 2026 Sintese ERP. Todos os direitos reservados Sintese Web
+                © 2026 Sintese <span className="text-[var(--erp-yellow)]">ERP</span>. Todos os direitos reservados Sintese Web
               </p>
             </footer>
           )}
@@ -911,8 +911,8 @@ const AppContent = () => {
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#0B1120]">
-      <div className="w-12 h-12 border-4 border-slate-800 border-t-yellow-500 rounded-full animate-spin mb-4" />
-      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Carregando Sintese ERP...</p>
+      <div className="w-12 h-12 border-4 border-slate-800 border-t-[var(--accent)] rounded-full animate-spin mb-4" />
+      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Carregando Sintese <span className="text-[var(--erp-yellow)]">ERP</span>...</p>
     </div>
   );
 
@@ -935,7 +935,7 @@ const AppContent = () => {
           <ShieldAlert size={80} className="text-rose-500 mx-auto mb-8" />
           <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Acesso Suspenso</h1>
           <p className="text-slate-400 font-medium mb-10 leading-relaxed">
-            Sua organização foi temporariamente bloqueada. Por favor, entre em contato com o suporte do Sintese ERP para regularizar sua situação.
+            Sua organização foi temporariamente bloqueada. Por favor, entre em contato com o suporte do Sintese <span className="text-[var(--erp-yellow)]">ERP</span> para regularizar sua situação.
           </p>
           <button 
             onClick={handleLogout}
@@ -971,26 +971,26 @@ const AppContent = () => {
         </div>
       )}
       <Routes>
-        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
-        <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
-        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} currentUser={currentUser} />} />
+        <Route path="/" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
+        <Route path="/leiloes" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
+        <Route path="/imoveis" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor/imoveis" /> : <PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} currentUser={currentUser} />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {
             alert("Apenas o Administrador Master pode excluir registros.");
             return;
           }
           await deleteDoc(doc(db, 'expenses', id)); 
-        }} onDeleteProperty={deleteProperty} />} />
+        }} onDeleteProperty={deleteProperty} currentUser={currentUser} />} />
         <Route path="/novo" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
         <Route path="/editar/:id" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
-        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} currentUser={currentUser} />} />
-        <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} currentUser={currentUser} />} />
-        <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} currentUser={currentUser} />} />
-        <Route path="/estoque/almoxarifados" element={<AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} currentUser={currentUser} />} />
-        <Route path="/estoque/orcamentos" element={<ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} currentUser={currentUser} />} />
-        <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} tasks={tasks} auctions={auctions} brokers={brokers} leads={leads} />} />
-        <Route path="/equipe" element={<TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
-        <Route path="/integracoes" element={<IntegrationsPage />} />
+        <Route path="/estoque/insumos" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} currentUser={currentUser} />} />
+        <Route path="/estoque/movimentos" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} currentUser={currentUser} />} />
+        <Route path="/estoque/fornecedores" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} currentUser={currentUser} />} />
+        <Route path="/estoque/almoxarifados" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} currentUser={currentUser} />} />
+        <Route path="/estoque/orcamentos" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} currentUser={currentUser} />} />
+        <Route path="/relatorios" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <ReportsPage properties={properties} expenses={expenses} inventory={inventory} tasks={tasks} auctions={auctions} brokers={brokers} leads={leads} />} />
+        <Route path="/equipe" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
+        <Route path="/integracoes" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <IntegrationsPage />} />
         <Route path="/chat" element={<ChatPage currentUser={currentUser} />} />
         <Route path="/tarefas" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
@@ -1001,8 +1001,8 @@ const AppContent = () => {
         {/* Broker Routes */}
         <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} leads={leads} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
         <Route path="/corretor" element={<BrokerDashboard leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} />} />
-        <Route path="/corretor/imoveis" element={<BrokerProperties properties={properties} />} />
-        <Route path="/corretor/imovel/:id" element={<BrokerPropertyDetails properties={properties} onAddLead={addLead} currentUser={currentUser} />} />
+        <Route path="/corretor/imoveis" element={<PropertyList properties={properties.filter(p => p.availableForBrokers)} expenses={[]} onUpdateStatus={() => {}} onDeleteProperty={() => {}} addLog={async () => {}} currentUser={currentUser} />} />
+        <Route path="/corretor/imovel/:id" element={<PropertyDetails properties={properties} expenses={[]} logs={[]} tasks={[]} onAddExpense={() => {}} onDeleteExpense={() => {}} onDeleteProperty={() => {}} currentUser={currentUser} />} />
         <Route path="/corretor/leads" element={<BrokerLeads leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} onUpdateLead={updateLead} onMarkAsSold={markPropertyAsSold} />} />
         
         <Route path="*" element={<Navigate to={currentUser.role === UserRole.BROKER ? "/corretor" : "/"} />} />

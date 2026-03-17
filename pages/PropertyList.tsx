@@ -23,9 +23,11 @@ import {
   Loader2,
   Download,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Share2,
+  MoreVertical
 } from 'lucide-react';
-import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType, UserAccount } from '../types';
+import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType, UserAccount, UserRole } from '../types';
 import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
@@ -57,189 +59,194 @@ const PropertyKanbanCard = React.memo(({
   onMoveLeft?: () => void, 
   onMoveRight?: () => void 
 }) => {
+  const [showActions, setShowActions] = useState(false);
+
   return (
-    <div 
-      className="bg-[var(--bg-card)] rounded-[24px] border border-[var(--border)] shadow-sm hover:shadow-xl hover:shadow-yellow-500/5 transition-all duration-300 overflow-hidden group select-none flex flex-col"
+    <motion.div 
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ y: -4 }}
+      className="bg-[var(--bg-card)] rounded-[24px] border border-[var(--border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-300 overflow-hidden group select-none flex flex-col h-fit"
     >
       {/* Image Section */}
-      <div className="h-24 overflow-hidden bg-[var(--bg-card-alt)] relative">
+      <div className="h-32 overflow-hidden bg-[var(--bg-card-alt)] relative">
         {property.images && property.images.length > 0 ? (
-          <img src={property.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" referrerPolicy="no-referrer" />
+          <img src={property.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" referrerPolicy="no-referrer" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><ImageIcon size={20} /></div>
+          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><ImageIcon size={24} /></div>
         )}
         
         {/* Overlay Badges */}
-        <div className="absolute top-2 left-2">
-          <div className="bg-[var(--bg-card)]/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-sm border border-white/20 flex items-center gap-1">
-            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[8px] font-black text-[var(--text-main)] uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
+        <div className="absolute top-3 left-3">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-white/20 flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[9px] font-black text-[var(--text-main)] uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
           </div>
         </div>
 
-        <div className="absolute top-2 right-2 flex gap-1">
+        <div className="absolute top-3 right-3 flex gap-1.5 z-10">
           <button 
-            onClick={onDelete}
-            className="p-1.5 bg-[var(--bg-card)]/90 backdrop-blur-md rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="p-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-[var(--text-muted)] hover:text-[var(--accent)] transition-all shadow-sm border border-white/20"
+            title="Editar"
           >
-            <Trash2 size={12} />
+            <Edit3 size={14} />
           </button>
-        </div>
-
-        {/* Navigation Arrows */}
-        <div className="absolute inset-x-0 bottom-1.5 flex justify-between px-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {onMoveLeft ? (
+          {onDelete && (
             <button 
-              onClick={(e) => { e.stopPropagation(); onMoveLeft(); }}
-              className="p-1 bg-[var(--bg-card)]/90 backdrop-blur-md rounded-lg text-[var(--text-muted)] hover:bg-yellow-600 hover:text-black transition-all shadow-sm"
-              title="Mover para esquerda"
+              onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+              className="p-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-white/20"
+              title="Excluir"
             >
-              <ChevronLeft size={12} />
+              <Trash2 size={14} />
             </button>
-          ) : <div />}
-          {onMoveRight ? (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onMoveRight(); }}
-              className="p-1 bg-[var(--bg-card)]/90 backdrop-blur-md rounded-lg text-[var(--text-muted)] hover:bg-yellow-600 hover:text-black transition-all shadow-sm"
-              title="Mover para direita"
-            >
-              <ChevronRight size={12} />
-            </button>
-          ) : <div />}
+          )}
         </div>
       </div>
 
       {/* Content Section */}
-      <div className="p-3 cursor-pointer flex-1 flex flex-col" onClick={onView}>
-        <div className="mb-2">
-          <div className="flex flex-wrap gap-1 mb-1.5">
-            {property.address && (
-              <span className="bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border border-[var(--accent)]/20 truncate max-w-full">
-                {property.address}
-              </span>
-            )}
-            {property.status === PropertyStatus.ARREMATADO && (
-              <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--status-arrematado)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
-                ARREMATADO
-              </span>
-            )}
-            {property.status === PropertyStatus.EM_REFORMA && (
-              <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--status-reforma)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
-                EM REFORMA
-              </span>
-            )}
-            {property.status === PropertyStatus.A_VENDA && (
-              <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--status-venda)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
-                À VENDA
-              </span>
-            )}
-            {property.status === PropertyStatus.VENDIDO && (
-              <span className="px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-wider shadow-lg border" style={{ backgroundColor: 'var(--status-vendido)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
-                VENDIDO
-              </span>
-            )}
+      <div className="p-4 cursor-pointer" onClick={onView}>
+        <div className="mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider shadow-sm text-white" style={{ 
+              backgroundColor: 
+                property.status === PropertyStatus.ARREMATADO ? 'var(--status-arrematado)' :
+                property.status === PropertyStatus.EM_REFORMA ? 'var(--status-reforma)' :
+                property.status === PropertyStatus.A_VENDA ? 'var(--status-venda)' : 
+                property.status === PropertyStatus.VENDIDO ? 'var(--status-vendido)' : 'var(--text-muted)'
+            }}>
+              {property.status}
+            </span>
           </div>
-          <h4 className="font-black text-[var(--text-main)] text-[11px] truncate mb-0.5 tracking-tight uppercase">
-            {property.title || property.condoName || property.neighborhood}
+          <h4 className="font-black text-[var(--text-main)] text-sm truncate mb-1 tracking-tight uppercase">
+            {property.title || property.neighborhood}
           </h4>
-          <div className="flex items-center text-[8px] text-[var(--text-muted)] font-bold uppercase tracking-widest">
-            <MapPin size={8} className="mr-1 text-yellow-500" /> 
+          <div className="flex items-center text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">
+            <MapPin size={10} className="mr-1.5 text-[var(--accent)]" /> 
             <span className="truncate">{property.city}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border)]">
+        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[var(--border)] mb-4">
           <div>
-            <p className="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Investido</p>
-            <p className="text-[10px] font-black text-[var(--text-main)] truncate">{formatCurrency(metrics.totalInvested)}</p>
+            <p className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Investido</p>
+            <p className="text-xs font-black text-[var(--text-main)] truncate">{formatCurrency(metrics.totalInvested)}</p>
           </div>
           <div className="text-right">
-            <p className="text-[7px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Área</p>
-            <p className="text-[10px] font-black text-[var(--text-main)]">{property.sizeM2}m²</p>
+            <p className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Área</p>
+            <p className="text-xs font-black text-[var(--text-main)]">{property.sizeM2}m²</p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-auto flex gap-2 pointer-events-auto">
+        <div className="flex items-center gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); onView(); }}
-            className="flex-1 py-2.5 bg-[var(--bg-header)] text-[var(--text-header)] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-yellow-600 hover:text-black transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20"
           >
-            <Maximize2 size={12} /> Detalhes
+            <Maximize2 size={14} /> Detalhes
           </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-xl transition-all"
-            title="Editar Cadastro"
-          >
-            <Edit3 size={14} />
-          </button>
-          <Link 
-            to={`/publico/imovel/${property.id}`}
-            target="_blank"
-            onClick={(e) => e.stopPropagation()}
-            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
-            title="Ver Página Pública"
-          >
-            <ExternalLink size={14} />
-          </Link>
-          <a 
-            href={CommercialService.getWhatsAppSalesKitLink(CommercialService.getCommercialProperties([property])[0] || {
-              id: property.id,
-              title: property.title || property.neighborhood || 'Imóvel',
-              address: property.address || '',
-              neighborhood: property.neighborhood || '',
-              city: property.city || '',
-              salePrice: property.salePrice || 0,
-              description: property.description || '',
-              improvements: property.improvements || '',
-              images: property.images || [],
-              commercialStatus: 'Disponível' as any
-            })}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
-            title="Kit WhatsApp"
-          >
-            <MessageSquare size={14} />
-          </a>
-          <button 
-            onClick={async (e) => { 
-              e.stopPropagation();
-              if (!property.images || property.images.length === 0) return;
-              try {
-                const zip = new JSZip();
-                const folder = zip.folder("fotos");
-                const title = property.title || property.neighborhood || 'imovel';
-                
-                const downloadPromises = property.images.map(async (url, index) => {
-                  try {
-                    const response = await fetch(url);
-                    const blob = await response.blob();
-                    const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
-                    folder?.file(`foto-${index + 1}.${extension}`, blob);
-                  } catch (error) {
-                    console.error(`Error downloading image ${index}:`, error);
-                  }
-                });
+          
+          <div className="relative">
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowActions(!showActions); }}
+              className={`p-3 rounded-2xl border border-[var(--border)] transition-all ${showActions ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:bg-[var(--border)]'}`}
+            >
+              <MoreVertical size={16} />
+            </button>
 
-                await Promise.all(downloadPromises);
-                const content = await zip.generateAsync({ type: "blob" });
-                saveAs(content, `fotos-${title.replace(/\s+/g, '-').toLowerCase()}.zip`);
-              } catch (error) {
-                console.error("Error creating zip", error);
-                alert("Erro ao baixar imagens.");
-              }
-            }}
-            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
-            title="Baixar Fotos"
-          >
-            <Download size={14} />
-          </button>
+            <AnimatePresence>
+              {showActions && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowActions(false)} />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="absolute bottom-full right-0 mb-2 w-48 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl z-50 overflow-hidden py-2"
+                  >
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        const url = `${window.location.origin}/#/publico/imovel/${property.id}`;
+                        navigator.clipboard.writeText(url);
+                        alert('Link do Kit de Venda copiado!');
+                        setShowActions(false);
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:bg-[var(--bg-card-alt)] transition-colors"
+                    >
+                      <Share2 size={14} className="text-[var(--erp-yellow)]" /> Copiar Link
+                    </button>
+                    <Link 
+                      to={`/publico/imovel/${property.id}`}
+                      target="_blank"
+                      onClick={(e) => { e.stopPropagation(); setShowActions(false); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:bg-[var(--bg-card-alt)] transition-colors"
+                    >
+                      <ExternalLink size={14} className="text-emerald-500" /> Ver Público
+                    </Link>
+                    <a 
+                      href={CommercialService.getWhatsAppSalesKitLink(CommercialService.getCommercialProperties([property])[0] || {
+                        id: property.id,
+                        title: property.title || property.neighborhood || 'Imóvel',
+                        address: property.address || '',
+                        neighborhood: property.neighborhood || '',
+                        city: property.city || '',
+                        salePrice: property.salePrice || 0,
+                        description: property.description || '',
+                        improvements: property.improvements || '',
+                        images: property.images || [],
+                        commercialStatus: 'Disponível' as any
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => { e.stopPropagation(); setShowActions(false); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:bg-[var(--bg-card-alt)] transition-colors"
+                    >
+                      <MessageSquare size={14} className="text-emerald-500" /> WhatsApp
+                    </a >
+                    <button 
+                      onClick={async (e) => { 
+                        e.stopPropagation();
+                        setShowActions(false);
+                        if (!property.images || property.images.length === 0) return;
+                        try {
+                          const zip = new JSZip();
+                          const folder = zip.folder("fotos");
+                          const title = property.title || property.neighborhood || 'imovel';
+                          
+                          const downloadPromises = property.images.map(async (url, index) => {
+                            try {
+                              const response = await fetch(url);
+                              const blob = await response.blob();
+                              const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+                              folder?.file(`foto-${index + 1}.${extension}`, blob);
+                            } catch (error) {
+                              console.error(`Error downloading image ${index}:`, error);
+                            }
+                          });
+
+                          await Promise.all(downloadPromises);
+                          const content = await zip.generateAsync({ type: "blob" });
+                          saveAs(content, `fotos-${title.replace(/\s+/g, '-').toLowerCase()}.zip`);
+                        } catch (error) {
+                          console.error("Error creating zip", error);
+                          alert("Erro ao baixar imagens.");
+                        }
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:bg-[var(--bg-card-alt)] transition-colors"
+                    >
+                      <Download size={14} className="text-blue-500" /> Baixar Fotos
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 });
 ;
@@ -272,7 +279,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   return (
     <div 
-      className="flex flex-col flex-1 min-w-[280px] rounded-[24px] p-3 min-h-[600px] transition-all duration-300 bg-[var(--bg-card-alt)]"
+      className="flex flex-col w-[300px] flex-shrink-0 rounded-[24px] p-3 transition-all duration-300 bg-[var(--bg-card-alt)]/40 border border-[var(--border)]/50"
     >
       <div className="flex items-center justify-between mb-6 px-2">
         <div className="flex flex-col">
@@ -292,7 +299,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         }} />
       </div>
       
-      <div className="space-y-4 flex-1">
+      <div className="space-y-4">
         {items.map(p => (
           <PropertyKanbanCard 
             key={p.id}
@@ -572,8 +579,12 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl lg:text-4xl font-black text-[var(--text-main)] tracking-tight">Ativos Operacionais</h2>
-          <p className="text-[var(--text-muted)] font-medium">Controle de portfólio e pipeline de obras.</p>
+          <h2 className="text-3xl lg:text-4xl font-black text-[var(--text-main)] tracking-tight">
+            {currentUser.role === UserRole.BROKER ? 'Imóveis Disponíveis' : 'Ativos Operacionais'}
+          </h2>
+          <p className="text-[var(--text-muted)] font-medium">
+            {currentUser.role === UserRole.BROKER ? 'Confira os imóveis disponíveis para comercialização.' : 'Controle de portfólio e pipeline de obras.'}
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
            <input 
@@ -583,29 +594,33 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
              ref={fileInputRef} 
              onChange={handleImportCSV} 
            />
-           <button 
-             onClick={exportToPDF}
-             disabled={isExportingPdf}
-             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
-             title="Exportar Relatório PDF"
-           >
-             {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
-           </button>
-           <button 
-             onClick={downloadCSVTemplate}
-             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
-             title="Baixar Template CSV"
-           >
-             <Download size={20} />
-           </button>
-           <button 
-             onClick={() => fileInputRef.current?.click()}
-             disabled={isImporting}
-             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
-           >
-             {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
-             <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
-           </button>
+           {currentUser.role !== UserRole.BROKER && (
+             <>
+               <button 
+                 onClick={exportToPDF}
+                 disabled={isExportingPdf}
+                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
+                 title="Exportar Relatório PDF"
+               >
+                 {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
+               </button>
+               <button 
+                 onClick={downloadCSVTemplate}
+                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
+                 title="Baixar Template CSV"
+               >
+                 <Download size={20} />
+               </button>
+               <button 
+                 onClick={() => fileInputRef.current?.click()}
+                 disabled={isImporting}
+                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
+               >
+                 {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
+                 <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
+               </button>
+             </>
+           )}
            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-3">
               <button onClick={() => setViewMode('kanban')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'kanban' ? 'bg-[var(--bg-header)] text-[var(--text-header)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                 <KanbanIcon size={18} /> <span>Kanban</span>
@@ -614,9 +629,11 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 <LayoutGrid size={18} /> <span>Grade</span>
               </button>
            </div>
-           <Link to="/novo" className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-[var(--accent)]/20 order-1 sm:order-2 active:scale-95">
-            <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
-           </Link>
+           {currentUser.role !== UserRole.BROKER && (
+             <Link to="/novo" className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-[var(--accent)]/20 order-1 sm:order-2 active:scale-95">
+              <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
+             </Link>
+           )}
         </div>
       </div>
 
@@ -649,71 +666,79 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-start">
           {filteredProperties.map(p => {
-             const metrics = calculatePropertyMetrics(p, expenses);
-             return (
-      <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative">
-                 <button 
-                   onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
-                   className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
-                 >
-                   <Trash2 size={16} />
-                 </button>
-                 <div onClick={() => handleViewDetails(p.id)} className="cursor-pointer">
-                   <div className="h-52 relative overflow-hidden bg-[var(--bg-card-alt)]">
-                      {p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><ImageIcon size={40} /></div>}
-                      <div className="absolute top-5 left-5">
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10" style={{ 
-                          backgroundColor: 
-                            p.status === PropertyStatus.ARREMATADO ? 'var(--status-arrematado)' :
-                            p.status === PropertyStatus.EM_REFORMA ? 'var(--status-reforma)' :
-                            p.status === PropertyStatus.A_VENDA ? 'var(--status-venda)' : 
-                            p.status === PropertyStatus.VENDIDO ? 'var(--status-vendido)' : 'var(--bg-header)'
-                        }}>
-                          {p.status}
+            const metrics = calculatePropertyMetrics(p, expenses);
+            return (
+              <div key={p.id} className="bg-[var(--bg-card)] rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative flex flex-col h-fit">
+                {currentUser.role !== UserRole.BROKER && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
+                    className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+                <div onClick={() => handleViewDetails(p.id)} className="cursor-pointer flex flex-col">
+                  <div className="h-52 relative overflow-hidden bg-[var(--bg-card-alt)]">
+                    {p.images?.[0] ? (
+                      <img src={p.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
+                        <ImageIcon size={40} />
+                      </div>
+                    )}
+                    <div className="absolute top-5 left-5">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/10" style={{ 
+                        backgroundColor: 
+                          p.status === PropertyStatus.ARREMATADO ? 'var(--status-arrematado)' :
+                          p.status === PropertyStatus.EM_REFORMA ? 'var(--status-reforma)' :
+                          p.status === PropertyStatus.A_VENDA ? 'var(--status-venda)' : 
+                          p.status === PropertyStatus.VENDIDO ? 'var(--status-vendido)' : 'var(--bg-header)'
+                      }}>
+                        {p.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-8 flex flex-col">
+                    {p.address && (
+                      <div className="mb-3">
+                        <span className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-[var(--accent)]/20 shadow-sm">
+                          {p.address}
                         </span>
                       </div>
-                   </div>
-                   <div className="p-8">
-                      {p.address && (
-                        <div className="mb-3">
-                          <span className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-[var(--accent)]/20 shadow-sm">
-                            {p.address}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-black text-[var(--text-main)] truncate flex-1 tracking-tight text-xl">
-                          {p.title || p.condoName || p.neighborhood}
-                        </h3>
-                        <div className="text-emerald-600 font-black text-base">{metrics.roi.toFixed(0)}%</div>
+                    )}
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-black text-[var(--text-main)] truncate flex-1 tracking-tight text-xl">
+                        {p.title || p.condoName || p.neighborhood}
+                      </h3>
+                      <div className="text-emerald-600 font-black text-base ml-2">{metrics.roi.toFixed(0)}%</div>
+                    </div>
+                    <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-6">
+                      {p.city} {p.neighborhood2 ? `• ${p.neighborhood2}` : ''}
+                    </p>
+                    <div className="flex justify-between items-end border-t border-[var(--border)] pt-6 mt-6">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5">Capital Alocado</p>
+                        <p className="font-black text-[var(--text-main)] text-lg truncate">{formatCurrency(metrics.totalInvested)}</p>
                       </div>
-                      <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-6">
-                        {p.city} {p.neighborhood2 ? `• ${p.neighborhood2}` : ''}
-                      </p>
-                      <div className="flex justify-between items-end border-t border-[var(--border)] pt-6">
-                        <div className="min-w-0">
-                          <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5">Capital Alocado</p>
-                          <p className="font-black text-[var(--text-main)] text-lg truncate">{formatCurrency(metrics.totalInvested)}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleEditProperty(p); }}
-                            className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-2xl transition-all"
-                            title="Editar Cadastro"
-                          >
-                            <Edit3 size={20} />
-                          </button>
-                          <div className="bg-[var(--bg-header)] text-[var(--text-header)] p-3 rounded-2xl group-hover:bg-yellow-500 group-hover:text-black transition-all">
-                            <ArrowRight size={20} />
-                          </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleEditProperty(p); }}
+                          className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-2xl transition-all"
+                          title="Editar Cadastro"
+                        >
+                          <Edit3 size={20} />
+                        </button>
+                        <div className="bg-[var(--bg-header)] text-[var(--text-header)] p-3 rounded-2xl group-hover:bg-yellow-500 group-hover:text-black transition-all">
+                          <ArrowRight size={20} />
                         </div>
                       </div>
-                   </div>
-                 </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-             );
+            );
           })}
         </div>
       )}

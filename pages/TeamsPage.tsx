@@ -305,7 +305,11 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
   const inputClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-3.5 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-yellow-500/10 focus:border-yellow-500 transition-all font-medium placeholder:text-[var(--text-muted)]";
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8 pb-20"
+    >
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-4xl font-black text-[var(--text-header)] tracking-tight">Equipe e Acessos</h2>
@@ -882,7 +886,7 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 
