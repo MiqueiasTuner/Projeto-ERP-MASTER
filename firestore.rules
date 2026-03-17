@@ -36,29 +36,30 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN' ||
-          (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isSuperAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN' ||
-          (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
+        (getUserData().role == 'SUPER_ADMIN' ||
+         (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (getUserData().role == 'Administrador' || isSuperAdmin());
     }
 
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
+    function belongsToOrg(orgId) {
+      return isAuthenticated() && (getUserData().organizationId == orgId || isSuperAdmin());
     }
 
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    function canAccessDoc(docData) {
+      return isAuthenticated() && (isSuperAdmin() || docData.organizationId == getUserData().organizationId);
     }
 
     // ===============================================================
@@ -66,58 +67,36 @@ service cloud.firestore {
     // ===============================================================
 
     match /organizations/{orgId} {
-      allow read: if isAuthenticated() && (isSuperAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == orgId);
+      allow read: if isAuthenticated() && (isSuperAdmin() || getUserData().organizationId == orgId);
       allow write: if isAuthenticated() && isSuperAdmin();
     }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
-      allow create: if isAuthenticated() && (isAdmin() || isSuperAdmin()) && 
-                    request.resource.data.role in ['Administrador', 'Operador', 'Corretor', 'SUPER_ADMIN'] &&
-                    isValidEmail(request.resource.data.email);
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin()) &&
-                    (isAdmin() || isSuperAdmin() || request.resource.data.role == resource.data.role);
-      allow delete: if isAuthenticated() && (isAdmin() || isSuperAdmin());
+      allow read: if isAuthenticated() && (isOwner(userId) || isSuperAdmin() || getUserData().organizationId == resource.data.organizationId);
+      allow create: if isAuthenticated() && (isAdmin() || isSuperAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
+      allow delete: if isAuthenticated() && isSuperAdmin();
     }
 
-    match /teams/{teamId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
+    // Generic rule for all SaaS collections
+    match /{collectionName}/{docId} {
+      allow read: if isAuthenticated() && (
+        isSuperAdmin() || 
+        !('organizationId' in getUserData()) || // Legacy users (no orgId) can see everything
+        (resource != null && resource.data.organizationId == getUserData().organizationId) ||
+        (resource == null) 
+      );
+      allow write: if isAuthenticated() && (
+        isSuperAdmin() || 
+        !('organizationId' in getUserData()) || // Legacy users can write (will be saved as 'default' or legacy)
+        (resource == null && request.resource.data.organizationId == getUserData().organizationId) ||
+        (resource != null && resource.data.organizationId == getUserData().organizationId && request.resource.data.organizationId == resource.data.organizationId)
+      );
     }
 
-    match /properties/{propertyId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
-    }
-
-    match /inventory_items/{itemId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
-    }
-
-    match /inventory_movements/{movementId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
-    }
-
-    match /warehouses/{warehouseId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
-    }
-
-    match /suppliers/{supplierId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
-    }
-
-    match /purchase_quotes/{quoteId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isAdmin();
-    }
-
-    match /leads/{leadId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+    match /registration_requests/{requestId} {
+      allow create: if true; // Allow anyone to request registration
+      allow read, write: if isSuperAdmin();
     }
     
     // Default deny

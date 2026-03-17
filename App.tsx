@@ -485,9 +485,7 @@ const AppContent = () => {
     
     const effectiveOrgId = (currentUserData?.role === UserRole.SUPER_ADMIN && viewingOrgId) 
       ? viewingOrgId 
-      : currentUserData?.organizationId;
-
-    if (!effectiveOrgId) return;
+      : (currentUserData?.organizationId || 'default');
 
     const unsubOrg = onSnapshot(doc(db, 'organizations', effectiveOrgId), (snapshot) => {
       if (snapshot.exists()) {
@@ -513,10 +511,16 @@ const AppContent = () => {
       { name: 'leads', setter: setLeads },
       { name: 'proposals', setter: setProposals },
       { name: 'reservations', setter: setReservations },
+      { name: 'messages', setter: () => {} }, // Messages are usually handled in ChatPage, but let's ensure they are available if needed
     ];
 
     const unsubscribes = collectionsToFetch.map(({ name, setter }) => {
-      const q = query(collection(db, name), where('organizationId', '==', effectiveOrgId));
+      // Se for Super Admin sem visualização específica OU se for um contexto 'default' (legado),
+      // buscamos todos os dados sem o filtro de organizationId.
+      const q = (currentUserData?.role === UserRole.SUPER_ADMIN && !viewingOrgId) || effectiveOrgId === 'default'
+        ? query(collection(db, name))
+        : query(collection(db, name), where('organizationId', '==', effectiveOrgId));
+
       return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as any[];
         setter(data);
