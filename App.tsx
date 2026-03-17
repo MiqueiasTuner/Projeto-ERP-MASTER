@@ -4,7 +4,7 @@ import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } f
 import { 
   LayoutDashboard, Building2, Home, Users, Box, ChevronDown, 
   ChevronUp, BarChart3, Settings, LogOut, PlusCircle, Menu, X as CloseIcon,
-  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell, Search, Clock, Globe
+  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell, Search, Clock, Globe, ShieldAlert, Eye, EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, isConfigured, firebaseConfig } from './lib/firebase';
@@ -41,12 +41,14 @@ import BrokerProperties from './pages/brokers/BrokerProperties';
 import BrokerPropertyDetails from './pages/brokers/BrokerPropertyDetails';
 import BrokerLeads from './pages/brokers/BrokerLeads';
 import PublicPropertyView from './pages/PublicPropertyView';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import { 
   Property, Expense, InventoryItem, StockMovement, Supplier, 
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
   MovementType, ExpenseCategory, Quote, QuoteStatus, Task, TaskStatus,
-  Auction, Alert, Broker, Lead, Proposal, Reservation, CommercialStatus
+  Auction, Alert, Broker, Lead, Proposal, Reservation, CommercialStatus,
+  Organization
 } from './types';
 
 const INITIAL_PERMISSIONS: UserPermissions = {
@@ -102,7 +104,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
   const navigate = useNavigate();
 
   const hasPermission = (module: PermissionModule, action: PermissionAction) => {
-    if (currentUser.role === UserRole.ADMIN) return true;
+    if (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.ADMIN) return true;
     return currentUser.permissions[module]?.includes(action);
   };
 
@@ -146,6 +148,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
       {to: '/equipe', icon: User, label: 'Equipe', visible: !isBroker && hasPermission('teams', 'view')},
       {to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: !isBroker && hasPermission('properties', 'view')},
       {to: '/configuracoes', icon: Settings, label: 'Ajustes', visible: true},
+      {to: '/super-admin', icon: ShieldAlert, label: 'Super Admin', visible: currentUser.role === UserRole.SUPER_ADMIN},
     ];
     return items.filter(item => item.visible && item.label.toLowerCase().includes(navSearchTerm.toLowerCase()));
   }, [isBroker, currentUser, navSearchTerm]);
@@ -439,6 +442,8 @@ const AppContent = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [currentUserData, setCurrentUserData] = useState<UserAccount | null>(null);
+  const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
+  const [viewingOrgId, setViewingOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
@@ -461,7 +466,13 @@ const AppContent = () => {
     
     const unsub = onSnapshot(doc(db, 'users', session.uid), (snapshot) => {
       if (snapshot.exists()) {
-        setCurrentUserData({ ...snapshot.data(), id: snapshot.id } as UserAccount);
+        const data = snapshot.data();
+        const isSuperAdmin = data.email === 'miqueiasyout@gmail.com';
+        setCurrentUserData({ 
+          ...data, 
+          id: snapshot.id,
+          role: isSuperAdmin ? UserRole.SUPER_ADMIN : data.role
+        } as UserAccount);
       }
       setLoading(false);
     });
@@ -470,7 +481,19 @@ const AppContent = () => {
   }, [session]);
 
   useEffect(() => {
-    if (!session || !db || !currentUserData?.organizationId) return;
+    if (!session || !db) return;
+    
+    const effectiveOrgId = (currentUserData?.role === UserRole.SUPER_ADMIN && viewingOrgId) 
+      ? viewingOrgId 
+      : currentUserData?.organizationId;
+
+    if (!effectiveOrgId) return;
+
+    const unsubOrg = onSnapshot(doc(db, 'organizations', effectiveOrgId), (snapshot) => {
+      if (snapshot.exists()) {
+        setCurrentOrg({ ...snapshot.data(), id: snapshot.id } as Organization);
+      }
+    });
 
     const collectionsToFetch: any[] = [
       { name: 'properties', setter: setProperties },
@@ -493,8 +516,7 @@ const AppContent = () => {
     ];
 
     const unsubscribes = collectionsToFetch.map(({ name, setter }) => {
-      // Filter by organizationId for SaaS multi-tenancy
-      const q = query(collection(db, name), where('organizationId', '==', currentUserData.organizationId));
+      const q = query(collection(db, name), where('organizationId', '==', effectiveOrgId));
       return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as any[];
         setter(data);
@@ -503,8 +525,11 @@ const AppContent = () => {
       });
     });
 
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, [session, currentUserData?.organizationId]);
+    return () => {
+      unsubOrg();
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [session, currentUserData?.organizationId, viewingOrgId, currentUserData?.role]);
 
   const foundBroker = brokers.find(b => b.email === session?.email);
 
@@ -547,6 +572,15 @@ const AppContent = () => {
   const saveProperty = async (p: Property) => {
     const { id, ...data } = p;
     const organizationId = currentUser.organizationId || 'default';
+    
+    if (!id) {
+      // New property, check limit
+      if (currentOrg && currentOrg.maxProperties && properties.length >= currentOrg.maxProperties) {
+        alert(`Limite de imóveis atingido (${currentOrg.maxProperties}). Por favor, faça um upgrade no seu plano.`);
+        return;
+      }
+    }
+
     if (id) {
       await setDoc(doc(db, 'properties', id), { ...data, organizationId } as any, { merge: true });
     } else {
@@ -889,8 +923,49 @@ const AppContent = () => {
     );
   }
 
+  // Blocked Organization Screen
+  if (currentOrg?.status === 'blocked' && currentUser.role !== UserRole.SUPER_ADMIN) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
+        <div className="bg-rose-500/10 border border-rose-500/20 p-12 rounded-[40px] max-w-md shadow-2xl">
+          <ShieldAlert size={80} className="text-rose-500 mx-auto mb-8" />
+          <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Acesso Suspenso</h1>
+          <p className="text-slate-400 font-medium mb-10 leading-relaxed">
+            Sua organização foi temporariamente bloqueada. Por favor, entre em contato com o suporte do Sintese ERP para regularizar sua situação.
+          </p>
+          <button 
+            onClick={handleLogout}
+            className="w-full bg-rose-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-rose-600 transition-all"
+          >
+            Sair do Sistema
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ProtectedLayout currentUser={currentUser} onLogout={handleLogout} tasks={tasks}>
+      {viewingOrgId && currentUser.role === UserRole.SUPER_ADMIN && (
+        <div className="bg-emerald-600 text-white px-6 py-3 flex items-center justify-between shadow-lg animate-in slide-in-from-top duration-500 sticky top-0 z-[60]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <Eye size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest">Modo de Visualização Ativo</p>
+              <p className="text-[10px] font-bold opacity-90">Você está visualizando os dados da organização: <span className="underline">{currentOrg?.name}</span></p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setViewingOrgId(null)}
+            className="flex items-center gap-2 bg-white text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm"
+          >
+            <EyeOff size={14} />
+            Sair da Visualização
+          </button>
+        </div>
+      )}
       <Routes>
         <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
         <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
@@ -916,6 +991,7 @@ const AppContent = () => {
         <Route path="/tarefas" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
         <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} properties={properties} />} />
+        <Route path="/super-admin" element={currentUser.role === UserRole.SUPER_ADMIN ? <SuperAdminDashboard onViewOrg={setViewingOrgId} /> : <Navigate to="/" />} />
         <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         
         {/* Broker Routes */}

@@ -39,6 +39,13 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN' ||
+          (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN' ||
           (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
     }
 
@@ -58,14 +65,19 @@ service cloud.firestore {
     // Collection Rules
     // ===============================================================
 
+    match /organizations/{orgId} {
+      allow read: if isAuthenticated() && (isSuperAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == orgId);
+      allow write: if isAuthenticated() && isSuperAdmin();
+    }
+
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow create: if isAuthenticated() && isAdmin() && 
-                    request.resource.data.role in ['Administrador', 'Operador', 'Corretor'] &&
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
+      allow create: if isAuthenticated() && (isAdmin() || isSuperAdmin()) && 
+                    request.resource.data.role in ['Administrador', 'Operador', 'Corretor', 'SUPER_ADMIN'] &&
                     isValidEmail(request.resource.data.email);
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) &&
-                    (isAdmin() || request.resource.data.role == resource.data.role);
-      allow delete: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin()) &&
+                    (isAdmin() || isSuperAdmin() || request.resource.data.role == resource.data.role);
+      allow delete: if isAuthenticated() && (isAdmin() || isSuperAdmin());
     }
 
     match /teams/{teamId} {

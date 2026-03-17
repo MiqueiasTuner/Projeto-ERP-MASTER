@@ -40,7 +40,11 @@ const SignUpPage = () => {
           id: organizationId,
           name: companyName || `${name}'s Organization`,
           plan: 'free',
+          status: 'active',
           ownerId: userCredential.user.uid,
+          ownerEmail: trimmedEmail,
+          maxUsers: 5,
+          maxProperties: 50,
           createdAt: new Date().toISOString(),
           settings: {
             theme: 'light',

@@ -22,12 +22,16 @@ import {
   FileUp,
   Loader2,
   Download,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType, UserAccount } from '../types';
 import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { CommercialService } from '../src/services/CommercialService';
 import CustomDatePicker from '../src/components/CustomDatePicker';
 import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -179,6 +183,60 @@ const PropertyKanbanCard = React.memo(({
           >
             <ExternalLink size={14} />
           </Link>
+          <a 
+            href={CommercialService.getWhatsAppSalesKitLink(CommercialService.getCommercialProperties([property])[0] || {
+              id: property.id,
+              title: property.title || property.neighborhood || 'Imóvel',
+              address: property.address || '',
+              neighborhood: property.neighborhood || '',
+              city: property.city || '',
+              salePrice: property.salePrice || 0,
+              description: property.description || '',
+              improvements: property.improvements || '',
+              images: property.images || [],
+              commercialStatus: 'Disponível' as any
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
+            title="Kit WhatsApp"
+          >
+            <MessageSquare size={14} />
+          </a>
+          <button 
+            onClick={async (e) => { 
+              e.stopPropagation();
+              if (!property.images || property.images.length === 0) return;
+              try {
+                const zip = new JSZip();
+                const folder = zip.folder("fotos");
+                const title = property.title || property.neighborhood || 'imovel';
+                
+                const downloadPromises = property.images.map(async (url, index) => {
+                  try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+                    folder?.file(`foto-${index + 1}.${extension}`, blob);
+                  } catch (error) {
+                    console.error(`Error downloading image ${index}:`, error);
+                  }
+                });
+
+                await Promise.all(downloadPromises);
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, `fotos-${title.replace(/\s+/g, '-').toLowerCase()}.zip`);
+              } catch (error) {
+                console.error("Error creating zip", error);
+                alert("Erro ao baixar imagens.");
+              }
+            }}
+            className="p-2.5 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+            title="Baixar Fotos"
+          >
+            <Download size={14} />
+          </button>
         </div>
       </div>
     </div>

@@ -26,6 +26,10 @@ import { calculatePropertyMetrics, formatCurrency, formatBRLMask, parseBRLToFloa
 import { motion, AnimatePresence } from 'motion/react';
 import CustomDatePicker from '../src/components/CustomDatePicker';
 import { reportService } from '../ReportService';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { MessageSquare, Download, Share2 } from 'lucide-react';
+import { CommercialService } from '../src/services/CommercialService';
 
 interface PropertyDetailsProps {
   properties: Property[];
@@ -45,6 +49,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isDownloadingImages, setIsDownloadingImages] = useState(false);
 
   const [newExpData, setNewExpData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -95,6 +100,71 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
     } finally {
       setIsGeneratingPdf(false);
     }
+  };
+
+  const handleDownloadImages = async () => {
+    if (!property || !property.images || property.images.length === 0) return;
+    setIsDownloadingImages(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder("fotos");
+      const title = property.title || property.neighborhood || 'imovel';
+      
+      const downloadPromises = property.images.map(async (url, index) => {
+        try {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+          folder?.file(`foto-${index + 1}.${extension}`, blob);
+        } catch (error) {
+          console.error(`Error downloading image ${index}:`, error);
+        }
+      });
+
+      await Promise.all(downloadPromises);
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `fotos-${title.replace(/\s+/g, '-').toLowerCase()}.zip`);
+    } catch (error) {
+      console.error("Error creating zip", error);
+      alert("Erro ao baixar imagens.");
+    } finally {
+      setIsDownloadingImages(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!property) return;
+    const url = `${window.location.origin}/#/publico/imovel/${property.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: property.title || 'Imóvel Sintese ERP',
+          text: `Confira este imóvel: ${property.title}`,
+          url: url,
+        });
+      } catch (err) {
+        console.error('Error sharing', err);
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copiado para a área de transferência!');
+    }
+  };
+
+  const getWhatsAppKitLink = () => {
+    if (!property) return '#';
+    const commercialProperty = CommercialService.getCommercialProperties([property])[0];
+    if (!commercialProperty) {
+      // Fallback if not marked as available for brokers
+      const message = encodeURIComponent(
+        `Olá! Tenho interesse no imóvel: ${property.title || property.neighborhood}\n` +
+        `Localização: ${property.neighborhood}, ${property.city}\n` +
+        `Valor: R$ ${(property.salePrice || 0).toLocaleString('pt-BR')}\n` +
+        `Veja as fotos aqui: ${window.location.origin}/#/publico/imovel/${property.id}`
+      );
+      return `https://wa.me/?text=${message}`;
+    }
+    return CommercialService.getWhatsAppSalesKitLink(commercialProperty);
   };
 
   if (!property || !metrics) return <div className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Imóvel não encontrado.</div>;
@@ -196,6 +266,27 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           >
             Página Pública <ExternalLink size={14} />
           </Link>
+          <a 
+            href={getWhatsAppKitLink()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 text-emerald-500 hover:text-white hover:bg-emerald-500 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+          >
+            Kit WhatsApp <MessageSquare size={14} />
+          </a>
+          <button 
+            onClick={handleDownloadImages}
+            disabled={isDownloadingImages}
+            className="inline-flex items-center justify-center gap-2 text-blue-500 hover:text-white hover:bg-blue-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
+          >
+            {isDownloadingImages ? 'Baixando...' : 'Baixar Fotos'} <Download size={14} />
+          </button>
+          <button 
+            onClick={handleShare}
+            className="inline-flex items-center justify-center gap-2 text-purple-500 hover:text-white hover:bg-purple-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+          >
+            Compartilhar <Share2 size={14} />
+          </button>
           <button 
             onClick={() => navigate(`/editar/${property.id}`)}
             className="inline-flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-yellow-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"

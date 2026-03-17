@@ -132,6 +132,7 @@ export interface Warehouse {
 }
 
 export enum UserRole {
+  SUPER_ADMIN = 'Super Admin',
   ADMIN = 'Administrador',
   OPERADOR = 'Operador',
   BROKER = 'Corretor'
@@ -496,6 +497,17 @@ export interface Reservation {
   startDate: string;
   endDate: string;
   status: 'active' | 'expired' | 'cancelled';
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  ownerEmail: string;
+  status: 'active' | 'blocked';
+  plan: 'free' | 'basic' | 'pro' | 'enterprise';
+  createdAt: string;
+  maxUsers: number;
+  maxProperties: number;
 }
 
 export interface PropertyCalculations {
