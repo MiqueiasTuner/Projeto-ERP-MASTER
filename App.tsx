@@ -64,7 +64,7 @@ const SidebarItem = ({ to, icon: Icon, label, active, visible = true, onClick, c
   if (!visible) return null;
   const content = (
     <div className={`flex items-center space-x-3 p-3 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-      active ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-header)]'
+      active ? 'bg-gradient-primary text-[var(--accent-text)] shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-header)]'
     }`} onClick={onClick} title={collapsed ? label : undefined}>
       <Icon size={18} className="flex-shrink-0" />
       <span className={`font-medium text-sm flex-1 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>{label}</span>
@@ -126,23 +126,24 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
   const unreadNotificationsCount = notifications.length;
 
   const menuItems = useMemo(() => {
+    const isBroker = currentUser.role === UserRole.BROKER;
     const items = [
-      { to: '/', icon: LayoutDashboard, label: 'Dashboard', visible: true },
-      { to: '/imoveis', icon: Home, label: 'Imóveis', visible: true },
-      { to: '/leiloes', icon: Gavel, label: 'Leilões', visible: true },
-      { to: '/estoque/insumos', icon: Box, label: 'Insumos', visible: true },
-      { to: '/estoque/movimentos', icon: Box, label: 'Movimentos', visible: true },
-      { to: '/estoque/fornecedores', icon: Box, label: 'Fornecedores', visible: true },
-      { to: '/estoque/orcamentos', icon: Box, label: 'Orçamentos', visible: true },
-      { to: '/estoque/almoxarifados', icon: Box, label: 'Almoxarifados', visible: true },
-      { to: '/relatorios', icon: BarChart3, label: 'Relatórios', visible: true },
-      { to: '/gestao-corretores', icon: Users, label: 'Corretores', visible: true },
+      { to: isBroker ? '/corretor' : '/', icon: LayoutDashboard, label: 'Dashboard', visible: true },
+      { to: isBroker ? '/corretor/imoveis' : '/imoveis', icon: Home, label: 'Imóveis', visible: true },
+      { to: '/leiloes', icon: Gavel, label: 'Leilões', visible: !isBroker },
+      { to: '/estoque/insumos', icon: Box, label: 'Insumos', visible: !isBroker },
+      { to: '/estoque/movimentos', icon: Box, label: 'Movimentos', visible: !isBroker },
+      { to: '/estoque/fornecedores', icon: Box, label: 'Fornecedores', visible: !isBroker },
+      { to: '/estoque/orcamentos', icon: Box, label: 'Orçamentos', visible: !isBroker },
+      { to: '/estoque/almoxarifados', icon: Box, label: 'Almoxarifados', visible: !isBroker },
+      { to: '/relatorios', icon: BarChart3, label: 'Relatórios', visible: !isBroker },
+      { to: '/gestao-corretores', icon: Users, label: 'Corretores', visible: !isBroker },
       { to: '/corretor/leads', icon: Users, label: 'Leads', visible: true },
-      { to: '/chat', icon: MessageSquare, label: 'Chat', visible: true },
-      { to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: true },
-      { to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: true },
-      { to: '/equipe', icon: UserIcon, label: 'Equipe', visible: true },
-      { to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: true },
+      { to: '/chat', icon: MessageSquare, label: 'Chat', visible: !isBroker },
+      { to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: !isBroker },
+      { to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: !isBroker },
+      { to: '/equipe', icon: UserIcon, label: 'Equipe', visible: !isBroker },
+      { to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: !isBroker },
       { to: '/configuracoes', icon: Settings, label: 'Ajustes', visible: true },
       { to: '/super-admin', icon: ShieldAlert, label: 'Super Admin', visible: currentUser.role === UserRole.SUPER_ADMIN },
     ];
@@ -154,9 +155,9 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg-main)] overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-surface overflow-hidden">
       {/* Top Header - YouTube Style */}
-      <header className="bg-[var(--bg-header)] border-b border-[var(--border)] h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-50 shadow-md">
+      <header className="bg-gradient-surface border-b border-[var(--border)] h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-50 shadow-md">
         <div className="flex items-center gap-4">
           <button 
             onClick={toggleSidebar}
@@ -301,9 +302,9 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside 
-          className={`fixed inset-y-0 left-0 top-16 bg-[var(--bg-sidebar)] text-[var(--text-header)] flex flex-col z-40 transition-all duration-300 lg:static lg:h-full ${
+          className={`fixed inset-y-0 left-0 top-16 bg-gradient-surface text-[var(--text-header)] flex flex-col z-40 transition-all duration-300 lg:static lg:h-full ${
             isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'
-          } ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+          } ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} border-r border-[var(--border)]`}
         >
           <div className="lg:hidden flex justify-end p-4">
              <button onClick={closeSidebar} className="text-[var(--text-muted)]"><CloseIcon /></button>
@@ -360,7 +361,7 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
         </aside>
 
         {/* Main Content */}
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${location.pathname === '/' ? 'bg-[var(--bg-header)]' : 'bg-[var(--bg-main)]'} relative ${location.pathname === '/calendario' ? '' : 'p-4 lg:p-8'}`}>
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-gradient-surface relative ${location.pathname === '/calendario' ? '' : 'p-4 lg:p-8'}`}>
           <div className={location.pathname === '/calendario' ? 'h-full' : 'max-w-[1440px] mx-auto pb-20 lg:pb-0'}>
             {children}
           </div>
@@ -515,14 +516,14 @@ const AppContent = () => {
     const collectionsToFetch: any[] = [
       { name: 'properties', setter: setProperties },
       { name: 'expenses', setter: setExpenses },
-      { name: 'inventory_items', setter: setInventory },
-      { name: 'inventory_movements', setter: setMovements },
+      { name: 'inventory', setter: setInventory },
+      { name: 'movements', setter: setMovements },
       { name: 'suppliers', setter: setSuppliers },
       { name: 'warehouses', setter: setWarehouses },
       { name: 'users', setter: setUsers },
       { name: 'teams', setter: setTeams },
       { name: 'logs', setter: setLogs },
-      { name: 'purchase_quotes', setter: setQuotes },
+      { name: 'quotes', setter: setQuotes },
       { name: 'tasks', setter: setTasks },
       { name: 'auctions', setter: setAuctions },
       { name: 'alerts', setter: setAlerts },
@@ -833,6 +834,20 @@ const AppContent = () => {
     await deleteDoc(doc(db, 'brokers', id));
   };
 
+  const brokerLeads = useMemo(() => {
+    if (currentUser.role === UserRole.BROKER) {
+      return leads.filter(l => l.brokerId === currentUser.id);
+    }
+    return leads;
+  }, [leads, currentUser.id, currentUser.role]);
+
+  const brokerProperties = useMemo(() => {
+    if (currentUser.role === UserRole.BROKER) {
+      return properties.filter(p => p.availableForBrokers || p.status === PropertyStatus.A_VENDA);
+    }
+    return properties;
+  }, [properties, currentUser.role]);
+
   const addLead = async (l: Lead) => {
     const { id, ...data } = l;
     const docRef = doc(collection(db, 'leads'));
@@ -909,7 +924,7 @@ const AppContent = () => {
   if (!session) {
     return (
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage onLogin={() => {}} />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         <Route path="*" element={<Navigate to="/login" />} />
@@ -920,9 +935,30 @@ const AppContent = () => {
   return (
     <ProtectedLayout currentUser={currentUser} onLogout={handleLogout}>
       <Routes>
-        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
+        <Route path="/" element={
+          currentUser.role === UserRole.BROKER 
+            ? <Navigate to="/corretor" /> 
+            : <Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />
+        } />
         <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
-        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} currentUser={currentUser} />} />
+        <Route path="/imoveis" element={<PropertyList 
+          properties={properties} 
+          expenses={expenses} 
+          logs={logs}
+          tasks={tasks}
+          onAddExpense={addExpense}
+          onDeleteExpense={async (id) => { 
+            if (!isMasterUser) {
+              alert("Apenas o Administrador Master pode excluir registros.");
+              return;
+            }
+            await deleteDoc(doc(db, 'expenses', id)); 
+          }}
+          onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} 
+          onDeleteProperty={deleteProperty} 
+          addLog={addLog} 
+          currentUser={currentUser} 
+        />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {
             alert("Apenas o Administrador Master pode excluir registros.");
@@ -930,8 +966,6 @@ const AppContent = () => {
           }
           await deleteDoc(doc(db, 'expenses', id)); 
         }} onDeleteProperty={deleteProperty} currentUser={currentUser} />} />
-        <Route path="/novo" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
-        <Route path="/editar/:id" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
         <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} currentUser={currentUser} />} />
         <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} currentUser={currentUser} />} />
         <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} currentUser={currentUser} />} />
@@ -949,10 +983,10 @@ const AppContent = () => {
         
         {/* Broker Routes - Now accessible to all but kept for backward compatibility if needed */}
         <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} leads={leads} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
-        <Route path="/corretor" element={<BrokerDashboard leads={leads} properties={properties} />} />
-        <Route path="/corretor/imoveis" element={<PropertyList properties={properties} expenses={[]} onUpdateStatus={() => {}} onDeleteProperty={() => {}} addLog={async () => {}} currentUser={currentUser} />} />
-        <Route path="/corretor/imovel/:id" element={<PropertyDetails properties={properties} expenses={[]} logs={[]} tasks={[]} onAddExpense={() => {}} onDeleteExpense={() => {}} onDeleteProperty={() => {}} currentUser={currentUser} />} />
-        <Route path="/corretor/leads" element={<BrokerLeads leads={leads} properties={properties} onUpdateLead={updateLead} onMarkAsSold={markPropertyAsSold} />} />
+        <Route path="/corretor" element={<BrokerDashboard leads={brokerLeads} properties={brokerProperties} onAddLead={addLead} currentUser={currentUser} />} />
+        <Route path="/corretor/imoveis" element={<BrokerProperties properties={brokerProperties} />} />
+        <Route path="/corretor/imovel/:id" element={<BrokerPropertyDetails properties={brokerProperties} onAddLead={addLead} currentUser={currentUser} />} />
+        <Route path="/corretor/leads" element={<BrokerLeads leads={brokerLeads} properties={brokerProperties} onUpdateLead={updateLead} onMarkAsSold={markPropertyAsSold} currentUser={currentUser} />} />
         
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

@@ -398,6 +398,8 @@ export interface Property {
 
   // OLX Integration
   olx?: OLXData;
+
+  createdAt?: string;
 }
 
 export interface CommercialProperty {

@@ -210,9 +210,9 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-gradient-surface">
         {/* Header */}
-        <div className="h-20 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="h-20 border-b border-[var(--border)] flex items-center justify-between px-8 bg-[var(--bg-card)]/80 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center gap-4">
             {activeChannel === 'general' ? (
               <div className="w-10 h-10 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center">
@@ -286,8 +286,8 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
                       </div>
                       <div className={`p-4 rounded-2xl shadow-sm ${
                         isMe 
-                          ? 'bg-yellow-600 text-white rounded-br-none' 
-                          : 'bg-white text-slate-800 border border-slate-100 rounded-bl-none'
+                          ? 'bg-gradient-primary text-[var(--accent-text)] rounded-br-none' 
+                          : 'bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border)] rounded-bl-none'
                       }`}>
                         {!isMe && <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{msg.senderName}</p>}
                         <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">

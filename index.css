@@ -2,12 +2,39 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-accent: var(--accent);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-text: var(--accent-text);
+  --color-bg-main: var(--bg-main);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-alt: var(--bg-card-alt);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-header: var(--text-header);
+  --color-border-custom: var(--border);
+  --color-border-light: var(--border-light);
+  --color-erp-yellow: var(--erp-yellow);
+
+  --background-image-gradient-primary: var(--gradient-primary);
+  --background-image-gradient-surface: var(--gradient-surface);
+  --background-image-gradient-card: var(--gradient-card);
+
+  --shadow-accent: 0 10px 25px -5px var(--accent-shadow);
+}
+
+.bg-gradient-primary {
+  transition: all 0.3s ease;
+}
+
+.bg-gradient-primary:hover {
+  box-shadow: 0 0 30px var(--accent-shadow);
+  transform: translateY(-1px);
 }
 
 :root {
-  --bg-main: #F1F5F9;
+  --bg-main: #F8FAFC;
   --bg-card: #FFFFFF;
-  --bg-card-alt: #F8FAFC;
+  --bg-card-alt: #F1F5F9;
   --bg-header: #FFFFFF;
   --bg-sidebar: #FFFFFF;
   --text-main: #1E293B;
@@ -21,7 +48,15 @@
   --border-light: #F1F5F9;
   --radius: 12px;
 
-  /* Status Colors - Cores fortes e distintas */
+  /* Shadows */
+  --accent-shadow: rgba(37, 99, 235, 0.2);
+
+  /* Gradients for White Mode */
+  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  --gradient-surface: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  --gradient-card: linear-gradient(145deg, #FFFFFF 0%, #F1F5F9 100%);
+
+  /* Status Colors */
   --status-arrematado: #8B5CF6; /* Roxo */
   --status-reforma: #F59E0B;    /* Âmbar */
   --status-venda: #3B82F6;      /* Azul */
@@ -29,7 +64,7 @@
 }
 
 .theme-dark {
-  --bg-main: #0F172A; /* Menos escuro que o anterior #020617 */
+  --bg-main: #0F172A;
   --bg-card: #1E293B;
   --bg-card-alt: #334155;
   --bg-header: #0F172A;
@@ -37,12 +72,20 @@
   --text-main: #F1F5F9;
   --text-muted: #94A3B8;
   --text-header: #F8FAFC;
-  --accent: #3B82F6; /* Azul mais vibrante para o modo dark */
-  --accent-secondary: #60A5FA;
-  --accent-text: #FFFFFF;
-  --erp-yellow: #FACC15; /* Amarelo ERP mais brilhante no dark */
+  --accent: #FACC15; /* Amarelo Vibrante para o Dark Mode */
+  --accent-secondary: #EAB308;
+  --accent-text: #0F172A; /* Texto escuro para contraste no amarelo */
+  --erp-yellow: #FACC15;
   --border: #334155;
   --border-light: #475569;
+
+  /* Shadows */
+  --accent-shadow: rgba(250, 204, 21, 0.4);
+
+  /* Gradients for Dark Mode */
+  --gradient-primary: linear-gradient(135deg, #FACC15 0%, #EAB308 100%);
+  --gradient-surface: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+  --gradient-card: linear-gradient(145deg, #1E293B 0%, #0F172A 100%);
 }
 
 html {

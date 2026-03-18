@@ -27,10 +27,11 @@ import {
   Share2,
   MoreVertical
 } from 'lucide-react';
-import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType, UserAccount, UserRole } from '../types';
+import { Property, PropertyStatus, Expense, PropertyType, AcquisitionType, UserAccount, UserRole, PropertyLog, Task } from '../types';
 import { formatCurrency, calculatePropertyMetrics, formatDate, formatBRLMask, parseBRLToFloat } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import PropertyForm from './PropertyForm';
+import PropertyDetails from './PropertyDetails';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { CommercialService } from '../src/services/CommercialService';
@@ -49,7 +50,8 @@ const PropertyKanbanCard = React.memo(({
   onView,
   onDelete,
   onMoveLeft,
-  onMoveRight
+  onMoveRight,
+  isBroker = false
 }: { 
   property: Property, 
   metrics: any, 
@@ -57,7 +59,8 @@ const PropertyKanbanCard = React.memo(({
   onView: () => void, 
   onDelete: (e: React.MouseEvent) => void, 
   onMoveLeft?: () => void, 
-  onMoveRight?: () => void 
+  onMoveRight?: () => void,
+  isBroker?: boolean
 }) => {
   const [showActions, setShowActions] = useState(false);
 
@@ -67,7 +70,7 @@ const PropertyKanbanCard = React.memo(({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -4 }}
-      className="bg-[var(--bg-card)] rounded-[24px] border border-[var(--border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-300 overflow-hidden group select-none flex flex-col h-fit"
+      className="bg-gradient-card rounded-[24px] border border-[var(--border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-300 overflow-hidden group select-none flex flex-col h-fit"
     >
       {/* Image Section */}
       <div className="h-32 overflow-hidden bg-[var(--bg-card-alt)] relative">
@@ -78,31 +81,35 @@ const PropertyKanbanCard = React.memo(({
         )}
         
         {/* Overlay Badges */}
-        <div className="absolute top-3 left-3">
-          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-white/20 flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black text-[var(--text-main)] uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
+        {!isBroker && (
+          <div className="absolute top-3 left-3">
+            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-white/20 flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] font-black text-[var(--text-main)] uppercase tracking-wider">{metrics.roi.toFixed(0)}% ROI</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="absolute top-3 right-3 flex gap-1.5 z-10">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-[var(--text-muted)] hover:text-[var(--accent)] transition-all shadow-sm border border-white/20"
-            title="Editar"
-          >
-            <Edit3 size={14} />
-          </button>
-          {onDelete && (
+        {!isBroker && (
+          <div className="absolute top-3 right-3 flex gap-1.5 z-10">
             <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(e); }}
-              className="p-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-white/20"
-              title="Excluir"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="p-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-[var(--text-muted)] hover:text-[var(--accent)] transition-all shadow-sm border border-white/20"
+              title="Editar"
             >
-              <Trash2 size={14} />
+              <Edit3 size={14} />
             </button>
-          )}
-        </div>
+            {onDelete && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+                className="p-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-rose-500 hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-white/20"
+                title="Excluir"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
@@ -130,8 +137,8 @@ const PropertyKanbanCard = React.memo(({
 
         <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[var(--border)] mb-4">
           <div>
-            <p className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Investido</p>
-            <p className="text-xs font-black text-[var(--text-main)] truncate">{formatCurrency(metrics.totalInvested)}</p>
+            <p className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">{isBroker ? 'Valor Venda' : 'Investido'}</p>
+            <p className="text-xs font-black text-[var(--text-main)] truncate">{formatCurrency(isBroker ? (property.salePrice || 0) : metrics.totalInvested)}</p>
           </div>
           <div className="text-right">
             <p className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Área</p>
@@ -143,7 +150,7 @@ const PropertyKanbanCard = React.memo(({
         <div className="flex items-center gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); onView(); }}
-            className="flex-1 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--accent-secondary)] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20"
+            className="flex-1 py-3 bg-gradient-primary text-[var(--accent-text)] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-accent"
           >
             <Maximize2 size={14} /> Detalhes
           </button>
@@ -259,6 +266,7 @@ interface KanbanColumnProps {
   onView: (id: string) => void;
   onDeleteProperty: (id: string) => void;
   onMoveProperty: (id: string, direction: 'left' | 'right') => void;
+  isBroker?: boolean;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -268,18 +276,22 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onEdit,
   onView,
   onDeleteProperty,
-  onMoveProperty
+  onMoveProperty,
+  isBroker = false
 }) => {
   const totalValue = useMemo(() => {
+    if (isBroker) {
+      return items.reduce((acc, p) => acc + (p.salePrice || 0), 0);
+    }
     return items.reduce((acc, p) => acc + calculatePropertyMetrics(p, expenses).totalInvested, 0);
-  }, [items, expenses]);
+  }, [items, expenses, isBroker]);
 
   const statuses = Object.values(PropertyStatus) as PropertyStatus[];
   const currentIndex = statuses.indexOf(status);
 
   return (
     <div 
-      className="flex flex-col w-[300px] flex-shrink-0 rounded-[24px] p-3 transition-all duration-300 bg-[var(--bg-card-alt)]/40 border border-[var(--border)]/50"
+      className="flex flex-col w-[300px] flex-shrink-0 rounded-[24px] p-3 transition-all duration-300 bg-gradient-surface border border-[var(--border)]/50"
     >
       <div className="flex items-center justify-between mb-6 px-2">
         <div className="flex flex-col">
@@ -311,8 +323,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
               e.stopPropagation();
               onDeleteProperty(p.id);
             }}
-            onMoveLeft={currentIndex > 0 ? () => onMoveProperty(p.id, 'left') : undefined}
-            onMoveRight={currentIndex < statuses.length - 1 ? () => onMoveProperty(p.id, 'right') : undefined}
+            onMoveLeft={!isBroker && currentIndex > 0 ? () => onMoveProperty(p.id, 'left') : undefined}
+            onMoveRight={!isBroker && currentIndex < statuses.length - 1 ? () => onMoveProperty(p.id, 'right') : undefined}
+            isBroker={isBroker}
           />
         ))}
         
@@ -330,21 +343,36 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 interface PropertyListProps {
   properties: Property[];
   expenses: Expense[];
+  logs: PropertyLog[];
+  tasks: Task[];
+  onAddExpense: (e: Expense) => void;
+  onDeleteExpense: (id: string) => void;
   onUpdateStatus: (id: string, status: PropertyStatus) => void;
   onDeleteProperty: (id: string) => void;
   addLog?: (log: any) => Promise<void>;
   currentUser: UserAccount;
 }
 
-const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, addLog, currentUser }: PropertyListProps) => {
+const PropertyList = ({ properties, expenses, logs, tasks, onAddExpense, onDeleteExpense, onUpdateStatus, onDeleteProperty, addLog, currentUser }: PropertyListProps) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('kanban');
   const [search, setSearch] = useState('');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [viewingPropertyId, setViewingPropertyId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Modal States
+  const handleEditProperty = useCallback((p: Property) => {
+    setEditingProperty(p);
+    setIsDrawerOpen(true);
+  }, []);
+
+  const handleNewProperty = useCallback(() => {
+    setEditingProperty(null);
+    setIsDrawerOpen(true);
+  }, []);
   const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
   const [isAskingPriceModalOpen, setIsAskingPriceModalOpen] = useState(false);
   const [targetProperty, setTargetProperty] = useState<Property | null>(null);
@@ -355,18 +383,29 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     saleNotes: ''
   });
 
+  const isBroker = currentUser.role === UserRole.BROKER;
+
   const filteredProperties = useMemo(() => {
     const s = search.toLowerCase();
-    return properties.filter(p => 
+    let filtered = properties;
+    
+    if (isBroker) {
+      filtered = filtered.filter(p => p.status === PropertyStatus.A_VENDA);
+    }
+
+    return filtered.filter(p => 
       p.neighborhood.toLowerCase().includes(s) || 
       p.city.toLowerCase().includes(s) ||
       (p.condoName?.toLowerCase().includes(s)) ||
       (p.realEstateAgency?.toLowerCase().includes(s)) ||
       (p.neighborhood2?.toLowerCase().includes(s))
     );
-  }, [properties, search]);
+  }, [properties, search, isBroker]);
 
-  const handleViewDetails = useCallback((id: string) => navigate(`/imovel/${id}`), [navigate]);
+  const handleViewDetails = useCallback((id: string) => {
+    setViewingPropertyId(id);
+    setIsDetailsOpen(true);
+  }, []);
 
   const handleMoveProperty = async (id: string, direction: 'left' | 'right') => {
     const property = properties.find(p => p.id === id);
@@ -572,8 +611,6 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
     });
   };
 
-  const handleEditProperty = useCallback((p: Property) => navigate(`/editar/${p.id}`), [navigate]);
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -593,29 +630,33 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
              ref={fileInputRef} 
              onChange={handleImportCSV} 
            />
-           <button 
-             onClick={exportToPDF}
-             disabled={isExportingPdf}
-             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
-             title="Exportar Relatório PDF"
-           >
-             {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
-           </button>
-           <button 
-             onClick={downloadCSVTemplate}
-             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
-             title="Baixar Template CSV"
-           >
-             <Download size={20} />
-           </button>
-           <button 
-             onClick={() => fileInputRef.current?.click()}
-             disabled={isImporting}
-             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
-           >
-             {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
-             <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
-           </button>
+           {!isBroker && (
+             <>
+               <button 
+                 onClick={exportToPDF}
+                 disabled={isExportingPdf}
+                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
+                 title="Exportar Relatório PDF"
+               >
+                 {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
+               </button>
+               <button 
+                 onClick={downloadCSVTemplate}
+                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
+                 title="Baixar Template CSV"
+               >
+                 <Download size={20} />
+               </button>
+               <button 
+                 onClick={() => fileInputRef.current?.click()}
+                 disabled={isImporting}
+                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
+               >
+                 {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
+                 <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
+               </button>
+             </>
+           )}
            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-3">
               <button onClick={() => setViewMode('kanban')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'kanban' ? 'bg-[var(--bg-header)] text-[var(--text-header)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                 <KanbanIcon size={18} /> <span>Kanban</span>
@@ -624,9 +665,14 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 <LayoutGrid size={18} /> <span>Grade</span>
               </button>
            </div>
-           <Link to="/novo" className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-[var(--accent)]/20 order-1 sm:order-2 active:scale-95">
-            <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
-           </Link>
+           {!isBroker && (
+             <button 
+               onClick={handleNewProperty}
+               className="bg-gradient-primary text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-accent order-1 sm:order-2 active:scale-95"
+             >
+              <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
+             </button>
+           )}
         </div>
       </div>
 
@@ -645,31 +691,36 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
 
       {viewMode === 'kanban' ? (
         <div className="flex gap-6 overflow-x-auto pb-8 snap-x no-scrollbar -mx-6 px-6">
-          {(Object.values(PropertyStatus) as PropertyStatus[]).map(status => (
-            <KanbanColumn 
-              key={status}
-              status={status}
-              items={filteredProperties.filter(p => p.status === status)}
-              expenses={expenses}
-              onEdit={handleEditProperty}
-              onView={handleViewDetails}
-              onDeleteProperty={onDeleteProperty}
-              onMoveProperty={handleMoveProperty}
-            />
-          ))}
+          {(Object.values(PropertyStatus) as PropertyStatus[])
+            .filter(status => !isBroker || status === PropertyStatus.A_VENDA)
+            .map(status => (
+              <KanbanColumn 
+                key={status}
+                status={status}
+                items={filteredProperties.filter(p => p.status === status)}
+                expenses={expenses}
+                onEdit={handleEditProperty}
+                onView={handleViewDetails}
+                onDeleteProperty={onDeleteProperty}
+                onMoveProperty={handleMoveProperty}
+                isBroker={isBroker}
+              />
+            ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-start">
           {filteredProperties.map(p => {
             const metrics = calculatePropertyMetrics(p, expenses);
             return (
-              <div key={p.id} className="bg-[var(--bg-card)] rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative flex flex-col h-fit">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
-                  className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
-                >
-                  <Trash2 size={16} />
-                </button>
+              <div key={p.id} className="bg-gradient-card rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative flex flex-col h-fit">
+                {!isBroker && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
+                    className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
                 <div onClick={() => handleViewDetails(p.id)} className="cursor-pointer flex flex-col">
                   <div className="h-52 relative overflow-hidden bg-[var(--bg-card-alt)]">
                     {p.images?.[0] ? (
@@ -703,24 +754,26 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                       <h3 className="font-black text-[var(--text-main)] truncate flex-1 tracking-tight text-xl">
                         {p.title || p.condoName || p.neighborhood}
                       </h3>
-                      <div className="text-emerald-600 font-black text-base ml-2">{metrics.roi.toFixed(0)}%</div>
+                      {!isBroker && <div className="text-emerald-600 font-black text-base ml-2">{metrics.roi.toFixed(0)}%</div>}
                     </div>
                     <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-6">
                       {p.city} {p.neighborhood2 ? `• ${p.neighborhood2}` : ''}
                     </p>
                     <div className="flex justify-between items-end border-t border-[var(--border)] pt-6 mt-6">
                       <div className="min-w-0">
-                        <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5">Capital Alocado</p>
-                        <p className="font-black text-[var(--text-main)] text-lg truncate">{formatCurrency(metrics.totalInvested)}</p>
+                        <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5">{isBroker ? 'Valor Venda' : 'Capital Alocado'}</p>
+                        <p className="font-black text-[var(--text-main)] text-lg truncate">{formatCurrency(isBroker ? (p.salePrice || 0) : metrics.totalInvested)}</p>
                       </div>
                       <div className="flex gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleEditProperty(p); }}
-                          className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-2xl transition-all"
-                          title="Editar Cadastro"
-                        >
-                          <Edit3 size={20} />
-                        </button>
+                        {!isBroker && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleEditProperty(p); }}
+                            className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-2xl transition-all"
+                            title="Editar Cadastro"
+                          >
+                            <Edit3 size={20} />
+                          </button>
+                        )}
                         <div className="bg-[var(--bg-header)] text-[var(--text-header)] p-3 rounded-2xl group-hover:bg-yellow-500 group-hover:text-black transition-all">
                           <ArrowRight size={20} />
                         </div>
@@ -734,7 +787,84 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
         </div>
       )}
 
-      {/* Edit Property Drawer - REMOVED as per user request to navigate to edit page */}
+      {/* Edit Property Drawer */}
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDrawerOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150]"
+            />
+            
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 h-full w-full max-w-[500px] bg-[var(--bg-card)] shadow-2xl z-[160] border-l border-[var(--border)] overflow-hidden"
+            >
+              <PropertyForm 
+                property={editingProperty}
+                onSave={async (updatedProperty) => {
+                  await handleSaveProperty(updatedProperty);
+                  setIsDrawerOpen(false);
+                }}
+                onCancel={() => setIsDrawerOpen(false)}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Property Details Drawer */}
+      <AnimatePresence>
+        {isDetailsOpen && viewingPropertyId && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailsOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150]"
+            />
+            
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 h-full w-full max-w-[1000px] bg-[var(--bg-card)] shadow-2xl z-[160] border-l border-[var(--border)] overflow-y-auto custom-scrollbar"
+            >
+              <div className="p-8">
+                <PropertyDetails 
+                  propertyId={viewingPropertyId}
+                  properties={properties}
+                  expenses={expenses}
+                  logs={logs}
+                  tasks={tasks}
+                  onAddExpense={onAddExpense}
+                  onDeleteExpense={onDeleteExpense}
+                  onDeleteProperty={onDeleteProperty}
+                  currentUser={currentUser}
+                  onCancel={() => setIsDetailsOpen(false)}
+                  onEdit={(p) => {
+                    setIsDetailsOpen(false);
+                    setEditingProperty(p);
+                    setIsDrawerOpen(true);
+                  }}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Sold Modal */}
       <AnimatePresence>

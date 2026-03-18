@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, User, Bell, Shield, Database, Trash2, DatabaseZap, CheckCircle2, AlertCircle, Save, Building, Palette, Sun, Moon, FileText, Globe, Copy, ExternalLink } from 'lucide-react';
 import { seedInitialData } from '../lib/seedService';
-import { UserAccount, Property } from '../types';
+import { UserAccount, Property, UserRole } from '../types';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -20,6 +20,7 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
   const [saveMessage, setSaveMessage] = useState('');
 
   const isMasterUser = currentUser.email?.toLowerCase().trim() === 'miqueiasyout@gmail.com';
+  const isBroker = currentUser.role === UserRole.BROKER;
 
   const [formData, setFormData] = useState({
     name: currentUser.name || '',
@@ -149,12 +150,14 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
               <Shield size={18} /> <span>Permissões</span>
             </button>
           )}
-          <button 
-            onClick={() => setActiveTab('integrations')}
-            className={`w-full flex items-center space-x-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'integrations' ? 'bg-[var(--bg-card)] border border-[var(--border)] text-yellow-600 shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)]'}`}
-          >
-            <Globe size={18} /> <span>Integrações</span>
-          </button>
+          {!isBroker && (
+            <button 
+              onClick={() => setActiveTab('integrations')}
+              className={`w-full flex items-center space-x-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'integrations' ? 'bg-[var(--bg-card)] border border-[var(--border)] text-yellow-600 shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)]'}`}
+            >
+              <Globe size={18} /> <span>Integrações</span>
+            </button>
+          )}
           <button 
             onClick={() => setActiveTab('data')}
             className={`w-full flex items-center space-x-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'data' ? 'bg-[var(--bg-card)] border border-[var(--border)] text-yellow-600 shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--bg-card-alt)]'}`}

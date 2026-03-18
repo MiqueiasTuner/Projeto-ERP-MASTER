@@ -62,7 +62,7 @@ const Card = ({ children, className = "", delay = 0 }: { children: React.ReactNo
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay }}
-    className={`bg-[var(--bg-card)] rounded-[var(--radius)] border border-[var(--border)] shadow-sm p-4 lg:p-6 ${className}`}
+    className={`bg-gradient-card rounded-[var(--radius)] border border-[var(--border)] shadow-sm p-4 lg:p-6 ${className}`}
   >
     {children}
   </motion.div>
@@ -281,7 +281,7 @@ const Dashboard = ({
           </div>
           <button 
             onClick={() => navigate('/novo')}
-            className="bg-[var(--accent)] text-[var(--accent-text)] p-4 rounded-[var(--radius)] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all"
+            className="bg-gradient-primary text-[var(--accent-text)] p-4 rounded-[var(--radius)] shadow-accent hover:opacity-90 transition-all"
           >
             <PlusCircle size={20} />
           </button>

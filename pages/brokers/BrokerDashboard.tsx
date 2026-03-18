@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Users, Calendar, FileText, TrendingUp, Home, ArrowRight } from 'lucide-react';
-import { Lead, Property, LeadStatus } from '../../types';
+import { Lead, Property, LeadStatus, UserAccount } from '../../types';
 import { Link } from 'react-router-dom';
+import { Plus, X } from 'lucide-react';
 
 const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: number, icon: any, color: string }) => (
   <div className="bg-[var(--bg-card)] p-6 rounded-[32px] border border-[var(--border)] shadow-sm flex items-center space-x-4">
@@ -16,13 +17,57 @@ const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: n
   </div>
 );
 
-const BrokerDashboard = ({ leads, properties }: { leads: Lead[], properties: Property[] }) => {
+const BrokerDashboard = ({ leads, properties, onAddLead, currentUser }: { 
+  leads: Lead[], 
+  properties: Property[],
+  onAddLead: (l: Lead) => void,
+  currentUser?: UserAccount
+}) => {
+  const [showAddLeadModal, setShowAddLeadModal] = React.useState(false);
+  const [newLeadData, setNewLeadData] = React.useState<Partial<Lead>>({
+    name: '',
+    phone: '',
+    email: '',
+    propertyId: '',
+    interestType: 'Compra',
+    observations: ''
+  });
+
   const activeLeads = leads.filter(l => l.status !== LeadStatus.SOLD && l.status !== LeadStatus.LOST).length;
   const scheduledVisits = leads.filter(l => l.status === LeadStatus.VISIT_SCHEDULED).length;
   const proposals = leads.filter(l => l.status === LeadStatus.PROPOSAL).length;
   const completedSales = leads.filter(l => l.status === LeadStatus.SOLD).length;
   
   const availableProperties = properties.length;
+
+  const handleAddLead = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLeadData.propertyId) {
+      alert('Por favor, selecione um imóvel.');
+      return;
+    }
+
+    const lead: Lead = {
+      ...newLeadData,
+      id: Math.random().toString(36).substr(2, 9),
+      brokerId: currentUser?.id || leads[0]?.brokerId || '',
+      status: LeadStatus.OPPORTUNITY,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as Lead;
+
+    onAddLead(lead);
+    setShowAddLeadModal(false);
+    setNewLeadData({
+      name: '',
+      phone: '',
+      email: '',
+      propertyId: '',
+      interestType: 'Compra',
+      observations: ''
+    });
+    alert('Lead registrado com sucesso!');
+  };
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
@@ -31,14 +76,119 @@ const BrokerDashboard = ({ leads, properties }: { leads: Lead[], properties: Pro
           <h2 className="text-3xl font-black text-[var(--text-header)] tracking-tight">Painel do Corretor</h2>
           <p className="text-[var(--text-muted)] font-medium">Bem-vindo! Veja um resumo das suas atividades.</p>
         </div>
-        <Link 
-          to="/corretor/imoveis"
-          className="bg-[var(--accent)] text-[var(--accent-text)] px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-yellow-500/20 hover:opacity-90 transition-all flex items-center justify-center space-x-2 uppercase tracking-widest"
-        >
-          <Home size={18} strokeWidth={3} />
-          <span>Ver Imóveis</span>
-        </Link>
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={() => setShowAddLeadModal(true)}
+            className="bg-[var(--accent)] text-[var(--accent-text)] px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-yellow-500/20 hover:opacity-90 transition-all flex items-center justify-center space-x-2 uppercase tracking-widest"
+          >
+            <Plus size={18} strokeWidth={3} />
+            <span>Novo Lead</span>
+          </button>
+          <Link 
+            to="/corretor/imoveis"
+            className="bg-[var(--bg-card)] text-[var(--text-header)] px-6 py-3 rounded-2xl font-black text-sm border border-[var(--border)] flex items-center justify-center space-x-2 uppercase tracking-widest hover:bg-[var(--bg-card-alt)] transition-all"
+          >
+            <Home size={18} strokeWidth={3} />
+            <span className="hidden sm:inline">Ver Imóveis</span>
+          </Link>
+        </div>
       </div>
+
+      {/* Add Lead Modal */}
+      {showAddLeadModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-card)] w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-[var(--border)]">
+            <div className="p-8 sm:p-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-[var(--text-header)] tracking-tight">Novo Lead</h3>
+                  <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-widest mt-1">Registre um novo interessado</p>
+                </div>
+                <button onClick={() => setShowAddLeadModal(false)} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-xl transition-all"><X size={24} /></button>
+              </div>
+
+              <form onSubmit={handleAddLead} className="space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest ml-1">Imóvel de Interesse</label>
+                    <select 
+                      required
+                      className="w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium"
+                      value={newLeadData.propertyId}
+                      onChange={(e) => setNewLeadData({ ...newLeadData, propertyId: e.target.value })}
+                    >
+                      <option value="">Selecione um imóvel...</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.title || `${p.type} em ${p.neighborhood}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest ml-1">Nome do Cliente</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Nome completo..."
+                      className="w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium"
+                      value={newLeadData.name}
+                      onChange={(e) => setNewLeadData({ ...newLeadData, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest ml-1">Telefone</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="(00) 00000-0000"
+                        className="w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium"
+                        value={newLeadData.phone}
+                        onChange={(e) => setNewLeadData({ ...newLeadData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest ml-1">E-mail</label>
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="email@exemplo.com"
+                        className="w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium"
+                        value={newLeadData.email}
+                        onChange={(e) => setNewLeadData({ ...newLeadData, email: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-[var(--text-muted)] mb-2 uppercase tracking-widest ml-1">Observações</label>
+                    <textarea 
+                      placeholder="Alguma informação relevante?"
+                      className="w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-5 py-4 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)] transition-all font-medium min-h-[100px]"
+                      value={newLeadData.observations}
+                      onChange={(e) => setNewLeadData({ ...newLeadData, observations: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-4 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAddLeadModal(false)}
+                    className="px-6 py-4 rounded-2xl font-black text-[var(--text-muted)] hover:text-[var(--text-header)] uppercase tracking-widest transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="bg-[var(--accent)] text-[var(--accent-text)] px-10 py-4 rounded-2xl font-black shadow-xl shadow-yellow-500/20 hover:opacity-90 transition-all uppercase tracking-widest"
+                  >
+                    Registrar Lead
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="Leads Ativos" value={activeLeads} icon={Users} color="bg-yellow-500/10 text-yellow-500" />
@@ -89,7 +239,14 @@ const BrokerDashboard = ({ leads, properties }: { leads: Lead[], properties: Pro
               </div>
               <div className="bg-[var(--bg-card-alt)] border border-[var(--border)] p-4 rounded-3xl">
                 <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Novos</p>
-                <p className="text-2xl font-black text-[var(--accent)]">3</p>
+                <p className="text-2xl font-black text-[var(--accent)]">
+                  {properties.filter(p => {
+                    const createdDate = new Date(p.createdAt || '');
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return createdDate >= weekAgo;
+                  }).length}
+                </p>
               </div>
             </div>
 

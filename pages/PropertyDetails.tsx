@@ -32,6 +32,7 @@ import { MessageSquare, Download, Share2 } from 'lucide-react';
 import { CommercialService } from '../src/services/CommercialService';
 
 interface PropertyDetailsProps {
+  propertyId?: string;
   properties: Property[];
   expenses: Expense[];
   logs: PropertyLog[];
@@ -39,13 +40,17 @@ interface PropertyDetailsProps {
   onAddExpense: (e: Expense) => void;
   onDeleteExpense: (id: string) => void;
   onDeleteProperty: (id: string) => void;
+  onEdit?: (p: Property) => void;
+  onCancel?: () => void;
   currentUser: UserAccount;
 }
 
-const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense, onDeleteExpense, onDeleteProperty, currentUser }: PropertyDetailsProps) => {
-  const { id } = useParams();
+const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], onAddExpense, onDeleteExpense, onDeleteProperty, onEdit, onCancel, currentUser }: PropertyDetailsProps) => {
+  const { id: paramId } = useParams();
+  const id = propertyId || paramId;
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>('financeiro');
+  const isBroker = currentUser.role === UserRole.BROKER;
+  const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline' | 'detalhes'>(isBroker ? 'detalhes' : 'financeiro');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -217,7 +222,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate('/imoveis')} 
+            onClick={() => onCancel ? onCancel() : navigate('/imoveis')} 
             className="p-3.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card-alt)] rounded-2xl border border-[var(--border)] transition-all shadow-sm"
           >
             <ArrowLeft size={20} className="text-[var(--text-muted)]" />
@@ -246,26 +251,30 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => onDeleteProperty(property.id)}
-            className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
-          >
-            Excluir <Trash2 size={14} />
-          </button>
-          <button 
-            onClick={exportToPdf}
-            disabled={isGeneratingPdf}
-            className="inline-flex items-center justify-center gap-2 text-[var(--accent)] hover:text-white hover:bg-[var(--accent)] font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
-          >
-            {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
-          </button>
-          
-          <button 
-            onClick={() => navigate(`/editar/${property.id}`)}
-            className="inline-flex items-center justify-center gap-2 bg-[var(--accent)] text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-2xl transition-all shadow-lg shadow-[var(--accent)]/20"
-          >
-            Editar Cadastro <Edit size={14} />
-          </button>
+          {!isBroker && (
+            <>
+              <button 
+                onClick={() => onDeleteProperty(property.id)}
+                className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+              >
+                Excluir <Trash2 size={14} />
+              </button>
+              <button 
+                onClick={exportToPdf}
+                disabled={isGeneratingPdf}
+                className="inline-flex items-center justify-center gap-2 text-[var(--accent)] hover:text-white hover:bg-[var(--accent)] font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
+              >
+                {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
+              </button>
+              
+              <button 
+                onClick={() => onEdit ? onEdit(property) : navigate(`/editar/${property.id}`)}
+                className="inline-flex items-center justify-center gap-2 bg-gradient-primary text-[var(--accent-text)] font-black text-xs uppercase tracking-widest px-6 py-3 rounded-2xl transition-all shadow-accent"
+              >
+                Editar Cadastro <Edit size={14} />
+              </button>
+            </>
+          )}
 
           <div className="relative group/actions">
             <button className="p-3 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl transition-all shadow-sm">
@@ -381,36 +390,36 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-[var(--bg-card)] p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
+        <div className="bg-gradient-card p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2.5 bg-yellow-500/10 text-yellow-600 rounded-xl"><DollarSign size={20} /></div>
-            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Capital Alocado</p>
+            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Valor de Venda' : 'Capital Alocado'}</p>
           </div>
-          <p className="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-tight">{formatCurrency(metrics.totalInvested)}</p>
+          <p className="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-tight">{formatCurrency(isBroker ? (property.salePrice || 0) : metrics.totalInvested)}</p>
         </div>
-        <div className="bg-[var(--bg-card)] p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
+        <div className="bg-gradient-card p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-emerald-500/10 text-emerald-600 rounded-xl"><TrendingUp size={20} /></div>
-            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Resultado Real</p>
+            <div className="p-2.5 bg-emerald-500/10 text-emerald-600 rounded-xl">{isBroker ? <ImageIcon size={20} /> : <TrendingUp size={20} />}</div>
+            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Tipo de Imóvel' : 'Resultado Real'}</p>
           </div>
-          <p className={`text-2xl md:text-3xl font-black tracking-tight ${metrics.realizedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {property.salePrice ? formatCurrency(metrics.realizedProfit) : 'Pendente de Venda'}
+          <p className={`text-2xl md:text-3xl font-black tracking-tight ${!isBroker && metrics.realizedProfit >= 0 ? 'text-emerald-600' : isBroker ? 'text-[var(--text-main)]' : 'text-rose-600'}`}>
+            {isBroker ? property.type : (property.salePrice ? formatCurrency(metrics.realizedProfit) : 'Pendente de Venda')}
           </p>
         </div>
-        <div className="bg-[var(--bg-card)] p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm sm:col-span-2 lg:col-span-1">
+        <div className="bg-gradient-card p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm sm:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-[var(--text-main)] text-[var(--bg-main)] rounded-xl"><BarChart3 size={20} /></div>
-            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">ROI Operacional</p>
+            <div className="p-2.5 bg-[var(--text-main)] text-[var(--bg-main)] rounded-xl">{isBroker ? <MapPin size={20} /> : <BarChart3 size={20} />}</div>
+            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Área Total' : 'ROI Operacional'}</p>
           </div>
-          <p className={`text-2xl md:text-3xl font-black tracking-tight ${metrics.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {property.salePrice ? `${metrics.roi.toFixed(1)}%` : '---'}
+          <p className={`text-2xl md:text-3xl font-black tracking-tight ${!isBroker && metrics.roi >= 0 ? 'text-emerald-600' : isBroker ? 'text-[var(--text-main)]' : 'text-rose-600'}`}>
+            {isBroker ? `${property.sizeM2} m²` : (property.salePrice ? `${metrics.roi.toFixed(1)}%` : '---')}
           </p>
         </div>
       </div>
 
-      <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-gradient-card rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
         <div className="flex overflow-x-auto bg-[var(--bg-card-alt)] border-b border-[var(--border)] no-scrollbar">
-          {(['financeiro', 'despesas', 'timeline'] as const).map((tab) => (
+          {(isBroker ? (['detalhes', 'timeline'] as const) : (['financeiro', 'despesas', 'timeline'] as const)).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -418,13 +427,60 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
                 activeTab === tab ? 'text-yellow-600 border-b-4 border-yellow-600 bg-[var(--bg-card)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
-              {tab}
+              {tab === 'detalhes' ? 'Características' : tab}
             </button>
           ))}
         </div>
 
         <div className="p-6 md:p-10">
-          {activeTab === 'financeiro' && (
+          {activeTab === 'detalhes' && isBroker && (
+            <div className="animate-in slide-in-from-bottom-2 space-y-10">
+              <div className="bg-[var(--bg-header)] p-8 md:p-10 rounded-[40px] text-[var(--text-header)]">
+                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mb-8 opacity-50">Informações do Imóvel</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5">
+                  {[
+                    { label: 'Valor de Venda', val: property.salePrice },
+                    { label: 'CEP', val: property.cep, format: false },
+                    { label: 'Quartos', val: property.rooms, format: false },
+                    { label: 'Banheiros', val: property.bathrooms, format: false },
+                    { label: 'Vagas Garagem', val: property.garageSpaces, format: false },
+                    { label: 'Condomínio (Mensal)', val: property.monthlyCondo },
+                    { label: 'IPTU (Mensal)', val: property.monthlyIptu },
+                    { label: 'Área Privativa', val: property.sizeM2 ? `${property.sizeM2} m²` : null, format: false },
+                  ].map((item, i) => (
+                    <div key={i} className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                      <span className="text-[var(--text-muted)] font-bold uppercase tracking-widest text-[10px] opacity-70">{item.label}:</span>
+                      <span className="font-black text-[var(--text-header)]">{item.format === false ? (item.val || '---') : formatCurrency(item.val as number)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {(property.features?.length || 0) > 0 && (
+                  <div className="mt-8 pt-8 border-t border-white/10">
+                    <h4 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mb-4 opacity-50">Características do Imóvel</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {property.features?.map(f => (
+                        <span key={f} className="px-2 py-1 bg-white/5 rounded-lg text-[9px] font-bold text-white/70 border border-white/10">{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(property.complexFeatures?.length || 0) > 0 && (
+                  <div className="mt-6 pt-6 border-t border-white/10">
+                    <h4 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mb-4 opacity-50">Características do Condomínio</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {property.complexFeatures?.map(f => (
+                        <span key={f} className="px-2 py-1 bg-white/5 rounded-lg text-[9px] font-bold text-white/70 border border-white/10">{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'financeiro' && !isBroker && (
             <div className="animate-in slide-in-from-bottom-2 space-y-10">
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 xl:gap-20">
                 <div className="space-y-8">

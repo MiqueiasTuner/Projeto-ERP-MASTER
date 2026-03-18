@@ -229,7 +229,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   const inputClass = "w-full bg-[var(--bg-card-alt)] px-4 py-3 rounded-lg border border-[var(--border)] outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-[var(--text-main)] text-sm";
 
   return (
-    <div id="calendar-view" ref={pageRef} className="h-full flex flex-col bg-[var(--bg-main)] text-[var(--text-main)] overflow-hidden font-sans">
+    <div id="calendar-view" ref={pageRef} className="h-full flex flex-col bg-gradient-surface text-[var(--text-main)] overflow-hidden font-sans">
       {/* Top Header */}
       <header className="h-16 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
         <div className="flex items-center gap-4">
@@ -287,10 +287,10 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
         <aside className="w-64 border-r border-[var(--border)] flex flex-col p-4 shrink-0 overflow-y-auto custom-scrollbar">
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-3 px-6 py-3 bg-[var(--bg-card-alt)] hover:bg-[var(--bg-card)] text-[var(--text-header)] rounded-full shadow-lg transition-all mb-8 group border border-[var(--border)]"
+            className="flex items-center gap-3 px-6 py-3 bg-gradient-primary text-[var(--accent-text)] rounded-full shadow-accent transition-all mb-8 group"
           >
-            <Plus size={24} className="text-yellow-400 group-hover:scale-110 transition-transform" />
-            <span className="font-medium">Criar</span>
+            <Plus size={24} className="group-hover:scale-110 transition-transform" />
+            <span className="font-black text-xs uppercase tracking-widest">Criar</span>
             <ChevronDown size={14} className="ml-auto opacity-50" />
           </button>
 

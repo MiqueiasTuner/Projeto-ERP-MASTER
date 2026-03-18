@@ -203,7 +203,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
                 <button 
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[var(--accent)] text-[var(--accent-text)] py-5 rounded-[24px] font-black text-sm uppercase tracking-widest shadow-2xl shadow-yellow-500/20 hover:opacity-90 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                  className="w-full bg-gradient-primary text-[var(--accent-text)] py-5 rounded-[24px] font-black text-sm uppercase tracking-widest shadow-accent hover:opacity-90 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />

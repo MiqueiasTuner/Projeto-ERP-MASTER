@@ -220,7 +220,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
           </button>
           <button 
             onClick={() => { setEditingAuction(null); setIsModalOpen(true); }}
-            className="bg-[var(--text-header)] text-[var(--bg-main)] p-4 px-8 rounded-2xl shadow-lg shadow-slate-900/20 hover:opacity-90 transition-all flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest"
+            className="bg-gradient-primary text-[var(--accent-text)] p-4 px-8 rounded-2xl shadow-accent hover:opacity-90 transition-all flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest"
           >
             <Plus size={20} />
             <span>Novo Leilão</span>
@@ -260,7 +260,7 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
           <motion.div 
             layout
             key={auction.id}
-            className="bg-[var(--bg-card)] rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
+            className="bg-gradient-card rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
           >
             <div className="p-6 flex-1 space-y-4">
               <div className="flex items-start justify-between">
