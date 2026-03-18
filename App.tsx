@@ -921,6 +921,8 @@ const AppContent = () => {
     </div>
   );
 
+  const isPublicRoute = location.pathname.startsWith('/publico/');
+
   if (!session) {
     return (
       <Routes>
@@ -928,6 +930,14 @@ const AppContent = () => {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    );
+  }
+
+  if (isPublicRoute) {
+    return (
+      <Routes>
+        <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
       </Routes>
     );
   }
@@ -979,7 +989,6 @@ const AppContent = () => {
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
         <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} properties={properties} />} />
         <Route path="/super-admin" element={currentUser.role === UserRole.SUPER_ADMIN ? <SuperAdminDashboard /> : <Navigate to="/" />} />
-        <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         
         {/* Broker Routes - Now accessible to all but kept for backward compatibility if needed */}
         <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} leads={leads} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />

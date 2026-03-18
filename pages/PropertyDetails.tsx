@@ -354,7 +354,7 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
       )}
 
       {/* Dados da Venda (Se Vendido) */}
-      {property.status === PropertyStatus.VENDIDO && (
+      {property.status === PropertyStatus.VENDIDO && !isBroker && (
         <div className="bg-emerald-500/5 p-8 rounded-[32px] border border-emerald-500/10 shadow-sm animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 mb-6 text-emerald-600 dark:text-emerald-400">
             <div className="p-2 bg-emerald-500/20 rounded-xl">
@@ -419,7 +419,7 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
 
       <div className="bg-gradient-card rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
         <div className="flex overflow-x-auto bg-[var(--bg-card-alt)] border-b border-[var(--border)] no-scrollbar">
-          {(isBroker ? (['detalhes', 'timeline'] as const) : (['financeiro', 'despesas', 'timeline'] as const)).map((tab) => (
+          {(isBroker ? (['detalhes'] as const) : (['financeiro', 'despesas', 'timeline'] as const)).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}

@@ -62,6 +62,25 @@ const BrokerPropertyDetails = ({ properties, onAddLead, currentUser }: {
     alert('Lead registrado com sucesso!');
   };
 
+  const handleShare = async () => {
+    if (!property) return;
+    const url = `${window.location.origin}/#/publico/imovel/${property.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: property.title || 'Imóvel Sintese ERP',
+          text: `Confira este imóvel: ${property.title}`,
+          url: url,
+        });
+      } catch (err) {
+        console.error('Error sharing', err);
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copiado para a área de transferência!');
+    }
+  };
+
   const images = property.images.length > 0 ? property.images : ["https://picsum.photos/seed/property/1200/800"];
 
   return (
@@ -83,7 +102,12 @@ const BrokerPropertyDetails = ({ properties, onAddLead, currentUser }: {
               <span>Kit de Vendas (WhatsApp)</span>
             </a>
           )}
-          <button className="p-3 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl transition-all shadow-sm"><Share2 size={20} /></button>
+            <button 
+              onClick={handleShare}
+              className="p-3 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl transition-all shadow-sm"
+            >
+              <Share2 size={20} />
+            </button>
           <button className="p-3 bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-header)] rounded-2xl transition-all shadow-sm"><Download size={20} /></button>
         </div>
       </div>
