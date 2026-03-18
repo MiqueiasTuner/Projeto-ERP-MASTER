@@ -6,25 +6,34 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: users
-    // Document ID: auth.uid
-    // Fields:
-    //   - name: string (required)
-    //   - email: string (required)
-    //   - role: string (required, 'ADMIN' | 'OPERADOR')
-    //   - teamId: string (optional)
-    //   - organizationId: string (optional)
-    //   - active: boolean (required)
-    //   - permissions: map (required)
-    //
-    // Collection: teams
-    // Document ID: auto-generated
-    // Fields:
-    //   - name: string (required)
-    //   - description: string (required)
+    // Fields: name, email, role (ADMIN, OPERADOR, BROKER, SUPER_ADMIN), teamId, active, permissions
     //
     // Collection: properties
-    // Document ID: auto-generated
-    // ... (other collections follow similar patterns)
+    // Fields: title, location, price, type, status, image, description, features, gallery
+    //
+    // Collection: inventory_items
+    // Fields: name, category, unit, minStock, currentStock, averageCost, imageUrl, usageStatus
+    //
+    // Collection: inventory_movements
+    // Fields: itemId, type, quantity, unitPrice, totalPrice, date, destination, description, supplierId
+    //
+    // Collection: warehouses
+    // Fields: name, location
+    //
+    // Collection: suppliers
+    // Fields: name, cnpj, category, phone
+    //
+    // Collection: purchase_quotes
+    // Fields: supplierId, supplierName, items, totalAmount, status, date, notes
+    //
+    // Collection: leads
+    // Fields: name, email, phone, propertyId, propertyName, brokerId, status, date
+    //
+    // Collection: teams
+    // Fields: name, description
+    //
+    // Collection: auctions
+    // Fields: title, description, link, date, status, initialPrice, currentBid, myMaxBid, propertyType, city, neighborhood, auctioneer, bids
     //
     // ===============================================================
 
@@ -36,67 +45,111 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function isSuperAdmin() {
-      return isAuthenticated() &&
-        (getUserData().role == 'SUPER_ADMIN' ||
-         (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true));
-    }
-
-    function isAdmin() {
-      return isAuthenticated() && (getUserData().role == 'Administrador' || isSuperAdmin());
-    }
-
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function belongsToOrg(orgId) {
-      return isAuthenticated() && (getUserData().organizationId == orgId || isSuperAdmin());
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'SUPER_ADMIN'] ||
+        (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true)
+      );
     }
 
-    function canAccessDoc(docData) {
-      return isAuthenticated() && (isSuperAdmin() || docData.organizationId == getUserData().organizationId);
+    function isOperator() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'OPERADOR';
+    }
+
+    function isBroker() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'BROKER';
+    }
+
+    function hasPermission(module, action) {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return user.permissions[module].hasAny([action]) || user.role in ['ADMIN', 'SUPER_ADMIN'];
     }
 
     // ===============================================================
-    // Collection Rules
+    // Domain Rules
     // ===============================================================
-
-    match /organizations/{orgId} {
-      allow read: if isAuthenticated() && (isSuperAdmin() || getUserData().organizationId == orgId);
-      allow write: if isAuthenticated() && isSuperAdmin();
-    }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isSuperAdmin() || getUserData().organizationId == resource.data.organizationId);
-      allow create: if isAuthenticated() && (isAdmin() || isSuperAdmin());
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin() || isSuperAdmin());
-      allow delete: if isAuthenticated() && isSuperAdmin();
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isAdmin() || isOwner(userId));
+      allow update: if isAuthenticated() && (isAdmin() || isOwner(userId));
+      allow delete: if isAdmin();
     }
 
-    // Generic rule for all SaaS collections
-    match /{collectionName}/{docId} {
-      allow read: if isAuthenticated() && (
-        isSuperAdmin() || 
-        !('organizationId' in getUserData()) || // Legacy users (no orgId) can see everything
-        (resource != null && resource.data.organizationId == getUserData().organizationId) ||
-        (resource == null) 
-      );
-      allow write: if isAuthenticated() && (
-        isSuperAdmin() || 
-        !('organizationId' in getUserData()) || // Legacy users can write (will be saved as 'default' or legacy)
-        (resource == null && request.resource.data.organizationId == getUserData().organizationId) ||
-        (resource != null && resource.data.organizationId == getUserData().organizationId && request.resource.data.organizationId == resource.data.organizationId)
-      );
+    match /properties/{propertyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
     }
 
-    match /registration_requests/{requestId} {
-      allow create: if true; // Allow anyone to request registration
-      allow read, write: if isSuperAdmin();
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /movements/{movementId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /warehouses/{warehouseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /quotes/{quoteId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /leads/{leadId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || isOperator() || resource.data.brokerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /teams/{teamId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /auctions/{auctionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /logs/{logId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOperator();
+    }
+
+    match /brokers/{brokerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
     
     // Default deny

@@ -11,7 +11,7 @@ import { db, firebaseConfig, auth } from '../lib/firebase';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { initializeApp, deleteApp, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut, updatePassword } from 'firebase/auth';
-import { handleFirestoreError, OperationType } from '../utils';
+import { handleFirestoreError, OperationType } from '../src/lib/firestore-errors';
 
 interface TeamsPageProps {
   currentUser: UserAccount;
@@ -109,7 +109,6 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
         email: email,
         role: role,
         teamId: (form.elements.namedItem('teamId') as HTMLSelectElement).value || undefined,
-        organizationId: currentUser.organizationId,
         active: true,
         permissions: role === UserRole.ADMIN ? {
           properties: ['view', 'edit', 'delete'],
@@ -126,8 +125,7 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
         await setDoc(doc(db, 'users', authUid), newUser);
         console.log("User saved successfully to Firestore");
       } catch (fsError) {
-        const info = handleFirestoreError(fsError, OperationType.CREATE, `users/${authUid}`, auth);
-        throw new Error(`Erro no Firestore: ${info.error}`);
+        handleFirestoreError(fsError, OperationType.CREATE, `users/${authUid}`);
       }
       
       setIsUserModalOpen(false);
@@ -167,8 +165,7 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
       try {
         await setDoc(doc(db, 'users', editingUser.id), updatedData, { merge: true });
       } catch (fsError) {
-        const info = handleFirestoreError(fsError, OperationType.UPDATE, `users/${editingUser.id}`, auth);
-        throw new Error(`Erro no Firestore: ${info.error}`);
+        handleFirestoreError(fsError, OperationType.UPDATE, `users/${editingUser.id}`);
       }
 
       if (password) {
@@ -197,7 +194,6 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
     const form = e.target as HTMLFormElement;
     
     const newTeam: Omit<Team, 'id'> = {
-      organizationId: currentUser.organizationId || '',
       name: (form.elements.namedItem('teamName') as HTMLInputElement).value,
       description: (form.elements.namedItem('teamDescription') as HTMLInputElement).value,
     };
@@ -207,9 +203,8 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
       await setDoc(docRef, { ...newTeam, id: docRef.id });
       setIsTeamModalOpen(false);
     } catch (error) {
-      const info = handleFirestoreError(error, OperationType.CREATE, 'teams', auth);
+      handleFirestoreError(error, OperationType.CREATE, 'teams');
       console.error("Error adding team:", error);
-      alert(`Erro ao criar departamento: ${info.error}`);
     }
   };
 
@@ -236,9 +231,8 @@ const TeamsPage = ({ currentUser, users, setUsers, teams, setTeams }: TeamsPageP
       setIsEditTeamModalOpen(false);
       setSelectedTeam(null);
     } catch (error) {
-      const info = handleFirestoreError(error, OperationType.UPDATE, `teams/${selectedTeam.id}`, auth);
+      handleFirestoreError(error, OperationType.UPDATE, `teams/${selectedTeam.id}`);
       console.error("Error updating team:", error);
-      alert(`Erro ao atualizar departamento: ${info.error}`);
     }
   };
 

@@ -103,7 +103,6 @@ const FornecedoresPage = ({ suppliers, onAddSupplier, onDeleteSupplier, currentU
     const form = e.target as HTMLFormElement;
     const newSupplier: Supplier = {
       id: editingSupplier?.id || Math.random().toString(36).substr(2, 9),
-      organizationId: currentUser.organizationId || '',
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       cnpj: (form.elements.namedItem('cnpj') as HTMLInputElement).value,
       category: (form.elements.namedItem('category') as HTMLInputElement).value,

@@ -53,7 +53,6 @@ export interface QuoteItem {
 
 export interface Quote {
   id: string;
-  organizationId: string;
   supplierId: string;
   supplierName: string;
   items: QuoteItem[];
@@ -66,7 +65,6 @@ export interface Quote {
 
 export interface PropertyLog {
   id: string;
-  organizationId: string;
   propertyId: string;
   userId: string;
   userName: string;
@@ -85,7 +83,6 @@ export enum MovementType {
 
 export interface Supplier {
   id: string;
-  organizationId: string;
   name: string;
   cnpj?: string;
   category: string;
@@ -94,7 +91,6 @@ export interface Supplier {
 
 export interface InventoryItem {
   id: string;
-  organizationId: string;
   name: string;
   unit: 'un' | 'm2' | 'm' | 'kg' | 'cx' | 'l';
   category: string;
@@ -111,7 +107,6 @@ export interface InventoryItem {
 
 export interface StockMovement {
   id: string;
-  organizationId: string;
   itemId: string;
   type: MovementType;
   quantity: number;
@@ -126,7 +121,6 @@ export interface StockMovement {
 
 export interface Warehouse {
   id: string;
-  organizationId: string;
   name: string;
   location: string;
 }
@@ -152,7 +146,6 @@ export interface UserPermissions {
 
 export interface Team {
   id: string;
-  organizationId: string;
   name: string;
   description: string;
   managerId?: string;
@@ -164,19 +157,17 @@ export interface UserAccount {
   email: string;
   role: UserRole;
   teamId?: string;
-  organizationId?: string;
   active: boolean;
   permissions: UserPermissions;
   photoUrl?: string;
-  companyLogo?: string;
   phone?: string;
   jobTitle?: string;
   bio?: string;
+  companyLogo?: string;
 }
 
 export interface ChatMessage {
   id: string;
-  organizationId: string;
   senderId: string;
   senderName: string;
   senderPhoto?: string;
@@ -211,7 +202,6 @@ export interface TaskComment {
 
 export interface Task {
   id: string;
-  organizationId: string;
   protocol?: string;
   title: string;
   description?: string;
@@ -233,7 +223,6 @@ export interface Task {
 
 export interface CalendarEvent {
   id: string;
-  organizationId: string;
   title: string;
   start: string;
   end: string;
@@ -255,7 +244,6 @@ export interface Attachment {
 
 export interface Expense {
   id: string;
-  organizationId: string;
   propertyId: string;
   category: ExpenseCategory;
   description: string;
@@ -286,7 +274,6 @@ export interface Bid {
 
 export interface Auction {
   id: string;
-  organizationId: string;
   title: string;
   description?: string;
   link?: string;
@@ -305,7 +292,6 @@ export interface Auction {
 
 export interface Alert {
   id: string;
-  organizationId: string;
   type: 'info' | 'warning' | 'error' | 'success';
   title: string;
   message: string;
@@ -348,7 +334,6 @@ export interface Wallet {
 
 export interface Property {
   id: string;
-  organizationId: string;
   title?: string; // New field for custom property name/label
   type: PropertyType;
   acquisitionType?: AcquisitionType;
@@ -446,7 +431,6 @@ export enum BrokerStatus {
 
 export interface Broker {
   id: string;
-  organizationId: string;
   name: string;
   cpfCnpj: string;
   phone: string;
@@ -461,7 +445,6 @@ export interface Broker {
 
 export interface Lead {
   id: string;
-  organizationId: string;
   name: string;
   phone: string;
   email: string;
@@ -474,40 +457,6 @@ export interface Lead {
   createdAt: string;
   updatedAt: string;
   saleValue?: number;
-}
-
-export interface Proposal {
-  id: string;
-  organizationId: string;
-  leadId: string;
-  propertyId: string;
-  brokerId: string;
-  amount: number;
-  paymentMethod: string;
-  observations?: string;
-  date: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
-
-export interface Reservation {
-  id: string;
-  organizationId: string;
-  propertyId: string;
-  brokerId: string;
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'expired' | 'cancelled';
-}
-
-export interface Organization {
-  id: string;
-  name: string;
-  ownerEmail: string;
-  status: 'active' | 'blocked';
-  plan: 'free' | 'basic' | 'pro' | 'enterprise';
-  createdAt: string;
-  maxUsers: number;
-  maxProperties: number;
 }
 
 export interface PropertyCalculations {

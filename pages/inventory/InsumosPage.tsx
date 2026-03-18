@@ -52,7 +52,6 @@ const InsumosPage = ({ items, movements = [], onDeleteItem, onAddItem, currentUs
       skipEmptyLines: true,
       complete: (results) => {
         const importedItems = results.data.map((row: any) => ({
-          organizationId: currentUser.organizationId || '',
           name: row.nome || row.name || '',
           category: row.categoria || row.category || 'Outros',
           unit: (row.unidade || row.unit || 'un') as InventoryItem['unit'],

@@ -4,17 +4,18 @@ import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } f
 import { 
   LayoutDashboard, Building2, Home, Users, Box, ChevronDown, 
   ChevronUp, BarChart3, Settings, LogOut, PlusCircle, Menu, X as CloseIcon,
-  FileText, MessageSquare, Kanban, CalendarDays, User, Gavel, Bell, Search, Clock, Globe, ShieldAlert, Eye, EyeOff
+  FileText, MessageSquare, Kanban, CalendarDays, User as UserIcon, Gavel, Bell, Search, Clock, Globe, ShieldAlert, Eye, EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, isConfigured, firebaseConfig } from './lib/firebase';
 import { initializeApp, deleteApp } from 'firebase/app';
-import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth, User as FirebaseUser } from 'firebase/auth';
 import { 
   collection, onSnapshot, doc, setDoc, 
   deleteDoc, addDoc, query, where, getDocs,
   writeBatch
 } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from './src/lib/firestore-errors';
 import { ThemeProvider, useTheme } from './src/components/ThemeProvider';
 import Dashboard from './pages/Dashboard';
 import PropertyList from './pages/PropertyList';
@@ -47,8 +48,7 @@ import {
   Warehouse, UserAccount, UserRole, Team, PermissionModule, 
   PermissionAction, UserPermissions, PropertyStatus, PropertyLog, 
   MovementType, ExpenseCategory, Quote, QuoteStatus, Task, TaskStatus,
-  Auction, Alert, Broker, Lead, Proposal, Reservation, CommercialStatus,
-  Organization
+  Auction, Alert, Broker, Lead, CommercialStatus
 } from './types';
 
 const INITIAL_PERMISSIONS: UserPermissions = {
@@ -111,8 +111,6 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
   const closeSidebar = () => setIsSidebarOpen(false);
   const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
 
-  const isBroker = currentUser.role === UserRole.BROKER;
-
   const notifications = useMemo(() => {
     const today = new Date();
     const threeDaysFromNow = new Date();
@@ -129,29 +127,27 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
 
   const menuItems = useMemo(() => {
     const items = [
-      { to: '/', icon: LayoutDashboard, label: 'Dashboard', visible: !isBroker },
-      { to: '/corretor', icon: LayoutDashboard, label: 'Painel', visible: isBroker },
-      { to: '/imoveis', icon: Home, label: 'Imóveis', visible: !isBroker && hasPermission('properties', 'view') },
-      { to: '/corretor/imoveis', icon: Home, label: 'Imóveis', visible: isBroker },
-      { to: '/leiloes', icon: Gavel, label: 'Leilões', visible: !isBroker && hasPermission('properties', 'view') },
-      { to: '/estoque/insumos', icon: Box, label: 'Insumos', visible: !isBroker && hasPermission('inventory', 'view') },
-      { to: '/estoque/movimentos', icon: Box, label: 'Movimentos', visible: !isBroker && hasPermission('inventory', 'view') },
-      { to: '/estoque/fornecedores', icon: Box, label: 'Fornecedores', visible: !isBroker && hasPermission('inventory', 'view') },
-      { to: '/estoque/orcamentos', icon: Box, label: 'Orçamentos', visible: !isBroker && hasPermission('inventory', 'view') },
-      { to: '/relatorios', icon: BarChart3, label: 'Relatórios', visible: !isBroker && hasPermission('reports', 'view') },
-      { to: '/gestao-corretores', icon: Users, label: 'Corretores', visible: !isBroker && hasPermission('brokers', 'view') },
-      { to: '/corretor', icon: LayoutDashboard, label: 'Portal Corretor', visible: !isBroker && hasPermission('brokers', 'view') },
-      { to: '/corretor/leads', icon: Users, label: 'Meus Leads', visible: isBroker },
-      {to: '/chat', icon: MessageSquare, label: 'Chat', visible: true},
-      {to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: true},
-      {to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: true},
-      {to: '/equipe', icon: User, label: 'Equipe', visible: !isBroker && hasPermission('teams', 'view')},
-      {to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: !isBroker && hasPermission('properties', 'view')},
-      {to: '/configuracoes', icon: Settings, label: 'Ajustes', visible: true},
-      {to: '/super-admin', icon: ShieldAlert, label: 'Super Admin', visible: currentUser.role === UserRole.SUPER_ADMIN},
+      { to: '/', icon: LayoutDashboard, label: 'Dashboard', visible: true },
+      { to: '/imoveis', icon: Home, label: 'Imóveis', visible: true },
+      { to: '/leiloes', icon: Gavel, label: 'Leilões', visible: true },
+      { to: '/estoque/insumos', icon: Box, label: 'Insumos', visible: true },
+      { to: '/estoque/movimentos', icon: Box, label: 'Movimentos', visible: true },
+      { to: '/estoque/fornecedores', icon: Box, label: 'Fornecedores', visible: true },
+      { to: '/estoque/orcamentos', icon: Box, label: 'Orçamentos', visible: true },
+      { to: '/estoque/almoxarifados', icon: Box, label: 'Almoxarifados', visible: true },
+      { to: '/relatorios', icon: BarChart3, label: 'Relatórios', visible: true },
+      { to: '/gestao-corretores', icon: Users, label: 'Corretores', visible: true },
+      { to: '/corretor/leads', icon: Users, label: 'Leads', visible: true },
+      { to: '/chat', icon: MessageSquare, label: 'Chat', visible: true },
+      { to: '/tarefas', icon: Kanban, label: 'Tarefas', visible: true },
+      { to: '/calendario', icon: CalendarDays, label: 'Agenda', visible: true },
+      { to: '/equipe', icon: UserIcon, label: 'Equipe', visible: true },
+      { to: '/integracoes', icon: Globe, label: 'Hub OLX', visible: true },
+      { to: '/configuracoes', icon: Settings, label: 'Ajustes', visible: true },
+      { to: '/super-admin', icon: ShieldAlert, label: 'Super Admin', visible: currentUser.role === UserRole.SUPER_ADMIN },
     ];
     return items.filter(item => item.visible && item.label.toLowerCase().includes(navSearchTerm.toLowerCase()));
-  }, [isBroker, currentUser, navSearchTerm]);
+  }, [currentUser, navSearchTerm]);
 
   const isVisible = (label: string) => {
     return menuItems.some(item => item.label === label);
@@ -314,56 +310,47 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto py-4 px-2 custom-scrollbar overflow-x-hidden">
-            {isBroker ? (
-              <>
-                <SidebarItem to="/corretor" icon={LayoutDashboard} label="Painel" active={location.pathname === '/corretor'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Painel')} />
-                <SidebarItem to="/corretor/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/corretor/imoveis') || location.pathname.startsWith('/corretor/imovel')} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Imóveis')} />
-                <SidebarItem to="/corretor/leads" icon={Users} label="Meus Leads" active={location.pathname.startsWith('/corretor/leads')} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Meus Leads')} />
-                <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Chat')} />
-                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Agenda')} />
-              </>
-            ) : (
-              <>
-                <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={isVisible('Dashboard')} collapsed={isSidebarCollapsed} />
-                
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
-                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
-                
-                <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={isVisible('Imóveis')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={isVisible('Leilões')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                
-                <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={isVisible('Insumos') || isVisible('Movimentos') || isVisible('Fornecedores') || isVisible('Orçamentos')} collapsed={isSidebarCollapsed}>
-                  {isVisible('Insumos') && <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Insumos</Link>}
-                  {isVisible('Movimentos') && <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Movimentos</Link>}
-                  {isVisible('Fornecedores') && <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Fornecedores</Link>}
-                  {isVisible('Orçamentos') && <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Orçamentos</Link>}
-                </SidebarGroup>
+            <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} onClick={closeSidebar} visible={isVisible('Dashboard')} collapsed={isSidebarCollapsed} />
+            
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Gestão Operacional</div>
+            <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+            
+            <SidebarItem to="/imoveis" icon={Home} label="Imóveis" active={location.pathname.startsWith('/imoveis')} visible={isVisible('Imóveis')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/leiloes" icon={Gavel} label="Leilões" active={location.pathname.startsWith('/leiloes')} visible={isVisible('Leilões')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            
+            <SidebarGroup label="Estoque" icon={Box} active={location.pathname.startsWith('/estoque')} visible={isVisible('Insumos') || isVisible('Movimentos') || isVisible('Fornecedores') || isVisible('Orçamentos') || isVisible('Almoxarifados')} collapsed={isSidebarCollapsed}>
+              {isVisible('Insumos') && <Link to="/estoque/insumos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/insumos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Insumos</Link>}
+              {isVisible('Movimentos') && <Link to="/estoque/movimentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/movimentos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Movimentos</Link>}
+              {isVisible('Fornecedores') && <Link to="/estoque/fornecedores" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/fornecedores' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Fornecedores</Link>}
+              {isVisible('Orçamentos') && <Link to="/estoque/orcamentos" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/orcamentos' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Orçamentos</Link>}
+              {isVisible('Almoxarifados') && <Link to="/estoque/almoxarifados" onClick={closeSidebar} className={`block py-2 text-xs font-medium whitespace-nowrap pl-2 ${location.pathname === '/estoque/almoxarifados' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'}`}>• Almoxarifados</Link>}
+            </SidebarGroup>
 
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
-                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Estratégico</div>
+            <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-                <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={isVisible('Relatórios')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/gestao-corretores" icon={Users} label="Corretores" active={location.pathname === '/gestao-corretores'} visible={isVisible('Corretores')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
-                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+            <SidebarItem to="/relatorios" icon={BarChart3} label="Relatórios" active={location.pathname === '/relatorios'} visible={isVisible('Relatórios')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/gestao-corretores" icon={Users} label="Corretores" active={location.pathname === '/gestao-corretores'} visible={isVisible('Corretores')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/corretor/leads" icon={Users} label="Leads" active={location.pathname.startsWith('/corretor/leads')} visible={isVisible('Leads')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Colaboração</div>
+            <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-                <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Chat')} />
-                <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Tarefas')} />
-                <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Agenda')} />
-                
-                <div title="Em breve" className="opacity-50 cursor-not-allowed">
-                  <SidebarItem icon={FileText} label="Ligações" active={false} visible={isVisible('Ligações')} collapsed={isSidebarCollapsed} onClick={() => {}} />
-                </div>
+            <SidebarItem to="/chat" icon={MessageSquare} label="Chat" active={location.pathname === '/chat'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Chat')} />
+            <SidebarItem to="/tarefas" icon={Kanban} label="Tarefas" active={location.pathname === '/tarefas'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Tarefas')} />
+            <SidebarItem to="/calendario" icon={CalendarDays} label="Agenda" active={location.pathname === '/calendario'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Agenda')} />
+            
+            <div title="Em breve" className="opacity-50 cursor-not-allowed">
+              <SidebarItem icon={FileText} label="Ligações" active={false} visible={isVisible('Ligações')} collapsed={isSidebarCollapsed} onClick={() => {}} />
+            </div>
 
-                <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
-                <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
+            <div className={`pt-6 pb-2 px-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Configurações</div>
+            <div className={`my-2 border-t border-[var(--border)] mx-4 ${isSidebarCollapsed ? 'block' : 'hidden'}`} />
 
-                <SidebarItem to="/equipe" icon={User} label="Equipe" active={location.pathname === '/equipe'} visible={isVisible('Equipe')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/integracoes" icon={Globe} label="Hub OLX" active={location.pathname === '/integracoes'} visible={isVisible('Hub OLX')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
-                <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Ajustes')} />
-              </>
-            )}
+            <SidebarItem to="/equipe" icon={UserIcon} label="Equipe" active={location.pathname === '/equipe'} visible={isVisible('Equipe')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/integracoes" icon={Globe} label="Hub OLX" active={location.pathname === '/integracoes'} visible={isVisible('Hub OLX')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
+            <SidebarItem to="/configuracoes" icon={Settings} label="Ajustes" active={location.pathname === '/configuracoes'} onClick={closeSidebar} collapsed={isSidebarCollapsed} visible={isVisible('Ajustes')} />
+            <SidebarItem to="/super-admin" icon={ShieldAlert} label="Super Admin" active={location.pathname === '/super-admin'} visible={isVisible('Super Admin')} onClick={closeSidebar} collapsed={isSidebarCollapsed} />
             
             <button onClick={onLogout} className="flex items-center space-x-3 px-4 py-3 w-full rounded-2xl text-rose-400 hover:bg-rose-500/10 transition-colors mt-2 group">
               <LogOut size={20} className="flex-shrink-0" /> 
@@ -390,9 +377,20 @@ const ProtectedLayout = ({ children, currentUser, onLogout, tasks = [] }: { chil
   );
 };
 
+const SUPER_ADMIN_EMAILS = [
+  'miqueiasyout@gmail.com',
+  'allefassis@hotmail.com',
+  'miqueias.sanntin@gmail.com',
+  'eliasdassis@gmail.com',
+  'jane-vilela@hotmail.com',
+  'elias@masterimoveis.com.br',
+  'jane@masterimoveis.co'
+];
+
 const AppContent = () => {
   const navigate = useNavigate();
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<FirebaseUser | null>(null);
+  const [currentUserData, setCurrentUserData] = useState<UserAccount | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Frontend Protection
@@ -439,11 +437,6 @@ const AppContent = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [currentUserData, setCurrentUserData] = useState<UserAccount | null>(null);
-  const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
-  const [viewingOrgId, setViewingOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
@@ -464,16 +457,48 @@ const AppContent = () => {
   useEffect(() => {
     if (!session || !db) return;
     
-    const unsub = onSnapshot(doc(db, 'users', session.uid), (snapshot) => {
+    const unsub = onSnapshot(doc(db, 'users', session.uid), async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        const isSuperAdmin = data.email === 'miqueiasyout@gmail.com';
+        const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(data.email);
+        
+        // Bootstrap: If they are in the admin list but don't have the role, update it in the database
+        if (isSuperAdmin && data.role !== UserRole.SUPER_ADMIN) {
+          try {
+            await setDoc(doc(db, 'users', session.uid), { role: UserRole.SUPER_ADMIN }, { merge: true });
+          } catch (err) {
+            console.error("Failed to bootstrap admin role:", err);
+          }
+        }
+
         setCurrentUserData({ 
           ...data, 
           id: snapshot.id,
           role: isSuperAdmin ? UserRole.SUPER_ADMIN : data.role
         } as UserAccount);
+      } else {
+        // Document doesn't exist. If it's a super admin email, create it.
+        const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(session.email);
+        if (isSuperAdmin) {
+           const newUserData = {
+             name: session.displayName || 'Admin',
+             email: session.email,
+             role: UserRole.SUPER_ADMIN,
+             active: true,
+             permissions: INITIAL_PERMISSIONS,
+             createdAt: new Date().toISOString()
+           };
+           try {
+             await setDoc(doc(db, 'users', session.uid), newUserData);
+           } catch (err) {
+             console.error("Failed to create super admin doc:", err);
+           }
+        }
       }
+      setLoading(false);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, `users/${session.uid}`);
+      console.error("Error fetching current user data:", err);
       setLoading(false);
     });
     
@@ -483,16 +508,10 @@ const AppContent = () => {
   useEffect(() => {
     if (!session || !db) return;
     
-    const effectiveOrgId = (currentUserData?.role === UserRole.SUPER_ADMIN && viewingOrgId) 
-      ? viewingOrgId 
-      : (currentUserData?.organizationId || 'default');
-
-    const unsubOrg = onSnapshot(doc(db, 'organizations', effectiveOrgId), (snapshot) => {
-      if (snapshot.exists()) {
-        setCurrentOrg({ ...snapshot.data(), id: snapshot.id } as Organization);
-      }
-    });
-
+    // Wait for user data unless it's a super admin by email
+    const isSuperAdminByEmail = SUPER_ADMIN_EMAILS.includes(session.email);
+    if (!isSuperAdminByEmail && !currentUserData) return;
+    
     const collectionsToFetch: any[] = [
       { name: 'properties', setter: setProperties },
       { name: 'expenses', setter: setExpenses },
@@ -508,32 +527,25 @@ const AppContent = () => {
       { name: 'auctions', setter: setAuctions },
       { name: 'alerts', setter: setAlerts },
       { name: 'brokers', setter: setBrokers },
-      { name: 'leads', setter: setLeads },
-      { name: 'proposals', setter: setProposals },
-      { name: 'reservations', setter: setReservations },
-      { name: 'messages', setter: () => {} }, // Messages are usually handled in ChatPage, but let's ensure they are available if needed
+      { name: 'leads', setter: setLeads }
     ];
 
     const unsubscribes = collectionsToFetch.map(({ name, setter }) => {
-      // Se for Super Admin sem visualização específica OU se for um contexto 'default' (legado),
-      // buscamos todos os dados sem o filtro de organizationId.
-      const q = (currentUserData?.role === UserRole.SUPER_ADMIN && !viewingOrgId) || effectiveOrgId === 'default'
-        ? query(collection(db, name))
-        : query(collection(db, name), where('organizationId', '==', effectiveOrgId));
+      const q = query(collection(db, name));
 
       return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as any[];
         setter(data);
       }, (err) => {
+        handleFirestoreError(err, OperationType.LIST, name);
         console.error(`Error fetching ${name}:`, err);
       });
     });
 
     return () => {
-      unsubOrg();
       unsubscribes.forEach(unsub => unsub());
     };
-  }, [session, currentUserData?.organizationId, viewingOrgId, currentUserData?.role]);
+  }, [session, currentUserData?.role]);
 
   const foundBroker = brokers.find(b => b.email === session?.email);
 
@@ -545,7 +557,6 @@ const AppContent = () => {
     name: foundBroker.name,
     email: foundBroker.email,
     role: UserRole.BROKER,
-    organizationId: foundBroker.organizationId,
     active: foundBroker.active,
     permissions: { ...INITIAL_PERMISSIONS, brokers: [] }
   } : {
@@ -554,7 +565,6 @@ const AppContent = () => {
     email: session?.email || '',
     role: UserRole.ADMIN, 
     active: true,
-    organizationId: 'default',
     permissions: INITIAL_PERMISSIONS
   };
 
@@ -563,37 +573,27 @@ const AppContent = () => {
     navigate('/login');
   };
 
-  const addLog = async (log: Omit<PropertyLog, 'id' | 'timestamp' | 'userId' | 'userName' | 'organizationId'>) => {
+  const addLog = async (log: Omit<PropertyLog, 'id' | 'timestamp' | 'userId' | 'userName'>) => {
     await addDoc(collection(db, 'logs'), {
       ...log,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
-      userName: currentUser.name,
-      organizationId: currentUser.organizationId
+      userName: currentUser.name
     });
   };
 
   const saveProperty = async (p: Property) => {
     const { id, ...data } = p;
-    const organizationId = currentUser.organizationId || 'default';
     
-    if (!id) {
-      // New property, check limit
-      if (currentOrg && currentOrg.maxProperties && properties.length >= currentOrg.maxProperties) {
-        alert(`Limite de imóveis atingido (${currentOrg.maxProperties}). Por favor, faça um upgrade no seu plano.`);
-        return;
-      }
-    }
-
     if (id) {
-      await setDoc(doc(db, 'properties', id), { ...data, organizationId } as any, { merge: true });
+      await setDoc(doc(db, 'properties', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'properties'));
-      await setDoc(docRef, { ...data, id: docRef.id, organizationId } as any);
+      await setDoc(docRef, { ...data, id: docRef.id } as any);
     }
   };
 
-  const isMasterUser = currentUser.email === 'miqueiasyout@gmail.com';
+  const isMasterUser = SUPER_ADMIN_EMAILS.includes(currentUser.email);
 
   const deleteProperty = async (id: string) => {
     if (!isMasterUser) {
@@ -605,14 +605,13 @@ const AppContent = () => {
     navigate('/imoveis');
   };
 
-  const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'organizationId'> & { id?: string }) => {
-    const organizationId = currentUser.organizationId || 'default';
+  const addInventoryItem = async (item: Omit<InventoryItem, 'id'> & { id?: string }) => {
     if (item.id) {
       const { id, ...data } = item;
-      await setDoc(doc(db, 'inventory', id), { ...data, organizationId } as any, { merge: true });
+      await setDoc(doc(db, 'inventory', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'inventory'));
-      await setDoc(docRef, { ...item, id: docRef.id, organizationId } as any);
+      await setDoc(docRef, { ...item, id: docRef.id } as any);
     }
   };
 
@@ -626,14 +625,13 @@ const AppContent = () => {
   };
 
   const addSupplier = async (s: Supplier) => {
-    const organizationId = currentUser.organizationId || 'default';
     if (s.id) {
       const { id, ...data } = s;
-      await setDoc(doc(db, 'suppliers', id), { ...data, organizationId } as any, { merge: true });
+      await setDoc(doc(db, 'suppliers', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'suppliers'));
       const { id, ...data } = s;
-      await setDoc(docRef, { ...data, id: docRef.id, organizationId } as any);
+      await setDoc(docRef, { ...data, id: docRef.id } as any);
     }
   };
 
@@ -648,8 +646,7 @@ const AppContent = () => {
 
   const addWarehouse = async (w: Warehouse) => {
     const { id, ...data } = w;
-    const organizationId = currentUser.organizationId || 'default';
-    await addDoc(collection(db, 'warehouses'), { ...data, organizationId } as any);
+    await addDoc(collection(db, 'warehouses'), data as any);
   };
 
   const deleteWarehouse = async (id: string) => {
@@ -663,8 +660,7 @@ const AppContent = () => {
 
   const handleAddMovement = async (mov: StockMovement) => {
     const { id, ...data } = mov;
-    const organizationId = currentUser.organizationId || 'default';
-    await addDoc(collection(db, 'movements'), { ...data, organizationId } as any);
+    await addDoc(collection(db, 'movements'), data as any);
     
     const item = inventory.find(i => i.id === mov.itemId);
     if (item) {
@@ -676,12 +672,11 @@ const AppContent = () => {
 
   const addExpense = async (e: Expense) => {
     const { id, ...data } = e;
-    const organizationId = currentUser.organizationId || 'default';
     if (id) {
-      await setDoc(doc(db, 'expenses', id), { ...data, organizationId } as any, { merge: true });
+      await setDoc(doc(db, 'expenses', id), data as any, { merge: true });
     } else {
       const docRef = doc(collection(db, 'expenses'));
-      await setDoc(docRef, { ...data, id: docRef.id, organizationId } as any);
+      await setDoc(docRef, { ...data, id: docRef.id } as any);
     }
   };
 
@@ -692,8 +687,7 @@ const AppContent = () => {
 
   const addQuote = async (q: Quote) => {
     const { id, ...data } = q;
-    const organizationId = currentUser.organizationId || 'default';
-    await addDoc(collection(db, 'quotes'), { ...data, organizationId } as any);
+    await addDoc(collection(db, 'quotes'), data as any);
   };
 
   const updateQuoteStatus = async (id: string, status: QuoteStatus) => {
@@ -720,7 +714,6 @@ const AppContent = () => {
     // 2. Add stock movements and update inventory
     for (const item of quote.items) {
       const movement: Omit<StockMovement, 'id'> = {
-        organizationId: currentUserData?.organizationId || '',
         itemId: item.itemId,
         type: MovementType.ENTRADA_COMPRA,
         quantity: item.quantity,
@@ -792,8 +785,7 @@ const AppContent = () => {
       await setDoc(doc(db, 'brokers', authUid), { 
         ...data, 
         id: authUid, 
-        userId: authUid,
-        organizationId: currentUser.organizationId || 'default'
+        userId: authUid
       });
 
       // 3. Create user document
@@ -802,7 +794,6 @@ const AppContent = () => {
         name: b.name,
         email: b.email,
         role: UserRole.BROKER,
-        organizationId: currentUser.organizationId || 'default',
         active: b.active,
         permissions: {
           properties: ['view'],
@@ -844,9 +835,8 @@ const AppContent = () => {
 
   const addLead = async (l: Lead) => {
     const { id, ...data } = l;
-    const organizationId = currentUser.organizationId || 'default';
     const docRef = doc(collection(db, 'leads'));
-    await setDoc(docRef, { ...data, id: docRef.id, organizationId });
+    await setDoc(docRef, { ...data, id: docRef.id });
   };
 
   const updateLead = async (l: Lead) => {
@@ -872,10 +862,8 @@ const AppContent = () => {
 
     // 2. Add log for executive dashboard
     const logRef = doc(collection(db, 'logs'));
-    const organizationId = currentUser.organizationId || 'default';
     const log: Omit<PropertyLog, 'id'> = {
       propertyId,
-      organizationId,
       userId: currentUser.id,
       userName: currentUser.name,
       action: 'BAIXA_VENDA',
@@ -910,70 +898,20 @@ const AppContent = () => {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0B1120]">
-      <div className="w-12 h-12 border-4 border-slate-800 border-t-[var(--accent)] rounded-full animate-spin mb-4" />
-      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Carregando Sintese <span className="text-[var(--erp-yellow)]">ERP</span>...</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="flex flex-col items-center gap-6">
+        <div className="w-16 h-16 border-4 border-yellow-500/20 border-t-yellow-500 rounded-full animate-spin" />
+        <p className="text-white font-black uppercase tracking-[0.2em] text-xs animate-pulse">Sintese ERP • Carregando...</p>
+      </div>
     </div>
   );
 
-  if (!session) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage onLogin={() => {}} />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
-    );
-  }
-
-  // Blocked Organization Screen
-  if (currentOrg?.status === 'blocked' && currentUser.role !== UserRole.SUPER_ADMIN) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
-        <div className="bg-rose-500/10 border border-rose-500/20 p-12 rounded-[40px] max-w-md shadow-2xl">
-          <ShieldAlert size={80} className="text-rose-500 mx-auto mb-8" />
-          <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Acesso Suspenso</h1>
-          <p className="text-slate-400 font-medium mb-10 leading-relaxed">
-            Sua organização foi temporariamente bloqueada. Por favor, entre em contato com o suporte do Sintese <span className="text-[var(--erp-yellow)]">ERP</span> para regularizar sua situação.
-          </p>
-          <button 
-            onClick={handleLogout}
-            className="w-full bg-rose-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-rose-600 transition-all"
-          >
-            Sair do Sistema
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <ProtectedLayout currentUser={currentUser} onLogout={handleLogout} tasks={tasks}>
-      {viewingOrgId && currentUser.role === UserRole.SUPER_ADMIN && (
-        <div className="bg-emerald-600 text-white px-6 py-3 flex items-center justify-between shadow-lg animate-in slide-in-from-top duration-500 sticky top-0 z-[60]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <Eye size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest">Modo de Visualização Ativo</p>
-              <p className="text-[10px] font-bold opacity-90">Você está visualizando os dados da organização: <span className="underline">{currentOrg?.name}</span></p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setViewingOrgId(null)}
-            className="flex items-center gap-2 bg-white text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm"
-          >
-            <EyeOff size={14} />
-            Sair da Visualização
-          </button>
-        </div>
-      )}
+    <ProtectedLayout currentUser={currentUser} onLogout={handleLogout}>
       <Routes>
-        <Route path="/" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
-        <Route path="/leiloes" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
-        <Route path="/imoveis" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor/imoveis" /> : <PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} currentUser={currentUser} />} />
+        <Route path="/" element={<Dashboard properties={properties} expenses={expenses} tasks={tasks} inventory={inventory} movements={movements} quotes={quotes} auctions={auctions} alerts={alerts} currentUser={currentUser} />} />
+        <Route path="/leiloes" element={<AuctionPage auctions={auctions} properties={properties} currentUser={currentUser} />} />
+        <Route path="/imoveis" element={<PropertyList properties={properties} expenses={expenses} onUpdateStatus={async (id, status) => { await setDoc(doc(db, 'properties', id), { status }, { merge: true }); }} onDeleteProperty={deleteProperty} addLog={addLog} currentUser={currentUser} />} />
         <Route path="/imovel/:id" element={<PropertyDetails properties={properties} expenses={expenses} logs={logs} tasks={tasks} onAddExpense={addExpense} onDeleteExpense={async (id) => { 
           if (!isMasterUser) {
             alert("Apenas o Administrador Master pode excluir registros.");
@@ -983,29 +921,29 @@ const AppContent = () => {
         }} onDeleteProperty={deleteProperty} currentUser={currentUser} />} />
         <Route path="/novo" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
         <Route path="/editar/:id" element={<PropertyForm properties={properties} onSave={saveProperty} />} />
-        <Route path="/estoque/insumos" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} currentUser={currentUser} />} />
-        <Route path="/estoque/movimentos" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} currentUser={currentUser} />} />
-        <Route path="/estoque/fornecedores" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} currentUser={currentUser} />} />
-        <Route path="/estoque/almoxarifados" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} currentUser={currentUser} />} />
-        <Route path="/estoque/orcamentos" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} currentUser={currentUser} />} />
-        <Route path="/relatorios" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <ReportsPage properties={properties} expenses={expenses} inventory={inventory} tasks={tasks} auctions={auctions} brokers={brokers} leads={leads} />} />
-        <Route path="/equipe" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
-        <Route path="/integracoes" element={currentUser.role === UserRole.BROKER ? <Navigate to="/corretor" /> : <IntegrationsPage />} />
+        <Route path="/estoque/insumos" element={<InsumosPage items={inventory} movements={movements} onDeleteItem={deleteInventoryItem} onAddItem={addInventoryItem} currentUser={currentUser} />} />
+        <Route path="/estoque/movimentos" element={<MovimentosPage movements={movements} items={inventory} suppliers={suppliers} properties={properties} onAddMovement={handleAddMovement} currentUser={currentUser} />} />
+        <Route path="/estoque/fornecedores" element={<FornecedoresPage suppliers={suppliers} onAddSupplier={addSupplier} onDeleteSupplier={deleteSupplier} currentUser={currentUser} />} />
+        <Route path="/estoque/almoxarifados" element={<AlmoxarifadosPage warehouses={warehouses} onAddWarehouse={addWarehouse} onDeleteWarehouse={deleteWarehouse} currentUser={currentUser} />} />
+        <Route path="/estoque/orcamentos" element={<ComprasPage quotes={quotes} suppliers={suppliers} inventory={inventory} properties={properties} onAddQuote={addQuote} onUpdateQuoteStatus={updateQuoteStatus} onDeleteQuote={deleteQuote} onPurchaseQuote={purchaseQuote} currentUser={currentUser} />} />
+        <Route path="/relatorios" element={<ReportsPage properties={properties} expenses={expenses} inventory={inventory} tasks={tasks} auctions={auctions} brokers={brokers} leads={leads} />} />
+        <Route path="/equipe" element={<TeamsPage currentUser={currentUser} users={users} setUsers={setUsers} teams={teams} setTeams={setTeams} />} />
+        <Route path="/integracoes" element={<IntegrationsPage />} />
         <Route path="/chat" element={<ChatPage currentUser={currentUser} />} />
         <Route path="/tarefas" element={<KanbanPage currentUser={currentUser} users={users} teams={teams} properties={properties} />} />
         <Route path="/calendario" element={<CalendarPage currentUser={currentUser} />} />
         <Route path="/configuracoes" element={<SettingsPage currentUser={currentUser} properties={properties} />} />
-        <Route path="/super-admin" element={currentUser.role === UserRole.SUPER_ADMIN ? <SuperAdminDashboard onViewOrg={setViewingOrgId} /> : <Navigate to="/" />} />
+        <Route path="/super-admin" element={currentUser.role === UserRole.SUPER_ADMIN ? <SuperAdminDashboard /> : <Navigate to="/" />} />
         <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
         
-        {/* Broker Routes */}
+        {/* Broker Routes - Now accessible to all but kept for backward compatibility if needed */}
         <Route path="/gestao-corretores" element={<BrokerManagement brokers={brokers} leads={leads} onAddBroker={addBroker} onUpdateBroker={updateBroker} onDeleteBroker={deleteBroker} />} />
-        <Route path="/corretor" element={<BrokerDashboard leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} />} />
-        <Route path="/corretor/imoveis" element={<PropertyList properties={properties.filter(p => p.availableForBrokers)} expenses={[]} onUpdateStatus={() => {}} onDeleteProperty={() => {}} addLog={async () => {}} currentUser={currentUser} />} />
+        <Route path="/corretor" element={<BrokerDashboard leads={leads} properties={properties} />} />
+        <Route path="/corretor/imoveis" element={<PropertyList properties={properties} expenses={[]} onUpdateStatus={() => {}} onDeleteProperty={() => {}} addLog={async () => {}} currentUser={currentUser} />} />
         <Route path="/corretor/imovel/:id" element={<PropertyDetails properties={properties} expenses={[]} logs={[]} tasks={[]} onAddExpense={() => {}} onDeleteExpense={() => {}} onDeleteProperty={() => {}} currentUser={currentUser} />} />
-        <Route path="/corretor/leads" element={<BrokerLeads leads={leads.filter(l => l.brokerId === currentUser.id)} properties={properties} onUpdateLead={updateLead} onMarkAsSold={markPropertyAsSold} />} />
+        <Route path="/corretor/leads" element={<BrokerLeads leads={leads} properties={properties} onUpdateLead={updateLead} onMarkAsSold={markPropertyAsSold} />} />
         
-        <Route path="*" element={<Navigate to={currentUser.role === UserRole.BROKER ? "/corretor" : "/"} />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </ProtectedLayout>
   );

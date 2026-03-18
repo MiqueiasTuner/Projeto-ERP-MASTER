@@ -44,7 +44,6 @@ const BrokerPropertyDetails = ({ properties, onAddLead, currentUser }: {
     onAddLead({
       ...leadFormData,
       id: Math.random().toString(36).substr(2, 9),
-      organizationId: currentUser.organizationId || '',
       propertyId: property.id,
       brokerId: currentUser.id,
       status: LeadStatus.OPPORTUNITY,

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, getDocs, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { ChatMessage, UserAccount } from '../types';
+import { handleFirestoreError, OperationType } from '../src/lib/firestore-errors';
 import { Send, Image as ImageIcon, Paperclip, User, Hash, MessageSquare, Search, MoreVertical, Phone, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -74,6 +75,10 @@ const ChatPage = ({ currentUser }: ChatPageProps) => {
       );
       
       setMessages(sortedMsgs);
+      setLoading(false);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'messages');
+      console.error("Error fetching messages:", err);
       setLoading(false);
     });
 

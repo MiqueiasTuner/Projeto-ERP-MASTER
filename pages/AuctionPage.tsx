@@ -142,7 +142,6 @@ const AuctionPage: React.FC<AuctionPageProps> = ({ auctions, properties, current
 
       // 2. Create property
       const propertyData: Omit<Property, 'id'> = {
-        organizationId: currentUser.organizationId || '',
         title: auctionToWon.title,
         type: auctionToWon.propertyType || PropertyType.CASA,
         city: auctionToWon.city,

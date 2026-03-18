@@ -64,7 +64,6 @@ const ComprasPage = ({
 
     const newQuote: Quote = {
       id: Math.random().toString(36).substr(2, 9),
-      organizationId: currentUser.organizationId || '',
       supplierId: supplier.id,
       supplierName: supplier.name,
       items: quoteItems.map(qi => ({

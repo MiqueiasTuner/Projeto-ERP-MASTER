@@ -72,7 +72,6 @@ const MovimentosPage = ({ movements, items, suppliers, properties, onAddMovement
     try {
       const movement: StockMovement = {
         id: Math.random().toString(36).substr(2, 9),
-        organizationId: currentUser.organizationId || '',
         ...formData,
         quantity: Number(formData.quantity),
         totalPrice: Number(formData.totalPrice),

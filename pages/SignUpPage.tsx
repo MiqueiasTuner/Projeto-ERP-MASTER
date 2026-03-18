@@ -32,33 +32,11 @@ const SignUpPage = () => {
           displayName: name
         });
 
-        // Create new organization (SaaS Environment)
-        const orgRef = doc(collection(db, 'organizations'));
-        const organizationId = orgRef.id;
-
-        await setDoc(orgRef, {
-          id: organizationId,
-          name: companyName || `${name}'s Organization`,
-          plan: 'free',
-          status: 'active',
-          ownerId: userCredential.user.uid,
-          ownerEmail: trimmedEmail,
-          maxUsers: 5,
-          maxProperties: 50,
-          createdAt: new Date().toISOString(),
-          settings: {
-            theme: 'light',
-            currency: 'BRL',
-            timezone: 'America/Sao_Paulo'
-          }
-        });
-
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           id: userCredential.user.uid,
           name: name,
           email: trimmedEmail,
           role: UserRole.ADMIN,
-          organizationId: organizationId,
           active: true,
           createdAt: new Date().toISOString(),
           permissions: {
@@ -78,7 +56,6 @@ const SignUpPage = () => {
           userEmail: trimmedEmail,
           timestamp: new Date().toISOString(),
           status: 'pending',
-          environmentId: organizationId,
           notifyEmail: 'miqueiasyout@gmail.com'
         });
         

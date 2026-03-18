@@ -179,7 +179,6 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
     onAddExpense({
       id: editingExpense ? editingExpense.id : Math.random().toString(36).substr(2, 9),
-      organizationId: property?.organizationId || '',
       propertyId: id!,
       category: newExpData.category,
       description: newExpData.description,

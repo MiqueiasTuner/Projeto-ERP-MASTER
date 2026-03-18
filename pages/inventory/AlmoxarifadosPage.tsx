@@ -21,7 +21,6 @@ const AlmoxarifadosPage = ({ warehouses, onAddWarehouse, onDeleteWarehouse, curr
     const form = e.target as HTMLFormElement;
     const newWarehouse: Warehouse = {
       id: editingWarehouse?.id || Math.random().toString(36).substr(2, 9),
-      organizationId: currentUser.organizationId || '',
       name: (form.elements.namedItem('name') as HTMLInputElement).value,
       location: (form.elements.namedItem('location') as HTMLInputElement).value
     };

@@ -13,8 +13,7 @@ export const CommercialService = {
   getCommercialProperties: (properties: Property[]): CommercialProperty[] => {
     return properties
       .filter(p => 
-        (p.status === PropertyStatus.A_VENDA || p.status === PropertyStatus.VENDIDO) && 
-        p.availableForBrokers === true
+        (p.status === PropertyStatus.A_VENDA || p.status === PropertyStatus.VENDIDO)
       )
       .map(p => ({
         id: p.id,

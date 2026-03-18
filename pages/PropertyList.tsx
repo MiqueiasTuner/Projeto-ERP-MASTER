@@ -523,7 +523,6 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
             const id = crypto.randomUUID();
             return {
               id,
-              organizationId: currentUser.organizationId || '',
               title: row.Titulo || row.title || '',
               type: (row.Tipo || row.type || PropertyType.APARTAMENTO) as PropertyType,
               acquisitionType: (row.TipoAquisicao || row.acquisitionType || AcquisitionType.LEILAO_JUDICIAL) as AcquisitionType,

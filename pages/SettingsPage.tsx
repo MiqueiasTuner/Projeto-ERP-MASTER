@@ -25,8 +25,7 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
     name: currentUser.name || '',
     email: currentUser.email || '',
     role: currentUser.role || '',
-    photoUrl: currentUser.photoUrl || '',
-    companyLogo: currentUser.companyLogo || ''
+    photoUrl: currentUser.photoUrl || ''
   });
 
   useEffect(() => {
@@ -34,8 +33,7 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
       name: currentUser.name || '',
       email: currentUser.email || '',
       role: currentUser.role || '',
-      photoUrl: currentUser.photoUrl || '',
-      companyLogo: currentUser.companyLogo || ''
+      photoUrl: currentUser.photoUrl || ''
     });
   }, [currentUser]);
 
@@ -74,31 +72,6 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!storage) {
-      setSaveMessage('Erro: Firebase Storage não configurado.');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const path = `logos/user-${currentUser.id}-${Date.now()}-${file.name}`;
-      const downloadURL = await uploadImage(file, path);
-      
-      setFormData(prev => ({ ...prev, companyLogo: downloadURL }));
-      setSaveMessage('Logo atualizada com sucesso!');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } catch (error) {
-      console.error("Error uploading logo:", error);
-      setSaveMessage('Erro ao fazer upload da logo.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -109,7 +82,6 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
       await setDoc(doc(db, 'users', currentUser.id), {
         name: formData.name,
         photoUrl: formData.photoUrl,
-        companyLogo: formData.companyLogo,
         email: currentUser.email,
         role: currentUser.role,
         active: currentUser.active,
@@ -257,43 +229,6 @@ const SettingsPage = ({ currentUser, properties }: { currentUser: UserAccount, p
                     className={`${inputClass} opacity-60 cursor-not-allowed`} 
                     value={formData.email} 
                   />
-                </div>
-
-                <div className="space-y-4">
-                  <label className="block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Logo da Empresa</label>
-                  <div className="flex items-center gap-6 p-6 bg-[var(--bg-card-alt)]/50 rounded-[24px] border border-[var(--border)]">
-                    <div className="relative group shrink-0">
-                      <div className="absolute -inset-1.5 bg-gradient-to-tr from-[var(--accent)] to-yellow-200 rounded-2xl blur-[4px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                      <div className="relative w-20 h-20 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-[var(--accent)]/10 overflow-hidden flex items-center justify-center shadow-sm">
-                        {formData.companyLogo ? (
-                          <img src={formData.companyLogo} alt="Logo" className="w-full h-full object-contain rounded-lg" referrerPolicy="no-referrer" />
-                        ) : (
-                          <Building size={32} className="text-[var(--text-muted)]" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <label className="inline-flex items-center px-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] cursor-pointer hover:bg-[var(--bg-card-alt)] transition-all shadow-sm">
-                          <span>{isUploading ? 'Enviando...' : 'Fazer Upload'}</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploading} />
-                        </label>
-                        {formData.companyLogo && (
-                          <button 
-                            type="button"
-                            onClick={() => setFormData({...formData, companyLogo: ''})}
-                            className="px-4 py-2.5 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all"
-                          >
-                            Remover
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-[var(--text-muted)] font-medium leading-relaxed">
-                        Recomendado: 512x512px (PNG ou JPG). <br/>
-                        A logo será exibida no cabeçalho e nos relatórios.
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="pt-4">

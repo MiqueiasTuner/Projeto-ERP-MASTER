@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 import { 
   Task, TaskStatus, TaskPriority, UserAccount, UserRole, Team, Property, TaskComment 
 } from '../types';
+import { handleFirestoreError, OperationType } from '../src/lib/firestore-errors';
 import { 
   Plus, MoreHorizontal, Calendar, User, Tag, CheckCircle2, Clock, AlertCircle, X, 
   MessageSquare, Building2, Users, Paperclip, Send, Trash2, Edit3, FileDown, Loader2
@@ -180,6 +181,9 @@ const KanbanPage = ({ currentUser, users = [], teams = [], properties = [] }: Ka
         ...doc.data()
       })) as Task[];
       setTasks(taskList);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'tasks');
+      console.error("Error fetching tasks:", err);
     });
 
     return () => unsubscribe();

@@ -22,7 +22,7 @@ const BrokerDashboard = ({ leads, properties }: { leads: Lead[], properties: Pro
   const proposals = leads.filter(l => l.status === LeadStatus.PROPOSAL).length;
   const completedSales = leads.filter(l => l.status === LeadStatus.SOLD).length;
   
-  const availableProperties = properties.filter(p => p.availableForBrokers).length;
+  const availableProperties = properties.length;
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500">

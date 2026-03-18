@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { CalendarEvent, UserAccount } from '../types';
+import { handleFirestoreError, OperationType } from '../src/lib/firestore-errors';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -64,6 +65,9 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
         ...doc.data()
       })) as CalendarEvent[];
       setEvents(eventList);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'events');
+      console.error("Error fetching calendar events:", err);
     });
     return () => unsubscribe();
   }, [currentUser]);
