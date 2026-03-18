@@ -33,6 +33,8 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
       const msg = err.code || err.message;
       if (msg.includes('auth/invalid-credential') || msg.includes('auth/user-not-found') || msg.includes('auth/wrong-password')) {
         setError('E-mail ou senha incorretos. Verifique seus dados.');
+      } else if (msg.includes('auth/operation-not-allowed')) {
+        setError('O login por e-mail não está ativado no Firebase. Por favor, ative-o no Console do Firebase.');
       } else if (msg.includes('auth/too-many-requests')) {
         setError('Muitas tentativas seguidas. Por favor, aguarde alguns minutos.');
       } else {

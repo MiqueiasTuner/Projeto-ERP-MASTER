@@ -65,6 +65,8 @@ const SignUpPage = () => {
       const msg = err.code || err.message;
       if (msg.includes('auth/email-already-in-use')) {
         setError('Este e-mail já está cadastrado. Tente fazer login.');
+      } else if (msg.includes('auth/operation-not-allowed')) {
+        setError('O cadastro por e-mail não está ativado no Firebase. Por favor, ative-o no Console do Firebase.');
       } else if (msg.includes('auth/weak-password')) {
         setError('A senha deve ter pelo menos 6 caracteres.');
       } else {

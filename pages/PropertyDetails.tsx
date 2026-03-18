@@ -45,7 +45,7 @@ interface PropertyDetailsProps {
 const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense, onDeleteExpense, onDeleteProperty, currentUser }: PropertyDetailsProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>(currentUser.role === UserRole.BROKER ? 'timeline' : 'financeiro');
+  const [activeTab, setActiveTab] = useState<'financeiro' | 'despesas' | 'timeline'>('financeiro');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -246,23 +246,19 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {currentUser.role !== UserRole.BROKER && (
-            <>
-              <button 
-                onClick={() => onDeleteProperty(property.id)}
-                className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
-              >
-                Excluir <Trash2 size={14} />
-              </button>
-              <button 
-                onClick={exportToPdf}
-                disabled={isGeneratingPdf}
-                className="inline-flex items-center justify-center gap-2 text-[var(--accent)] hover:text-white hover:bg-[var(--accent)] font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
-              >
-                {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
-              </button>
-            </>
-          )}
+          <button 
+            onClick={() => onDeleteProperty(property.id)}
+            className="inline-flex items-center justify-center gap-2 text-rose-500 hover:text-white hover:bg-rose-600 font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm"
+          >
+            Excluir <Trash2 size={14} />
+          </button>
+          <button 
+            onClick={exportToPdf}
+            disabled={isGeneratingPdf}
+            className="inline-flex items-center justify-center gap-2 text-[var(--accent)] hover:text-white hover:bg-[var(--accent)] font-black text-xs uppercase tracking-widest bg-[var(--bg-card)] px-6 py-3 rounded-2xl border border-[var(--border)] transition-all shadow-sm disabled:opacity-50"
+          >
+            {isGeneratingPdf ? 'Gerando...' : 'Relatório PDF'} <FileDown size={14} />
+          </button>
           
           <button 
             onClick={() => navigate(`/editar/${property.id}`)}
@@ -414,7 +410,7 @@ const PropertyDetails = ({ properties, expenses, logs, tasks = [], onAddExpense,
 
       <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
         <div className="flex overflow-x-auto bg-[var(--bg-card-alt)] border-b border-[var(--border)] no-scrollbar">
-          {(currentUser.role === UserRole.BROKER ? ['timeline'] : ['financeiro', 'despesas', 'timeline'] as const).map((tab) => (
+          {(['financeiro', 'despesas', 'timeline'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}

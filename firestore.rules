@@ -52,7 +52,15 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'SUPER_ADMIN'] ||
-        (request.auth.token.email == "miqueiasyout@gmail.com" && request.auth.token.email_verified == true)
+        (request.auth.token.email in [
+          'miqueiasyout@gmail.com',
+          'allefassis@hotmail.com',
+          'miqueias.sanntin@gmail.com',
+          'eliasdassis@gmail.com',
+          'jane-vilela@hotmail.com',
+          'elias@masterimoveis.com.br',
+          'jane@masterimoveis.co'
+        ] && request.auth.token.email_verified == true)
       );
     }
 

@@ -147,18 +147,90 @@
         "bids": { "type": "array", "items": { "type": "object" } }
       },
       "required": ["title", "date", "status", "initialPrice"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "A property expense",
+      "type": "object",
+      "properties": {
+        "propertyId": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" }
+      },
+      "required": ["propertyId", "category", "amount", "date"]
+    },
+    "Log": {
+      "title": "Log",
+      "description": "A property activity log",
+      "type": "object",
+      "properties": {
+        "propertyId": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" }
+      },
+      "required": ["propertyId", "action", "timestamp"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A project task",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "priority": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "assignedTo": { "type": "string" }
+      },
+      "required": ["title", "status"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "A system alert",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["title", "message", "type", "date"]
+    },
+    "Broker": {
+      "title": "Broker",
+      "description": "A real estate broker",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "creci": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["name", "email"]
     }
   },
   "firestore": {
-    "/inventory_items": { "schema": "InventoryItem", "description": "Collection of inventory items" },
-    "/inventory_movements": { "schema": "InventoryMovement", "description": "Collection of stock movements" },
+    "/inventory": { "schema": "InventoryItem", "description": "Collection of inventory items" },
+    "/movements": { "schema": "InventoryMovement", "description": "Collection of stock movements" },
     "/warehouses": { "schema": "Warehouse", "description": "Collection of warehouses" },
     "/suppliers": { "schema": "Supplier", "description": "Collection of suppliers" },
-    "/purchase_quotes": { "schema": "PurchaseQuote", "description": "Collection of purchase quotes" },
+    "/quotes": { "schema": "PurchaseQuote", "description": "Collection of purchase quotes" },
     "/properties": { "schema": "Property", "description": "Collection of properties" },
     "/leads": { "schema": "Lead", "description": "Collection of leads" },
     "/users": { "schema": "User", "description": "Collection of users" },
     "/teams": { "schema": "Team", "description": "Collection of teams" },
-    "/auctions": { "schema": "Auction", "description": "Collection of auctions" }
+    "/auctions": { "schema": "Auction", "description": "Collection of auctions" },
+    "/expenses": { "schema": "Expense", "description": "Collection of expenses" },
+    "/logs": { "schema": "Log", "description": "Collection of logs" },
+    "/tasks": { "schema": "Task", "description": "Collection of tasks" },
+    "/alerts": { "schema": "Alert", "description": "Collection of alerts" },
+    "/brokers": { "schema": "Broker", "description": "Collection of brokers" }
   }
 }

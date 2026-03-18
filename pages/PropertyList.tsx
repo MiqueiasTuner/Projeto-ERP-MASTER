@@ -579,10 +579,10 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl lg:text-4xl font-black text-[var(--text-main)] tracking-tight">
-            {currentUser.role === UserRole.BROKER ? 'Imóveis Disponíveis' : 'Ativos Operacionais'}
+            Ativos Operacionais
           </h2>
           <p className="text-[var(--text-muted)] font-medium">
-            {currentUser.role === UserRole.BROKER ? 'Confira os imóveis disponíveis para comercialização.' : 'Controle de portfólio e pipeline de obras.'}
+            Controle de portfólio e pipeline de obras.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -593,33 +593,29 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
              ref={fileInputRef} 
              onChange={handleImportCSV} 
            />
-           {currentUser.role !== UserRole.BROKER && (
-             <>
-               <button 
-                 onClick={exportToPDF}
-                 disabled={isExportingPdf}
-                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
-                 title="Exportar Relatório PDF"
-               >
-                 {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
-               </button>
-               <button 
-                 onClick={downloadCSVTemplate}
-                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
-                 title="Baixar Template CSV"
-               >
-                 <Download size={20} />
-               </button>
-               <button 
-                 onClick={() => fileInputRef.current?.click()}
-                 disabled={isImporting}
-                 className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
-               >
-                 {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
-                 <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
-               </button>
-             </>
-           )}
+           <button 
+             onClick={exportToPDF}
+             disabled={isExportingPdf}
+             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-5 sm:order-0"
+             title="Exportar Relatório PDF"
+           >
+             {isExportingPdf ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
+           </button>
+           <button 
+             onClick={downloadCSVTemplate}
+             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] p-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center shadow-sm order-4 sm:order-1"
+             title="Baixar Template CSV"
+           >
+             <Download size={20} />
+           </button>
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             disabled={isImporting}
+             className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] px-6 py-4 rounded-[28px] font-black hover:bg-[var(--bg-card-alt)] transition-all flex items-center justify-center space-x-3 shadow-sm order-3 sm:order-2 disabled:opacity-50"
+           >
+             {isImporting ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
+             <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
+           </button>
            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[22px] p-1.5 flex shadow-sm order-2 sm:order-3">
               <button onClick={() => setViewMode('kanban')} className={`flex-1 sm:flex-none p-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'kanban' ? 'bg-[var(--bg-header)] text-[var(--text-header)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                 <KanbanIcon size={18} /> <span>Kanban</span>
@@ -628,11 +624,9 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
                 <LayoutGrid size={18} /> <span>Grade</span>
               </button>
            </div>
-           {currentUser.role !== UserRole.BROKER && (
-             <Link to="/novo" className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-[var(--accent)]/20 order-1 sm:order-2 active:scale-95">
-              <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
-             </Link>
-           )}
+           <Link to="/novo" className="bg-[var(--accent)] text-[var(--accent-text)] px-8 py-4 rounded-[28px] font-black hover:opacity-90 transition-all flex items-center justify-center space-x-3 shadow-2xl shadow-[var(--accent)]/20 order-1 sm:order-2 active:scale-95">
+            <Plus size={22} strokeWidth={3} /> <span>Novo Ativo</span>
+           </Link>
         </div>
       </div>
 
@@ -670,14 +664,12 @@ const PropertyList = ({ properties, expenses, onUpdateStatus, onDeleteProperty, 
             const metrics = calculatePropertyMetrics(p, expenses);
             return (
               <div key={p.id} className="bg-[var(--bg-card)] rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative flex flex-col h-fit">
-                {currentUser.role !== UserRole.BROKER && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
-                    className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDeleteProperty(p.id); }}
+                  className="absolute top-5 right-5 z-10 p-2.5 bg-[var(--bg-card)]/90 backdrop-blur rounded-xl text-rose-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-rose-600 hover:text-white"
+                >
+                  <Trash2 size={16} />
+                </button>
                 <div onClick={() => handleViewDetails(p.id)} className="cursor-pointer flex flex-col">
                   <div className="h-52 relative overflow-hidden bg-[var(--bg-card-alt)]">
                     {p.images?.[0] ? (

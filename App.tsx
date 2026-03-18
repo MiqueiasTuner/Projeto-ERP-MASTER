@@ -515,14 +515,14 @@ const AppContent = () => {
     const collectionsToFetch: any[] = [
       { name: 'properties', setter: setProperties },
       { name: 'expenses', setter: setExpenses },
-      { name: 'inventory', setter: setInventory },
-      { name: 'movements', setter: setMovements },
+      { name: 'inventory_items', setter: setInventory },
+      { name: 'inventory_movements', setter: setMovements },
       { name: 'suppliers', setter: setSuppliers },
       { name: 'warehouses', setter: setWarehouses },
       { name: 'users', setter: setUsers },
       { name: 'teams', setter: setTeams },
       { name: 'logs', setter: setLogs },
-      { name: 'quotes', setter: setQuotes },
+      { name: 'purchase_quotes', setter: setQuotes },
       { name: 'tasks', setter: setTasks },
       { name: 'auctions', setter: setAuctions },
       { name: 'alerts', setter: setAlerts },
@@ -905,6 +905,17 @@ const AppContent = () => {
       </div>
     </div>
   );
+
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/publico/imovel/:id" element={<PublicPropertyView properties={properties} />} />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    );
+  }
 
   return (
     <ProtectedLayout currentUser={currentUser} onLogout={handleLogout}>
