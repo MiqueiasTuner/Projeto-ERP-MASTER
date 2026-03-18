@@ -148,12 +148,32 @@ const PropertyKanbanCard = React.memo(({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {onMoveLeft && !isBroker && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onMoveLeft(); }}
+              className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] rounded-2xl hover:text-[var(--accent)] transition-all border border-[var(--border)]"
+              title="Mover para esquerda"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
+          
           <button 
             onClick={(e) => { e.stopPropagation(); onView(); }}
             className="flex-1 py-3 bg-gradient-primary text-[var(--accent-text)] rounded-2xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-accent"
           >
             <Maximize2 size={14} /> Detalhes
           </button>
+
+          {onMoveRight && !isBroker && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onMoveRight(); }}
+              className="p-3 bg-[var(--bg-card-alt)] text-[var(--text-muted)] rounded-2xl hover:text-[var(--accent)] transition-all border border-[var(--border)]"
+              title="Mover para direita"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
           
           <div className="relative">
             <button 

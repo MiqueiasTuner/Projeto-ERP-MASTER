@@ -44,11 +44,11 @@ export const CommercialService = {
   getWhatsAppSalesKitLink: (property: CommercialProperty): string => {
     const publicLink = `${window.location.origin}/#/publico/imovel/${property.id}`;
     const message = encodeURIComponent(
-      `🏠 *KIT DE VENDA: ${property.title.toUpperCase()}*\n\n` +
-      `📍 *Localização:* ${property.neighborhood}, ${property.city}\n` +
-      `💰 *Valor:* R$ ${property.salePrice.toLocaleString('pt-BR')}\n\n` +
-      `✨ *Destaques:* ${property.description.substring(0, 100)}...\n\n` +
-      `🔗 *Veja o Kit Completo (Fotos e Detalhes):*\n${publicLink}`
+      `Segue dados do imóvel:\n\n` +
+      `*${property.title.toUpperCase()}*\n\n` +
+      `Localização: ${property.neighborhood}, ${property.city}\n` +
+      `Valor: R$ ${property.salePrice.toLocaleString('pt-BR')}\n\n` +
+      `Confira fotos e detalhes no link abaixo:\n${publicLink}`
     );
     return `https://wa.me/?text=${message}`;
   }

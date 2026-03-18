@@ -24,9 +24,14 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
         <Home size={48} className="text-slate-300 mb-4" />
         <h1 className="text-2xl font-bold text-slate-800 mb-2">Imóvel não encontrado</h1>
         <p className="text-slate-500 mb-6">O link pode estar quebrado ou o imóvel não está mais disponível.</p>
-        <Link to="/" className="px-6 py-2 bg-[var(--accent)] text-white rounded-full font-bold hover:bg-[var(--accent-secondary)] transition-colors">
-          Voltar ao Início
-        </Link>
+        <a 
+          href={`https://wa.me/556492382796?text=${encodeURIComponent('Olá, não encontrei o imóvel que procurava no site.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-6 py-2 bg-emerald-500 text-white rounded-full font-bold hover:bg-emerald-600 transition-colors"
+        >
+          Falar com um consultor
+        </a>
       </div>
     );
   }
@@ -35,8 +40,11 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
     ? property.images 
     : ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"];
 
-  const whatsappNumber = "556493126250";
-  const whatsappMessage = encodeURIComponent(`Olá Jane, vi o imóvel "${property.title}" no site e gostaria de mais informações.`);
+  const whatsappNumber = "556492382796";
+  const whatsappMessage = encodeURIComponent(
+    `Olá, vi o imóvel "${property.title}" no site e gostaria de mais informações.\n\n` +
+    `Link: ${window.location.href}`
+  );
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   const nextImage = () => setActiveImageIndex((prev) => (prev + 1) % images.length);
@@ -220,7 +228,7 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
                   className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                 >
                   <MessageCircle size={20} />
-                  Falar com Jane
+                  Falar com um consultor...
                 </a>
                 
                 <button 
@@ -274,20 +282,20 @@ const PublicPropertyView: React.FC<PublicPropertyViewProps> = ({ properties }) =
               <Home className="text-slate-900" size={24} />
             </div>
             <span className="text-2xl font-black text-white tracking-tighter">
-              Sintese<span className="text-[var(--erp-yellow)]">ERP</span>
+              Sintese<span className="text-yellow-500">Imóveis</span>
             </span>
           </div>
           <p className="text-slate-400 max-w-md mb-12">
             Encontre o imóvel dos seus sonhos com a transparência e agilidade que você merece.
           </p>
           <div className="flex gap-6">
-            <a href={whatsappLink} className="text-white/60 hover:text-white transition-colors">WhatsApp</a>
+            <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">WhatsApp</a>
             <a href="#" className="text-white/60 hover:text-white transition-colors">Instagram</a>
             <a href="#" className="text-white/60 hover:text-white transition-colors">Facebook</a>
           </div>
           <div className="mt-20 pt-8 border-t border-white/5 w-full">
             <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">
-              © 2026 Sintese ERP. Todos os direitos reservados.
+              © 2026 Sintese Imóveis. Todos os direitos reservados.
             </p>
           </div>
         </div>

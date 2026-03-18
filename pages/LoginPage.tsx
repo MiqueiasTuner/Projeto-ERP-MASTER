@@ -68,9 +68,9 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         <div className="relative z-10 flex flex-col justify-between p-16 w-full">
           <div className="flex items-center gap-6">
             <div className="relative group">
-              <div className="absolute -inset-1.5 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
-              <div className="relative bg-[var(--bg-sidebar)] p-2 rounded-2xl shadow-2xl overflow-hidden w-20 h-20 flex items-center justify-center border border-[var(--accent)]/20">
-                <img src="https://i.postimg.cc/jsxKRsym/sale-(1).png" alt="Sintese ERP" className="w-full h-full object-contain" />
+              <div className="absolute -inset-2 bg-gradient-to-r from-[var(--accent)] via-[var(--accent-secondary)] to-[var(--accent)] rounded-3xl blur-md opacity-40 group-hover:opacity-70 transition duration-1000 animate-pulse"></div>
+              <div className="relative bg-[var(--bg-sidebar)] p-3 rounded-3xl shadow-2xl overflow-hidden w-24 h-24 flex items-center justify-center border-2 border-[var(--accent)]/30 backdrop-blur-xl">
+                <img src="https://i.postimg.cc/jsxKRsym/sale-(1).png" alt="Sintese ERP" className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-500" />
               </div>
             </div>
             <div>
@@ -123,9 +123,9 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex flex-col items-center mb-10 text-center">
-            <div className="relative mb-6">
-              <div className="absolute -inset-2 bg-[var(--accent)] rounded-3xl blur opacity-20"></div>
-              <div className="relative bg-[var(--bg-sidebar)] p-3 rounded-3xl shadow-2xl overflow-hidden w-28 h-28 flex items-center justify-center border border-[var(--accent)]/10">
+            <div className="relative mb-6 group">
+              <div className="absolute -inset-3 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] rounded-[40px] blur-lg opacity-30 group-hover:opacity-50 transition duration-700"></div>
+              <div className="relative bg-[var(--bg-sidebar)] p-4 rounded-[40px] shadow-2xl overflow-hidden w-32 h-32 flex items-center justify-center border-2 border-[var(--accent)]/20">
                 <img src="https://i.postimg.cc/jsxKRsym/sale-(1).png" alt="Sintese ERP" className="w-full h-full object-contain" />
               </div>
             </div>

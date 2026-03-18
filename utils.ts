@@ -53,7 +53,7 @@ export const parseBRLToFloat = (value: string): number | null => {
   if (value === '.' || value === ',') return null;
   
   const cleanValue = value.replace(/\D/g, '');
-  if (!cleanValue) return 0;
+  if (!cleanValue) return null;
   return parseFloat(cleanValue) / 100;
 };
 

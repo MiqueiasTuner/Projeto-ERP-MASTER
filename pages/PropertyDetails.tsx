@@ -162,11 +162,13 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
     const commercialProperty = CommercialService.getCommercialProperties([property])[0];
     if (!commercialProperty) {
       // Fallback if not marked as available for brokers
+      const publicLink = `${window.location.origin}/#/publico/imovel/${property.id}`;
       const message = encodeURIComponent(
-        `🏠 *KIT DE VENDA: ${(property.title || property.neighborhood || 'Imóvel').toUpperCase()}*\n\n` +
-        `📍 *Localização:* ${property.neighborhood}, ${property.city}\n` +
-        `💰 *Valor:* R$ ${(property.salePrice || 0).toLocaleString('pt-BR')}\n\n` +
-        `🔗 *Veja o Kit Completo (Fotos e Detalhes):*\n${window.location.origin}/#/publico/imovel/${property.id}`
+        `Segue dados do imóvel:\n\n` +
+        `*${(property.title || property.neighborhood || 'Imóvel').toUpperCase()}*\n\n` +
+        `Localização: ${property.neighborhood}, ${property.city}\n` +
+        `Valor: R$ ${(property.salePrice || 0).toLocaleString('pt-BR')}\n\n` +
+        `Confira fotos e detalhes no link abaixo:\n${publicLink}`
       );
       return `https://wa.me/?text=${message}`;
     }

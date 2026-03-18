@@ -8,9 +8,11 @@ export enum CommercialStatus {
 
 export enum PropertyStatus {
   ARREMATADO = 'Arrematado',
+  DESOCUPACAO = 'Desocupação',
   EM_REFORMA = 'Em Reforma',
   A_VENDA = 'À Venda',
-  VENDIDO = 'Vendido'
+  VENDIDO = 'Vendido',
+  DOCUMENTACAO = 'Documentação'
 }
 
 export enum PropertyType {
@@ -398,6 +400,8 @@ export interface Property {
 
   // OLX Integration
   olx?: OLXData;
+  olxStatus?: OLXStatus;
+  olxLink?: string;
 
   createdAt?: string;
 }
