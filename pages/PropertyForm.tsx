@@ -50,8 +50,8 @@ const InputField = ({ label, path, type = 'text', prefix, placeholder, value, on
 
   if (type === 'date') {
     return (
-      <div className={`w-full ${fullWidth ? 'md:col-span-2 lg:col-span-3' : ''}`}>
-        <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">{label}</label>
+      <div className={`w-full ${fullWidth ? 'md:col-span-2' : ''}`}>
+        <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-80">{label}</label>
         <div className="relative group transition-all duration-300">
           <CustomDatePicker 
             selected={value ? new Date(value + 'T00:00:00') : null}
@@ -64,18 +64,18 @@ const InputField = ({ label, path, type = 'text', prefix, placeholder, value, on
   }
 
   return (
-    <div className={`w-full ${fullWidth ? 'md:col-span-2 lg:col-span-3' : ''}`}>
-      <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">{label}</label>
+    <div className={`w-full ${fullWidth ? 'md:col-span-2' : ''}`}>
+      <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-80">{label}</label>
       <div className="relative group">
         {prefix && displayValue !== '' && (
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold text-[10px] z-10 pointer-events-none opacity-40">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-bold text-[11px] z-10 pointer-events-none opacity-40">
             {prefix}
           </span>
         )}
         <input 
           type={type === 'currency' ? 'text' : type} 
           placeholder={placeholder || (type === 'currency' ? 'R$ 0,00' : '')}
-          className={`w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] ${prefix && displayValue !== '' ? 'pl-10' : 'px-4'} py-3 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/5 focus:border-[var(--accent)]/50 transition-all duration-300 font-medium placeholder:text-[var(--text-muted)]/50 text-[12px] shadow-sm hover:border-[var(--border-hover)]`}
+          className={`w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] ${prefix && displayValue !== '' ? 'pl-10' : 'px-4'} py-3.5 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/5 focus:border-[var(--accent)]/50 transition-all duration-300 font-medium placeholder:text-[var(--text-muted)]/50 text-[13px] shadow-sm hover:border-[var(--border-hover)]`}
           value={displayValue}
           onFocus={(e) => e.target.select()}
           onChange={(e) => {
@@ -226,7 +226,7 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
     }
   };
 
-  const selectClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-4 py-3 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/5 focus:border-[var(--accent)]/50 transition-all duration-300 font-medium appearance-none text-[12px] shadow-sm hover:border-[var(--border-hover)]";
+  const selectClass = "w-full bg-[var(--bg-card-alt)] text-[var(--text-main)] px-4 py-3.5 rounded-2xl border border-[var(--border)] outline-none focus:ring-4 focus:ring-[var(--accent)]/5 focus:border-[var(--accent)]/50 transition-all duration-300 font-medium appearance-none text-[13px] shadow-sm hover:border-[var(--border-hover)]";
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-card)]">
@@ -399,61 +399,56 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Informações Gerais</h3>
             </div>
             
-            <div className="grid grid-cols-1 gap-6">
-              <InputField label="Título / Identificação" path="title" value={formData.title} onChange={handleChange} placeholder="Ex: AP 304 - Gran Vitta" fullWidth />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
+              <div className="md:col-span-2">
+                <InputField label="Título / Identificação" path="title" value={formData.title} onChange={handleChange} placeholder="Ex: AP 304 - Gran Vitta" />
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Tipo de Aquisição</label>
-                  <div className="relative">
-                    <select className={selectClass} value={formData.acquisitionType || AcquisitionType.LEILAO_JUDICIAL} onChange={(e) => handleChange('acquisitionType', e.target.value)}>
-                      {Object.values(AcquisitionType).map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
-                      <Plus size={14} className="rotate-45" />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Tipo de Imóvel</label>
-                  <div className="relative">
-                    <select className={selectClass} value={formData.type} onChange={(e) => handleChange('type', e.target.value)}>
-                      {Object.values(PropertyType).map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
-                      <Plus size={14} className="rotate-45" />
-                    </div>
+              <div>
+                <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Tipo de Aquisição</label>
+                <div className="relative">
+                  <select className={selectClass} value={formData.acquisitionType || AcquisitionType.LEILAO_JUDICIAL} onChange={(e) => handleChange('acquisitionType', e.target.value)}>
+                    {Object.values(AcquisitionType).map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
+                    <Plus size={14} className="rotate-45" />
                   </div>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Tipo de Imóvel</label>
+                <div className="relative">
+                  <select className={selectClass} value={formData.type} onChange={(e) => handleChange('type', e.target.value)}>
+                    {Object.values(PropertyType).map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
+                    <Plus size={14} className="rotate-45" />
+                  </div>
+                </div>
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Cidade" path="city" value={formData.city} onChange={handleChange} />
-                <InputField label="Bairro" path="neighborhood" value={formData.neighborhood} onChange={handleChange} />
-              </div>
+              <InputField label="Cidade" path="city" value={formData.city} onChange={handleChange} />
+              <InputField label="Bairro" path="neighborhood" value={formData.neighborhood} onChange={handleChange} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Bairro/Condomínio 2" path="neighborhood2" value={formData.neighborhood2} onChange={handleChange} />
-                <InputField label="Nome do Condomínio" path="condoName" value={formData.condoName} onChange={handleChange} />
-              </div>
+              <InputField label="Bairro/Condomínio 2" path="neighborhood2" value={formData.neighborhood2} onChange={handleChange} />
+              <InputField label="Nome do Condomínio" path="condoName" value={formData.condoName} onChange={handleChange} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Imobiliária" path="realEstateAgency" value={formData.realEstateAgency} onChange={handleChange} />
-                <InputField label="CEP" path="cep" value={formData.cep} onChange={handleChange} />
-              </div>
+              <InputField label="Imobiliária" path="realEstateAgency" value={formData.realEstateAgency} onChange={handleChange} />
+              <InputField label="CEP" path="cep" value={formData.cep} onChange={handleChange} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Área Privativa (m²)" path="sizeM2" type="number" value={formData.sizeM2} onChange={handleChange} />
-                <InputField label="Data do Arremate" path="acquisitionDate" type="date" value={formData.acquisitionDate} onChange={handleChange} />
-              </div>
+              <InputField label="Área Privativa (m²)" path="sizeM2" type="number" value={formData.sizeM2} onChange={handleChange} />
+              <InputField label="Data do Arremate" path="acquisitionDate" type="date" value={formData.acquisitionDate} onChange={handleChange} />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-2 grid grid-cols-3 gap-6">
                 <InputField label="Quartos" path="rooms" type="number" value={formData.rooms} onChange={handleChange} />
                 <InputField label="Banheiros" path="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} />
                 <InputField label="Vagas" path="garageSpaces" type="number" value={formData.garageSpaces} onChange={handleChange} />
               </div>
 
-              <InputField label="Endereço Completo" path="address" value={formData.address} onChange={handleChange} placeholder="Rua, Número, Complemento..." fullWidth />
+              <div className="md:col-span-2">
+                <InputField label="Endereço Completo" path="address" value={formData.address} onChange={handleChange} placeholder="Rua, Número, Complemento..." />
+              </div>
             </div>
           </section>
 
@@ -466,12 +461,14 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Análise Financeira</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
               <InputField label="Avaliação de Mercado" path="bankValuation" type="currency" prefix="R$" value={formData.bankValuation} onChange={handleChange} />
               <InputField label="Valor do Arremate" path="acquisitionPrice" type="currency" prefix="R$" value={formData.acquisitionPrice} onChange={handleChange} />
               <InputField label="Comissão Leiloeiro" path="auctioneerCommission" type="currency" prefix="R$" value={formData.auctioneerCommission} onChange={handleChange} />
               <InputField label="Alvo de Venda" path="salePrice" type="currency" prefix="R$" value={formData.salePrice} onChange={handleChange} />
-              <InputField label="Outros Custos" path="otherCosts" type="currency" prefix="R$" value={formData.otherCosts} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <InputField label="Outros Custos" path="otherCosts" type="currency" prefix="R$" value={formData.otherCosts} onChange={handleChange} />
+              </div>
             </div>
           </section>
 
@@ -484,12 +481,14 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Custos Legais</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
               <InputField label="Escritura" path="legalEscritura" type="currency" prefix="R$" value={formData.legalEscritura} onChange={handleChange} />
               <InputField label="ITBI" path="legalItbi" type="currency" prefix="R$" value={formData.legalItbi} onChange={handleChange} />
               <InputField label="Registro / Taxas" path="legalTaxasRegistro" type="currency" prefix="R$" value={formData.legalTaxasRegistro} onChange={handleChange} />
               <InputField label="Certidões" path="legalCertidoes" type="currency" prefix="R$" value={formData.legalCertidoes} onChange={handleChange} />
-              <InputField label="Impostos (R$)" path="taxes" type="currency" prefix="R$" value={formData.taxes} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <InputField label="Impostos (R$)" path="taxes" type="currency" prefix="R$" value={formData.taxes} onChange={handleChange} />
+              </div>
             </div>
           </section>
 
@@ -502,10 +501,12 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Despesas Pré-Venda</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
               <InputField label="Desp. Condomínio" path="expenseCondo" type="currency" prefix="R$" value={formData.expenseCondo} onChange={handleChange} />
               <InputField label="Desp. IPTU" path="expenseIptu" type="currency" prefix="R$" value={formData.expenseIptu} onChange={handleChange} />
-              <InputField label="Pós-Arremate (Geral)" path="expensePostAcquisition" type="currency" prefix="R$" value={formData.expensePostAcquisition} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <InputField label="Pós-Arremate (Geral)" path="expensePostAcquisition" type="currency" prefix="R$" value={formData.expensePostAcquisition} onChange={handleChange} />
+              </div>
             </div>
           </section>
 
@@ -518,7 +519,7 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Canteiro de Obras</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
               <InputField label="Budget Previsto" path="budgetReforma" type="currency" prefix="R$" value={formData.budgetReforma} onChange={handleChange} />
               <InputField label="Gasto com Materiais" path="expenseMaterials" type="currency" prefix="R$" value={formData.expenseMaterials} onChange={handleChange} />
             </div>
@@ -533,57 +534,52 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Módulo Comercial</h3>
             </div>
             
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Status Operacional</label>
-                  <div className="relative">
-                    <select className={selectClass} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
-                      {Object.values(PropertyStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
-                      <Plus size={14} className="rotate-45" />
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
+              <div>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-80">Status Operacional</label>
+                <div className="relative">
+                  <select className={selectClass} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
+                    {Object.values(PropertyStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
+                    <Plus size={14} className="rotate-45" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Status de Venda</label>
-                  <div className="relative">
-                    <select className={selectClass} value={formData.commercialStatus || CommercialStatus.DISPONIVEL} onChange={(e) => handleChange('commercialStatus', e.target.value)}>
-                      {Object.values(CommercialStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
-                      <Plus size={14} className="rotate-45" />
-                    </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-80">Status de Venda</label>
+                <div className="relative">
+                  <select className={selectClass} value={formData.commercialStatus || CommercialStatus.DISPONIVEL} onChange={(e) => handleChange('commercialStatus', e.target.value)}>
+                    {Object.values(CommercialStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
+                    <Plus size={14} className="rotate-45" />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Condomínio (Mensal)" path="monthlyCondo" type="currency" prefix="R$" value={formData.monthlyCondo} onChange={handleChange} />
-                <InputField label="IPTU (Mensal)" path="monthlyIptu" type="currency" prefix="R$" value={formData.monthlyIptu} onChange={handleChange} />
-              </div>
+              <InputField label="Condomínio (Mensal)" path="monthlyCondo" type="currency" prefix="R$" value={formData.monthlyCondo} onChange={handleChange} />
+              <InputField label="IPTU (Mensal)" path="monthlyIptu" type="currency" prefix="R$" value={formData.monthlyIptu} onChange={handleChange} />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <InputField label="Corretagem (R$)" path="brokerage" type="currency" prefix="R$" value={formData.brokerage} onChange={handleChange} />
-                <InputField label="Imposto Venda (R$)" path="salesTax" type="currency" prefix="R$" value={formData.salesTax} onChange={handleChange} />
+              <InputField label="Corretagem (R$)" path="brokerage" type="currency" prefix="R$" value={formData.brokerage} onChange={handleChange} />
+              <InputField label="Imposto Venda (R$)" path="salesTax" type="currency" prefix="R$" value={formData.salesTax} onChange={handleChange} />
+              <div className="md:col-span-2">
                 <InputField label="IR (R$)" path="expenseIR" type="currency" prefix="R$" value={formData.expenseIR} onChange={handleChange} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[9px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-70">Status OLX</label>
-                  <div className="relative">
-                    <select className={selectClass} value={formData.olxStatus || OLXStatus.NONE} onChange={(e) => handleChange('olxStatus', e.target.value)}>
-                      {Object.values(OLXStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
-                      <Globe size={14} />
-                    </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-widest ml-1 opacity-80">Status OLX</label>
+                <div className="relative">
+                  <select className={selectClass} value={formData.olxStatus || OLXStatus.NONE} onChange={(e) => handleChange('olxStatus', e.target.value)}>
+                    {Object.values(OLXStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] opacity-50">
+                    <Globe size={14} />
                   </div>
                 </div>
-                <InputField label="Link OLX" path="olxLink" value={formData.olxLink} onChange={handleChange} placeholder="https://www.olx.com.br/..." />
               </div>
+              <InputField label="Link OLX" path="olxLink" value={formData.olxLink} onChange={handleChange} placeholder="https://www.olx.com.br/..." />
+            </div>
 
               {formData.status === PropertyStatus.VENDIDO && (
                 <div className="p-6 bg-emerald-500/5 rounded-[32px] border border-emerald-500/10 space-y-6">
@@ -645,10 +641,9 @@ const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
                   />
                 </div>
               </div>
-            </div>
-          </section>
-        </form>
-      </div>
+            </section>
+          </form>
+        </div>
 
       {/* Footer Actions */}
       <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-card)] flex gap-4 sticky bottom-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] backdrop-blur-md bg-white/90 dark:bg-slate-900/90">

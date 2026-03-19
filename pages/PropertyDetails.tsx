@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
@@ -11,6 +11,9 @@ import {
   User,
   Clock,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
   Image as ImageIcon,
   ExternalLink,
   X,
@@ -54,6 +57,7 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDownloadingImages, setIsDownloadingImages] = useState(false);
 
@@ -65,6 +69,17 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
   });
 
   const property = properties.find(p => p.id === id);
+
+  // Auto-play for carousel
+  useEffect(() => {
+    if (!property || property.images.length <= 1 || isLightboxOpen) return;
+    
+    const interval = setInterval(() => {
+      setActiveImage(prev => (prev + 1) % property.images.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [property, isLightboxOpen]);
   const propertyExpenses = expenses.filter(e => e.propertyId === id);
   
   // Merge logs and tasks for timeline
@@ -316,106 +331,176 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
         </div>
       </div>
 
-      {property.images && property.images.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 relative h-64 md:h-[450px] rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl border border-[var(--border)] group">
-            <img 
-              src={property.images[activeImage]} 
-              className="w-full h-full object-cover transition-transform duration-1000" 
-              alt="Destaque" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 pr-6">
-              {property.address && (
-                <span className="inline-block bg-yellow-600/80 backdrop-blur-md text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 border border-white/20">
-                  {property.address}
-                </span>
-              )}
-              <p className="text-white font-black text-xl md:text-3xl tracking-tight leading-tight">
-                {property.title || property.condoName || property.neighborhood}
-              </p>
-            </div>
-          </div>
-          <div className="flex lg:flex-col gap-4 overflow-x-auto lg:overflow-y-auto pb-4 lg:pb-0 pr-2 scrollbar-hide">
-            {property.images.map((img, idx) => (
-              <button 
-                key={idx} 
-                onClick={() => setActiveImage(idx)}
-                className={`relative w-24 h-24 lg:w-full lg:h-28 rounded-[24px] overflow-hidden border-4 transition-all shrink-0 ${activeImage === idx ? 'border-yellow-600 scale-95 shadow-lg' : 'border-[var(--bg-card)] opacity-60 hover:opacity-100'}`}
-              >
-                <img src={img} className="w-full h-full object-cover" alt="Thumbnail" referrerPolicy="no-referrer" />
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="h-64 bg-[var(--bg-card-alt)] rounded-[40px] flex flex-col items-center justify-center text-[var(--text-muted)] border-2 border-dashed border-[var(--border)]">
-          <ImageIcon size={48} strokeWidth={1} className="mb-4" />
-          <p className="font-black uppercase tracking-[0.2em] text-[10px]">Sem fotos cadastradas</p>
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          {property.images && property.images.length > 0 ? (
+            <div className="relative h-[350px] md:h-[550px] rounded-[40px] md:rounded-[56px] overflow-hidden shadow-2xl border border-[var(--border)] group cursor-pointer"
+                 onClick={() => setIsLightboxOpen(true)}>
+              <AnimatePresence mode="wait">
+                <motion.img 
+                  key={activeImage}
+                  src={property.images[activeImage]} 
+                  initial={{ opacity: 0, scale: 1.1 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full h-full object-cover" 
+                  alt="Destaque" 
+                  referrerPolicy="no-referrer"
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none" />
+              
+              <div className="absolute top-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl text-white border border-white/10">
+                  <Maximize2 size={24} />
+                </div>
+              </div>
 
-      {/* Dados da Venda (Se Vendido) */}
-      {property.status === PropertyStatus.VENDIDO && !isBroker && (
-        <div className="bg-emerald-500/5 p-8 rounded-[32px] border border-emerald-500/10 shadow-sm animate-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-3 mb-6 text-emerald-600 dark:text-emerald-400">
-            <div className="p-2 bg-emerald-500/20 rounded-xl">
-              <CheckCircle2 size={20} />
+              <div className="absolute bottom-8 left-8 md:bottom-12 md:left-12 pr-8">
+                {property.address && (
+                  <span className="inline-block bg-yellow-600/80 backdrop-blur-md text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20">
+                    {property.address}
+                  </span>
+                )}
+                <p className="text-white font-black text-2xl md:text-4xl tracking-tight leading-tight">
+                  {property.title || property.condoName || property.neighborhood}
+                </p>
+              </div>
+
+              {/* Carousel Controls */}
+              {property.images.length > 1 && (
+                <>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImage((prev) => (prev === 0 ? property.images!.length - 1 : prev - 1));
+                    }}
+                    className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-2xl border border-white/10 transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <ChevronLeft size={28} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImage((prev) => (prev === property.images!.length - 1 ? 0 : prev + 1));
+                    }}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-2xl border border-white/10 transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <ChevronRight size={28} />
+                  </button>
+                </>
+              )}
             </div>
-            <h3 className="text-lg font-black uppercase tracking-widest">Dados da Venda</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div>
-              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Valor de Venda</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(property.salePrice || 0)}</p>
+          ) : (
+            <div className="h-64 bg-[var(--bg-card-alt)] rounded-[40px] flex flex-col items-center justify-center text-[var(--text-muted)] border-2 border-dashed border-[var(--border)]">
+              <ImageIcon size={48} strokeWidth={1} className="mb-4" />
+              <p className="font-black uppercase tracking-[0.2em] text-[10px]">Sem fotos cadastradas</p>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Data da Venda</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{property.saleDate ? formatDate(property.saleDate) : '-'}</p>
+          )}
+
+          {/* Dados da Venda (Se Vendido) */}
+          {property.status === PropertyStatus.VENDIDO && !isBroker && (
+            <div className="bg-emerald-500/5 p-8 rounded-[32px] border border-emerald-500/10 shadow-sm animate-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center gap-3 mb-6 text-emerald-600 dark:text-emerald-400">
+                <div className="p-2 bg-emerald-500/20 rounded-xl">
+                  <CheckCircle2 size={20} />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-widest">Dados da Venda</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div>
+                  <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Valor de Venda</p>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(property.salePrice || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Data da Venda</p>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{property.saleDate ? formatDate(property.saleDate) : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Corretor / Imobiliária</p>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{property.brokerName || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Lucro Estimado</p>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency((property.salePrice || 0) - metrics.totalInvested)}</p>
+                </div>
+              </div>
+              {property.saleNotes && (
+                <div className="mt-6 pt-6 border-t border-emerald-500/10">
+                  <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-2">Observações da Venda</p>
+                  <p className="text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80 leading-relaxed">{property.saleNotes}</p>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Corretor / Imobiliária</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{property.brokerName || '-'}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-1">Lucro Estimado</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency((property.salePrice || 0) - metrics.totalInvested)}</p>
-            </div>
-          </div>
-          {property.saleNotes && (
-            <div className="mt-6 pt-6 border-t border-emerald-500/10">
-              <p className="text-[10px] font-black text-emerald-500/40 uppercase tracking-widest mb-2">Observações da Venda</p>
-              <p className="text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80 leading-relaxed">{property.saleNotes}</p>
+          )}
+
+          {/* Thumbnail Carousel - Moved here for better layout */}
+          {property.images.length > 0 && (
+            <div className="bg-gradient-card p-6 rounded-[32px] border border-[var(--border)] shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Galeria ({property.images.length})</h4>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setActiveImage(prev => (prev - 1 + property.images.length) % property.images.length)}
+                    className="p-1.5 rounded-lg bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button 
+                    onClick={() => setActiveImage(prev => (prev + 1) % property.images.length)}
+                    className="p-1.5 rounded-lg bg-[var(--bg-card-alt)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x">
+                {property.images.map((img, idx) => (
+                  <motion.button
+                    key={idx}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveImage(idx)}
+                    className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 snap-start ${activeImage === idx ? 'border-yellow-600 shadow-lg' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                  >
+                    <img src={img} className="w-full h-full object-cover" alt="Thumbnail" referrerPolicy="no-referrer" />
+                  </motion.button>
+                ))}
+              </div>
             </div>
           )}
         </div>
-      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-gradient-card p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-yellow-500/10 text-yellow-600 rounded-xl"><DollarSign size={20} /></div>
-            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Valor de Venda' : 'Capital Alocado'}</p>
+        <div className="lg:col-span-4 space-y-6">
+          {/* Metrics Sidebar */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="bg-gradient-card p-6 rounded-[32px] border border-[var(--border)] shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-yellow-500/10 text-yellow-600 rounded-xl"><DollarSign size={18} /></div>
+                <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Valor de Venda' : 'Capital Alocado'}</p>
+              </div>
+              <p className="text-2xl font-black text-[var(--text-main)] tracking-tight">{formatCurrency(isBroker ? (property.salePrice || 0) : metrics.totalInvested)}</p>
+            </div>
+            <div className="bg-gradient-card p-6 rounded-[32px] border border-[var(--border)] shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">{isBroker ? <ImageIcon size={18} /> : <TrendingUp size={18} />}</div>
+                <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Tipo de Imóvel' : 'Resultado Real'}</p>
+              </div>
+              <p className={`text-2xl font-black tracking-tight ${!isBroker && metrics.realizedProfit >= 0 ? 'text-emerald-600' : isBroker ? 'text-[var(--text-main)]' : 'text-rose-600'}`}>
+                {isBroker ? property.type : (property.salePrice ? formatCurrency(metrics.realizedProfit) : 'Pendente')}
+              </p>
+            </div>
+            <div className="bg-gradient-card p-6 rounded-[32px] border border-[var(--border)] shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-[var(--text-main)] text-[var(--bg-main)] rounded-xl">{isBroker ? <MapPin size={18} /> : <BarChart3 size={18} />}</div>
+                <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Área Total' : 'ROI Operacional'}</p>
+              </div>
+              <p className={`text-2xl font-black tracking-tight ${!isBroker && metrics.roi >= 0 ? 'text-emerald-600' : isBroker ? 'text-[var(--text-main)]' : 'text-rose-600'}`}>
+                {isBroker ? `${property.sizeM2} m²` : (property.salePrice ? `${metrics.roi.toFixed(1)}%` : '---')}
+              </p>
+            </div>
           </div>
-          <p className="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-tight">{formatCurrency(isBroker ? (property.salePrice || 0) : metrics.totalInvested)}</p>
-        </div>
-        <div className="bg-gradient-card p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-emerald-500/10 text-emerald-600 rounded-xl">{isBroker ? <ImageIcon size={20} /> : <TrendingUp size={20} />}</div>
-            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Tipo de Imóvel' : 'Resultado Real'}</p>
-          </div>
-          <p className={`text-2xl md:text-3xl font-black tracking-tight ${!isBroker && metrics.realizedProfit >= 0 ? 'text-emerald-600' : isBroker ? 'text-[var(--text-main)]' : 'text-rose-600'}`}>
-            {isBroker ? property.type : (property.salePrice ? formatCurrency(metrics.realizedProfit) : 'Pendente de Venda')}
-          </p>
-        </div>
-        <div className="bg-gradient-card p-6 md:p-8 rounded-[32px] border border-[var(--border)] shadow-sm sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-[var(--text-main)] text-[var(--bg-main)] rounded-xl">{isBroker ? <MapPin size={20} /> : <BarChart3 size={20} />}</div>
-            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{isBroker ? 'Área Total' : 'ROI Operacional'}</p>
-          </div>
-          <p className={`text-2xl md:text-3xl font-black tracking-tight ${!isBroker && metrics.roi >= 0 ? 'text-emerald-600' : isBroker ? 'text-[var(--text-main)]' : 'text-rose-600'}`}>
-            {isBroker ? `${property.sizeM2} m²` : (property.salePrice ? `${metrics.roi.toFixed(1)}%` : '---')}
-          </p>
         </div>
       </div>
 
@@ -648,7 +733,7 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
                          <div className="flex flex-wrap items-center gap-3">
                             {item.user && (
                               <div className="flex items-center text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest bg-[var(--bg-card)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
-                                 <User size={12} className="mr-2 text-yellow-600" /> {item.user}
+                                 <User size={12} className="mr-2 text-yellow-600" /> {isBroker ? 'Equipe Sintese' : item.user}
                               </div>
                             )}
                             {item.type === 'log' && (item.data as PropertyLog).fromStatus && (
@@ -759,6 +844,70 @@ const PropertyDetails = ({ propertyId, properties, expenses, logs, tasks = [], o
                   </div>
                 </form>
               </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Lightbox Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {isLightboxOpen && (
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 backdrop-blur-xl">
+              <motion.button 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => setIsLightboxOpen(false)}
+                className="absolute top-8 right-8 p-4 text-white hover:bg-white/10 rounded-full transition-all z-50"
+              >
+                <X size={32} />
+              </motion.button>
+
+              <div className="relative w-full h-full flex items-center justify-center p-4 md:p-20">
+                <AnimatePresence mode="wait">
+                  <motion.img 
+                    key={activeImage}
+                    src={property.images![activeImage]}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                    className="max-w-full max-h-full object-contain shadow-2xl rounded-2xl"
+                    alt="Expanded"
+                    referrerPolicy="no-referrer"
+                  />
+                </AnimatePresence>
+
+                {property.images!.length > 1 && (
+                  <>
+                    <button 
+                      onClick={() => setActiveImage((prev) => (prev === 0 ? property.images!.length - 1 : prev - 1))}
+                      className="absolute left-4 md:left-10 p-4 bg-white/5 hover:bg-white/10 text-white rounded-full transition-all border border-white/10"
+                    >
+                      <ChevronLeft size={40} />
+                    </button>
+                    <button 
+                      onClick={() => setActiveImage((prev) => (prev === property.images!.length - 1 ? 0 : prev + 1))}
+                      className="absolute right-4 md:right-10 p-4 bg-white/5 hover:bg-white/10 text-white rounded-full transition-all border border-white/10"
+                    >
+                      <ChevronRight size={40} />
+                    </button>
+                  </>
+                )}
+
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[80vw] p-4 no-scrollbar">
+                  {property.images!.map((img, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => setActiveImage(idx)}
+                      className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${activeImage === idx ? 'border-yellow-500 scale-110' : 'border-transparent opacity-40'}`}
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt="Nav" referrerPolicy="no-referrer" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </AnimatePresence>,

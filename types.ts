@@ -166,6 +166,7 @@ export interface UserAccount {
   jobTitle?: string;
   bio?: string;
   companyLogo?: string;
+  isOnline?: boolean;
 }
 
 export interface ChatMessage {

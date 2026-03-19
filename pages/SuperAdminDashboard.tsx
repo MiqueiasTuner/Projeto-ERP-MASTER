@@ -5,10 +5,10 @@ import {
   Users, ShieldAlert, CheckCircle2, XCircle, 
   Search, Filter, ArrowRight, MoreVertical, ShieldCheck,
   BarChart3, Globe, Lock, Unlock, Mail, Phone, Calendar,
-  Plus, Settings, User, Eye
+  Plus, Settings, User, Eye, Trash2
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, doc, updateDoc, query, getDocs, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, query, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { UserAccount, UserRole } from '../types';
 import { handleFirestoreError, OperationType } from '../src/lib/firestore-errors';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,7 +22,7 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ ...doc.data() } as UserAccount));
+      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserAccount));
       setUsers(usersData);
       setLoading(false);
     }, (err) => {
@@ -42,6 +42,16 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       console.error("Error updating user status:", error);
       alert("Erro ao atualizar status do usuário.");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Tem certeza que deseja excluir este usuário permanentemente? Esta ação não pode ser desfeita.")) return;
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Erro ao excluir usuário.");
     }
   };
 
@@ -185,17 +195,26 @@ const SuperAdminDashboard = () => {
                   </td>
                   <td className="px-8 py-6 text-right">
                     {user.role !== UserRole.SUPER_ADMIN && (
-                      <button 
-                        onClick={() => toggleUserStatus(user.id, user.active)}
-                        className={`p-3 rounded-xl transition-all ${
-                          user.active 
-                            ? 'bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white' 
-                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
-                        }`}
-                        title={user.active ? 'Bloquear Usuário' : 'Ativar Usuário'}
-                      >
-                        {user.active ? <Lock size={18} /> : <Unlock size={18} />}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => toggleUserStatus(user.id, user.active)}
+                          className={`p-3 rounded-xl transition-all ${
+                            user.active 
+                              ? 'bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white' 
+                              : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
+                          }`}
+                          title={user.active ? 'Bloquear Usuário' : 'Ativar Usuário'}
+                        >
+                          {user.active ? <Lock size={18} /> : <Unlock size={18} />}
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="p-3 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all"
+                          title="Excluir Usuário"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
